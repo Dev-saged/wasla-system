@@ -51,46 +51,6 @@
 
 ## 📁 ملفات المشروع
 
-| الملف | الأسطر | الدوال | المكونات | المسارات |
-|---|---|---|---|---|
-| `منظومة-مخيمات-النزوح.html` | ٢٬٨٠١ | 124 | 0 | 0 |
-
-## ⚙️ الدوال الرئيسية (124 دالة)
-
-### `منظومة-مخيمات-النزوح.html`
-- `uuid()`
-- `esc()`
-- `sha256()`
-- `calcAge()`
-- `ageCategory()`
-- `fmtDate()`
-- `debounce()`
-- `yn()`
-- `toast()`
-- `openModal()`
-- `closeModal()`
-- `confirmDialog()`
-- `dbOpen()`
-- `dbGet()`
-- `dbGetAll()`
-- `dbIndexAll()`
-- `dbPut()`
-- `dbDelete()`
-- `dbCount()`
-- `dbClear()`
-- `dbBulkPut()`
-- `nav()`
-- `seedDefaultAdmin()`
-- `findUserByUsername()`
-- `login()`
-- `logout()`
-- `restoreSession()`
-- `guardRole()`
-- `renderBottomNav()`
-- `updateFabVisibility()`
-- *(+94 دالة أخرى)*
-
-
 ## 💾 مخطط التخزين المحلي
 
 - `grcs_fb_cfg`
