@@ -7,14 +7,14 @@
  *        2) استقبال إشعارات Web Push (RFC 8291) — بديل FCM النيتيف لـiOS Safari 16.4+
  */
 
-const CACHE_NAME = 'grcs-cache-v1';
-const APP_SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE_NAME = 'grcs-cache-v2';
+const APP_SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
+      .then(cache => Promise.all(APP_SHELL.map(u => cache.add(u).catch(() => {}))))
       .catch(e => console.error('SW install cache error:', e))
   );
 });
@@ -79,3 +79,4 @@ self.addEventListener('notificationclick', event => {
     })
   );
 });
+
