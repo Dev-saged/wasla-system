@@ -14,10 +14,12 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - (names that must be preserved)
 
 ## Decisions
-- (decision, reason)
+- v3.6.0: per-camp cache versioning (PersonStore.camp, campVersion) + PQ index queries — a write to one camp must not invalidate another camp's stats
+- v3.6.0: family transfer (admin only) = tombstone at source, same IDs at destination, push destination first then source, verify via FamSync.fetchIds
 
 ## Solved bugs (never reintroduce)
-- (symptom, root cause, fix)
+- swipe tray invisible: .cv-list>* content-visibility:auto clips overflow; fix: content-visibility:visible on .sw-drag cards
+- pending-sync banner not refreshed after failed push; fix: SyncDiag._save schedules renderPendingSyncBanner
 
 ## Open issues
 - (none)
