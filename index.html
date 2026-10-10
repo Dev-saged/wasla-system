@@ -275,7 +275,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);bo
 .lock-note{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2,#64748B);background:var(--surface-2,#F8FAFC);border-radius:10px;padding:8px 10px;margin-top:8px}
 .switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px dashed var(--border)}
 .switch-row:last-of-type{border-bottom:0}
-.fam-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
+.fam-actions{display:grid;grid-template-columns:1fr;gap:8px;margin:10px 0 4px}
+.fam-group{font-size:12.5px;font-weight:800;color:var(--text-2,#64748B);margin:14px 2px 6px;display:flex;align-items:center;gap:6px}
+.fam-group em{font-style:normal;background:var(--surface-2);border-radius:999px;padding:1px 9px;font-size:11.5px}
 .req-card{background:var(--surface);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow-card);margin-bottom:9px;border-inline-start:4px solid var(--border)}
 .req-card.st-pending{border-inline-start-color:var(--warning)}
 .req-card.st-approved,.req-card.st-done{border-inline-start-color:var(--success)}
@@ -705,6 +707,55 @@ body{overscroll-behavior-y:contain}
 .rapid-nid{font-size:22px;letter-spacing:3px;text-align:center;font-weight:700;direction:ltr;min-height:56px}
 .nid-status{font-size:12.5px;font-weight:700;margin-top:6px;min-height:18px}
 .nid-status.ok{color:var(--success)}.nid-status.warn{color:var(--warning)}.nid-status.bad{color:var(--danger)}
+.nid-missing{border-color:var(--warn,#d9822b)!important}
+.field .nid-none,.nid-none{display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:12.5px;font-weight:500;color:var(--text-2,#64748B);cursor:pointer}
+.nid-none input{width:18px;height:18px;margin:0;flex:none}
+.dv-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:var(--surface-2);font-size:12px;font-weight:700;margin:2px 0 2px 6px}
+.dv-chip.dv-child{background:#FEF3C7;color:#92400E}.dv-chip.dv-elderly{background:#EDE9FE;color:#5B21B6}.dv-chip.dv-adult{background:#DBEAFE;color:#1E40AF}
+.form-promo{border:1.5px dashed var(--teal);background:color-mix(in srgb,var(--teal) 7%,var(--surface))}
+.form-promo h3{display:flex;align-items:center;gap:8px;margin:0 0 6px}
+.ff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ff-grid div{background:var(--surface-2);border-radius:12px;padding:10px 6px;text-align:center}
+.ff-grid b{display:block;font-size:20px}.ff-grid span{font-size:11.5px;color:var(--text-2,#64748B)}
+.ff-grid .ok b{color:var(--success)}.ff-grid .bad b{color:var(--danger)}.ff-grid .warn b{color:var(--warning)}
+.ff-issue{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.ff-issue i{margin-top:3px}.ff-issue.err i{color:var(--danger)}.ff-issue.warn i{color:var(--warning)}.ff-issue span{color:var(--text-2,#64748B)}
+.stat-card-fill{visibility:hidden;pointer-events:none;box-shadow:none}
+.aid-sum{padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--surface);margin-bottom:10px}
+.aid-sum-nums{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+.aid-sum-nums b{font-size:1.15rem}
+.aid-sum-nums .ok{color:var(--success)}.aid-sum-nums .warn{color:var(--warning,#c77c1a)}
+.aid-bar{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;margin-bottom:4px}
+.aid-bar.sm{height:5px;margin-top:6px}
+.aid-bar>i{display:block;height:100%;background:var(--success);border-radius:4px;transition:width .35s cubic-bezier(.2,.8,.2,1)}
+.aid-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;margin-bottom:6px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.aid-row.got{background:color-mix(in oklab,var(--success) 7%,var(--surface))}
+.aid-row .aid-who{flex:1 1 170px;min-width:0;overflow-wrap:anywhere}
+.aid-row .aid-act{display:flex;align-items:center;gap:8px}
+.aid-got{color:var(--success);font-weight:700;font-size:.85rem;white-space:nowrap}
+.qc-head{display:flex;align-items:center;gap:12px;padding:12px;margin-bottom:10px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.qc-head .q-pct{font-size:1.4rem;font-weight:800;min-width:64px;text-align:center}
+.qc-sec{border:1px solid var(--border);border-radius:14px;background:var(--surface);margin-bottom:10px;padding:0 12px}
+.qc-sec>summary{display:flex;align-items:center;gap:10px;min-height:52px;cursor:pointer;list-style:none}
+.qc-sec>summary::-webkit-details-marker{display:none}
+.qc-sec>summary .fa-chevron-down{margin-inline-start:auto;transition:transform .25s}
+.qc-sec[open]>summary .fa-chevron-down{transform:rotate(180deg)}
+.qc-count{min-width:34px;height:28px;border-radius:14px;display:grid;place-items:center;font-weight:800;font-size:.85rem;padding:0 8px}
+.qc-count.bad{background:color-mix(in oklab,var(--danger) 16%,transparent);color:var(--danger)}
+.qc-count.ok{background:color-mix(in oklab,var(--success) 16%,transparent);color:var(--success)}
+.qc-title{font-weight:700}
+.qc-note{margin:0 0 8px}
+.qc-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid var(--border)}
+.qc-row .qc-who{flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
+.qc-row .qc-acts{display:flex;gap:6px;flex-wrap:wrap}
+.qc-group{border-top:1px solid var(--border);padding:10px 0}
+.qc-gh{margin-bottom:6px}
+.natref-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid var(--border)}
+.natref-row .nr-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 180px}
+.natref-row .nr-main b{overflow-wrap:anywhere}
+.natref-row .nr-acts{display:flex;gap:6px;flex-wrap:wrap}
+.nid-fill{font:inherit;font-size:.8rem;font-weight:700;border:1px solid currentColor;background:transparent;color:inherit;border-radius:8px;padding:2px 10px;min-height:28px;margin-inline-start:4px;cursor:pointer}
+.dv-row{display:flex;flex-wrap:wrap;align-items:center;min-height:30px;margin-top:4px}
 .name-suggest{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .ns-chip{padding:7px 14px;min-height:38px;border-radius:var(--radius-pill);background:var(--surface-2);border:1.5px solid var(--border);font-weight:700;font-size:14px;animation:fadeUp .2s var(--ease) both}
 .ns-chip:active{background:var(--teal);color:#fff;border-color:var(--teal)}
@@ -979,9 +1030,9 @@ body.gs-open{overflow:hidden}
       <div class="form-card">
         <h3><i class="fa-solid fa-id-card"></i> البيانات الأساسية</h3>
         <div class="field"><label>الاسم الكامل *</label><input type="text" id="pf-fullName" required></div>
-        <div class="field"><label>رقم الهوية</label><input type="text" id="pf-nationalId" inputmode="numeric"></div>
+        <div class="field"><label>رقم الهوية *</label><input type="text" id="pf-nationalId" inputmode="numeric"></div>
         <div class="field"><label>تاريخ الميلاد</label><input type="date" id="pf-birthDate"></div>
-        <div class="field"><label class="flex-between">العمر المحسوب <span class="caption" id="pf-age-out">—</span></label></div>
+        <div class="field"><label class="flex-between">العمر المحسوب <span class="caption" id="pf-age-out">—</span></label><div class="dv-row" id="pf-dv"></div></div>
         <div class="field">
           <label>الجنس</label>
           <div class="seg-btns" id="pf-gender-btns">
@@ -1013,8 +1064,8 @@ body.gs-open{overflow:hidden}
       <div class="form-card" id="pf-spouse-card" hidden>
         <h3><i class="fa-solid fa-people-pulling"></i> الزوج / الزوجة <span class="caption">(اختياري)</span></h3>
         <div class="field"><label>الاسم الكامل</label><input type="text" id="pf-spouseName" placeholder="اسم الزوج/ة رباعي"></div>
-        <div class="field"><label>رقم الهوية</label><input type="text" id="pf-spouseNationalId" inputmode="numeric"></div>
-        <div class="field"><label>تاريخ الميلاد</label><input type="date" id="pf-spouseDob"></div>
+        <div class="field"><label>رقم الهوية <span class="caption">(مطلوب إن أُدخل الاسم)</span></label><input type="text" id="pf-spouseNationalId" inputmode="numeric"></div>
+        <div class="field"><label>تاريخ الميلاد</label><input type="date" id="pf-spouseDob"><div class="dv-row" id="pf-spouse-dv"></div></div>
         <div class="toggle-row" id="pf-spousePregnant-row" hidden>
           <div class="tr-label"><i class="fa-solid fa-baby-carriage"></i> حامل</div>
           <div class="switch" id="pf-spouseIsPregnant"></div>
@@ -1088,6 +1139,12 @@ body.gs-open{overflow:hidden}
   </header>
   <div class="screen-body">
     <div id="import-step-drop">
+      <div class="form-card form-promo" id="form-promo">
+        <h3><i class="fa-solid fa-file-circle-check"></i> الفورمة الموحّدة — الأسرع والأدق</h3>
+        <p class="caption">حمّل الفورمة وعبّئها ثم ارفعها: يفهمها النظام بلا تخمين، ويرتّب كل فرد بمكانه، ويصنّفه تلقائياً من تاريخ ميلاده، ويخبرك بأي خطأ بأرقام الصفوف قبل أن يكتب شيئاً.</p>
+        <button class="btn btn-primary w-full mt-8" id="form-dl-btn"><i class="fa-solid fa-download"></i> تحميل الفورمة</button>
+      </div>
+      <div class="form-card" id="natref-box" hidden></div>
       <div class="dropzone" id="import-dropzone">
         <i class="fa-solid fa-cloud-arrow-up"></i>
         <h3>اسحب ملف Excel هنا أو انقر للاختيار</h3>
@@ -1113,6 +1170,13 @@ body.gs-open{overflow:hidden}
       <p class="text-center caption" id="import-progress-count">0 / 0</p>
     </div>
     <div id="import-step-preflight" hidden></div>
+    <div id="import-step-form" hidden>
+      <div class="form-card" id="ff-summary"></div>
+      <div class="form-card" id="ff-issues" hidden></div>
+      <button class="btn btn-primary" id="ff-go"><i class="fa-solid fa-play"></i> استيراد</button>
+      <button class="btn btn-outline mt-8" id="ff-report" hidden><i class="fa-solid fa-file-excel"></i> تحميل تقرير الأخطاء والتنبيهات</button>
+      <button class="btn btn-outline mt-8" id="ff-cancel">إلغاء</button>
+    </div>
     <div id="import-step-done" hidden>
       <div class="form-card text-center">
         <i class="fa-solid fa-circle-check" style="font-size:44px;color:var(--success);margin-bottom:10px"></i>
@@ -1289,6 +1353,7 @@ body.gs-open{overflow:hidden}
   <div class="screen-body">
     <button class="btn btn-outline mb-8 w-full" id="reconcile-open-btn"><i class="fa-solid fa-users-viewfinder"></i> مطابقة كشف وطني شامل (مطابقة وتكميل بيانات)</button>
     <button class="btn btn-outline mb-8 w-full" id="hq-cats-btn"><i class="fa-solid fa-layer-group"></i> كشوفات التصنيفات لكل المخيمات (أيتام، حوامل...)</button>
+    <div class="btn-block-row mb-8"><button class="btn btn-outline" id="hq-aid-btn"><i class="fa-solid fa-box-open"></i> المساعدات — كل المخيمات</button><button class="btn btn-outline" id="hq-quality-btn"><i class="fa-solid fa-shield-halved"></i> مركز الجودة</button></div>
     <button class="btn btn-navy mb-8 w-full" id="camps-export-btn"><i class="fa-solid fa-file-excel"></i> تصدير بيانات المخيمات</button>
     <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="camps-search" placeholder="بحث موحّد: اسم شخص أو مخيم..."></div>
     <div id="camps-unified-results" hidden></div>
@@ -1362,8 +1427,7 @@ body.gs-open{overflow:hidden}
 
     <div class="ben-pane" data-pane="family" hidden>
       <div class="fam-actions">
-        <button class="btn btn-outline" id="ben-add-baby"><i class="fa-solid fa-baby"></i> إضافة مولود</button>
-        <button class="btn btn-outline" id="ben-add-member"><i class="fa-solid fa-user-plus"></i> إضافة فرد</button>
+        <button class="btn btn-primary" id="ben-add-member"><i class="fa-solid fa-user-plus"></i> إضافة فرد جديد</button>
       </div>
       <div id="ben-orphans"></div>
       <div id="ben-family-list"></div>
@@ -1420,16 +1484,17 @@ body.gs-open{overflow:hidden}
       <button class="chip" data-rel="other">فرد آخر</button>
     </div>
     <div class="form-card rapid-card">
-      <div class="field"><label>رقم الهوية</label>
+      <div class="field"><label>رقم الهوية *</label>
         <input type="text" id="rapid-nid" inputmode="numeric" autocomplete="off" maxlength="12" class="rapid-nid" placeholder="9 أرقام">
-        <div class="nid-status" id="rapid-nid-status"></div></div>
+        <div class="nid-status" id="rapid-nid-status"></div>
+        <label class="nid-none"><input type="checkbox" id="rapid-nid-none"> لا يوجد رقم هوية بعد (مولود لم تصدر هويته)</label></div>
       <div class="field"><label>الاسم الأول / الكامل</label>
         <input type="text" id="rapid-name" autocomplete="off" placeholder="اكتب الاسم الأول واختر من الاقتراحات">
         <div class="name-suggest" id="rapid-suggest"></div>
         <div class="caption" id="rapid-name-preview"></div></div>
       <div class="field" id="rapid-gender-wrap"><label>الجنس</label>
         <div class="seg-btns" id="rapid-gender"><button type="button" class="seg-btn" data-g="male"><i class="fa-solid fa-mars"></i> ذكر</button><button type="button" class="seg-btn" data-g="female"><i class="fa-solid fa-venus"></i> أنثى</button></div></div>
-      <div class="field"><label>تاريخ الميلاد</label><input type="date" id="rapid-dob"></div>
+      <div class="field"><label>تاريخ الميلاد</label><input type="date" id="rapid-dob"><div class="dv-row" id="rapid-dv"></div></div>
       <div class="field" id="rapid-phone-wrap"><label>رقم الهاتف</label><input type="tel" id="rapid-phone" inputmode="tel"></div>
     </div>
     <div class="section-title"><h2>آخر ما حُفظ</h2></div>
@@ -1442,6 +1507,33 @@ body.gs-open{overflow:hidden}
 </section>
 
 <!-- ======================= شاشة الأسماء المتشابهة ======================= -->
+<section id="screen-quality" class="screen" hidden>
+  <header class="app-header">
+    <button class="icon-btn" id="quality-back"><i class="fa-solid fa-arrow-right"></i></button>
+    <div class="titles"><div class="t1">مركز الجودة</div><div class="t2" id="quality-sub">—</div></div>
+  </header>
+  <div class="screen-body no-nav-pad"><div id="quality-body"></div></div>
+</section>
+
+<section id="screen-aid" class="screen" hidden>
+  <header class="app-header">
+    <button class="icon-btn" id="aid-back"><i class="fa-solid fa-arrow-right"></i></button>
+    <div class="titles"><div class="t1">المساعدات</div><div class="t2" id="aid-sub">—</div></div>
+    <button class="icon-btn" id="aid-export" title="كشف توزيع Excel" aria-label="كشف توزيع Excel" hidden><i class="fa-solid fa-file-excel"></i></button>
+  </header>
+  <div class="screen-body no-nav-pad">
+    <div class="filter-chips" id="aid-types"></div>
+    <div class="filter-chips" id="aid-period"><button class="chip" data-p="today">اليوم</button><button class="chip" data-p="month">هذا الشهر</button><button class="chip" data-p="all">كل الفترات</button></div>
+    <div class="aid-sum" id="aid-sum"></div>
+    <div id="aid-controls">
+      <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="aid-search" placeholder="بحث بالاسم أو الهوية..."></div>
+      <div class="filter-chips" id="aid-filter"><button class="chip active" data-f="todo">لم يستلم</button><button class="chip" data-f="done">استلم</button><button class="chip" data-f="all">الكل</button></div>
+    </div>
+    <button class="btn btn-outline w-full mb-8" id="aid-bulk" hidden></button>
+    <div id="aid-list"></div>
+  </div>
+</section>
+
 <section id="screen-similar" class="screen" hidden>
   <header class="app-header">
     <button class="icon-btn" id="similar-back"><i class="fa-solid fa-arrow-right"></i></button>
@@ -1478,9 +1570,9 @@ body.gs-open{overflow:hidden}
 </div>
 <script type="module">
 /* ===================== إعدادات عامة ===================== */
-const APP_VERSION = '3.4.0';
+const APP_VERSION = '3.5.0';
 const DB_NAME = 'grcs_db';
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 const STORES = ['persons','families','camps','users','messages','changelog','syncQueue','savedExports'];
 
 // إعدادات Firebase مموَّهة بالكود (Base64 معكوس) — تمويه وليس تشفيراً حقيقياً؛
@@ -2011,7 +2103,7 @@ function ageCategory(age){
   if(age == null) return 'unknown';
   if(age < 1) return 'infant';
   if(age <= 18) return 'child';
-  if(age <= 60) return 'adult';
+  if(age <= 59) return 'adult';
   return 'elderly';
 }
 // تصنيف عمري أدق (لا يستبدل ageCategory المستخدَم بالبطاقات الأصلية — إضافة موازية للفلترة والتقارير الموسّعة)
@@ -2024,6 +2116,61 @@ function ageBucket(age){
   if(age <= 59) return 'midAdult';
   return 'elderly';
 }
+/* ===================== المصنِّف الموحّد (I1) — مصدر واحد لكل التصنيفات =====================
+   كل بطاقة إحصاء وكل فلتر قائمة وكل معاينة بالنماذج تقرأ من هنا، فلا يختلف الرقم عن القائمة.
+   التصنيف العمري تلقائي من تاريخ الميلاد: يدخل التاريخ ← يُصنَّف الفرد فوراً (مثلاً 1950 ← كبار السن). */
+const Derive = {
+  AGE_KEYS: ['infant','under2','preschool','child','school','youth','midAdult','elderly'],
+  KNOWN: new Set(['male','female','infant','under2','preschool','child','school','youth','midAdult','elderly','adult','pregnant','breastfeeding','chronic','disability','widowed','divorced','orphan','injured','martyr','noid','nophone','adults18']),
+  keys(p){
+    const ks = [], age = getAge(p);
+    if(p.gender === 'male') ks.push('male'); else if(p.gender === 'female') ks.push('female');
+    if(age != null){
+      if(age < 1) ks.push('infant');
+      if(age < 2) ks.push('under2');
+      if(age >= 1 && age <= 18) ks.push('child');
+      if(age >= 1 && age <= 5) ks.push('preschool');
+      if(age >= 6 && age <= 17) ks.push('school');
+      if(age >= 18 && age <= 29) ks.push('youth');
+      if(age >= 30 && age <= 59) ks.push('midAdult');
+      if(age >= 19 && age <= 59) ks.push('adult');
+      if(age >= 60) ks.push('elderly');
+      if(age >= 18 && !p.isFamilyHead && (p.relation === 'child' || p.relation === 'orphan')) ks.push('adults18');
+    }
+    if(p.isPregnant) ks.push('pregnant');
+    if(p.isBreastfeeding) ks.push('breastfeeding');
+    if(p.hasChronicDisease) ks.push('chronic');
+    if(p.hasDisability) ks.push('disability');
+    if(isWidowed(p)) ks.push('widowed');
+    if(isDivorced(p)) ks.push('divorced');
+    if(isOrphan(p)) ks.push('orphan');
+    if(p.tags){ if(p.tags.includes('injured')) ks.push('injured'); if(p.tags.includes('martyr_family')) ks.push('martyr'); }
+    if(!p.nationalId) ks.push('noid');
+    if(p.isFamilyHead && !p.phone) ks.push('nophone');
+    return ks;
+  },
+  has(p, k){ return this.keys(p).includes(k); },
+  /* موضع الفرد بقائمة الأسرة: طفل (دون 18) / بالغ / كبير سن — يُحدَّد من العمر وحده */
+  place(p){
+    const a = getAge(p);
+    if(a == null) return 'unknown';
+    return a < 18 ? 'child' : a >= 60 ? 'elderly' : 'adult';
+  },
+  /* معاينة فورية للنماذج: من تاريخ الميلاد والجنس وما يُدخل قبل الحفظ */
+  preview(p){
+    const age = getAge(p);
+    if(age == null) return null;
+    const ks = this.keys(p).filter(k=>this.AGE_KEYS.includes(k) || ['pregnant','breastfeeding','widowed','orphan'].includes(k));
+    return {age, place: this.place(p), labels: ks.map(k=>PERSON_FILTER_LABELS[k]).filter(Boolean)};
+  },
+  previewHtml(p){
+    const v = this.preview(p);
+    if(!v) return '<span class="caption">أدخل تاريخ الميلاد ليُصنَّف تلقائياً</span>';
+    const head = v.place === 'child' ? 'طفل' : v.place === 'elderly' ? 'كبير سن' : 'بالغ';
+    return `<span class="dv-chip dv-${v.place}"><i class="fa-solid ${v.place==='child'?'fa-child':v.place==='elderly'?'fa-person-cane':'fa-user'}"></i> ${head} · ${v.age} سنة</span>` +
+      v.labels.map(l=>`<span class="dv-chip">${esc(l)}</span>`).join('');
+  }
+};
 function isWidowed(p){ return !!(p.maritalStatus && p.maritalStatus.includes('أرمل')); }
 function isDivorced(p){ return !!(p.maritalStatus && p.maritalStatus.includes('مطلق')); }
 function fmtDate(ts){
@@ -2093,6 +2240,256 @@ function nidStatus(v){
   if(!s) return 'empty';
   if(!/^\d+$/.test(s) || s.length < 8 || s.length > 9) return 'format';
   return isValidPalId(s) ? 'valid' : 'invalid';
+}
+/* ===================== حقل الهوية الموحّد (N1) — مطلوب لكل فرد بكل النماذج =====================
+   يُدخل الرقم (9 خانات) أو يُحدَّد صراحة «لا يوجد رقم هوية بعد» للمولود الذي لم تصدر هويته (يُحفظ noIdYet).
+   تُحجب التكرارات داخل المخيم ومع المخيمات الأخرى (عند الاتصال)، وتُعرض خانة التحقق تحذيراً دون حجب. */
+const NidField = {
+  skipped: 0, // عدد السجلات القديمة بلا هوية التي لم تحجب الحفظ
+  pool: null, // مصدر بديل للتكرار (نافذة المستفيد: أسرته فقط)
+  /* يُحسّن حقل إدخال موجود: حالة فورية + خانة «لا هوية بعد» */
+  enhance(input, opts){
+    if(!input) return null;
+    opts = opts || {};
+    if(!input._nid){
+      input._nid = true;
+      input.setAttribute('inputmode','numeric'); input.setAttribute('maxlength','9'); input.setAttribute('autocomplete','off');
+      const st = document.createElement('div'); st.className = 'nid-status';
+      const lb = document.createElement('label'); lb.className = 'nid-none';
+      lb.innerHTML = '<input type="checkbox"> لا يوجد رقم هوية بعد (مولود لم تصدر هويته)';
+      input.insertAdjacentElement('afterend', st); st.insertAdjacentElement('afterend', lb);
+      input._st = st; input._none = lb.querySelector('input');
+      st.addEventListener('click', e=>{ if(e.target.closest('[data-natfill]')) NatRef.fill(input); });
+      input.addEventListener('input', ()=>{
+        const v = toLatinDigits(input.value).replace(/[^\d]/g,'').slice(0,9);
+        if(v !== input.value) input.value = v;
+        if(v) input._none.checked = false;
+        NidField.refresh(input);
+      });
+      input._none.addEventListener('change', ()=>{
+        if(input._none.checked){ input.value = ''; }
+        input.disabled = input._none.checked;
+        NidField.refresh(input);
+      });
+    }
+    return input;
+  },
+  set(input, value, noIdYet){
+    NidField.enhance(input);
+    input.value = value || ''; input.dataset.orig = value || '';
+    input._none.checked = !value && !!noIdYet;
+    input.disabled = input._none.checked;
+    NidField.refresh(input);
+  },
+  read(input){
+    NidField.enhance(input);
+    const nid = normNid(input.value);
+    return {nid: /^\d+$/.test(nid) ? nid : '', none: !!input._none.checked && !nid};
+  },
+  /* حالة فورية: مكرر بالمخيم / خانة التحقق */
+  refresh(input){
+    const st = input._st; if(!st) return;
+    const n = normNid(input.value);
+    if(!n){ st.className = 'nid-status'; st.textContent = ''; return; }
+    const dup = DX.of(NidField.pool || State.personsCache).byNid.get(n);
+    if(dup && dup.id !== input.dataset.self){ st.className = 'nid-status bad'; st.textContent = `مسجّل مسبقاً بهذا المخيم: ${dup.fullName}`; return; }
+    const s = nidStatus(n);
+    let cls = s === 'valid' ? 'ok' : 'warn', html = esc(s === 'valid' ? 'رقم صالح' : s === 'format' ? 'الرقم يجب أن يكون 9 أرقام' : 'لا يجتاز خانة التحقق — تأكد من الرقم');
+    /* تحقق فوري من الكشف الوطني المخزّن (يُحمَّل مرة بالخلفية ثم يُعاد العرض) */
+    if(!NatRef.ready()) NatRef.ensure().then(()=>{ if(input.isConnected) NidField.refresh(input); }).catch(()=>{});
+    else { const h = NatRef.hint(n, !!input._link); if(h){ html += h.html; if(h.cls === 'warn') cls = 'warn'; } }
+    st.className = 'nid-status ' + cls; st.innerHTML = html;
+  },
+  /* يربط الحقل بحقلي الاسم والميلاد لزر «تعبئة» من الكشف الوطني */
+  link(input, name, dob){ input._link = {name, dob}; return input; },
+  /* تحقق قبل الحفظ: يُرجع نص الخطأ أو '' — rows: [{input, label, self}] */
+  validate(rows){
+    const seen = new Map();
+    NidField.skipped = 0;
+    for(const r of rows){
+      const {nid, none} = NidField.read(r.input);
+      const who = r.label ? ` (${r.label})` : '';
+      /* سجل قديم بلا هوية لم يُلمس: لا يحجب حفظ باقي الأسرة — يظهر بمركز الجودة */
+      if(!nid && !none && r.legacy && !r.input.dataset.orig){ NidField.skipped++; r.input.classList.add('nid-missing'); continue; }
+      if(!nid && !none){ r.input.focus?.(); return `رقم الهوية مطلوب${who} — أدخله أو حدّد «لا يوجد رقم هوية بعد»`; }
+      if(!nid) continue;
+      if(nidStatus(nid) === 'format'){ r.input.focus?.(); return `رقم الهوية${who} يجب أن يكون 9 أرقام`; }
+      const dup = DX.of(NidField.pool || State.personsCache).byNid.get(nid);
+      if(dup && dup.id !== r.self){ r.input.focus?.(); return `رقم الهوية${who} مسجّل مسبقاً: ${dup.fullName}`; }
+      if(seen.has(nid)){ r.input.focus?.(); return `رقم الهوية${who} مكرر داخل النموذج نفسه`; }
+      seen.set(nid, 1);
+    }
+    return '';
+  },
+  /* فحص الفهرس الوطني (مخيمات أخرى) — يتجاوز بصمت عند عدم الاتصال أو فشل الطلب */
+  async crossCamp(rows, campId){
+    if(!State.online) return '';
+    for(const r of rows){
+      const {nid} = NidField.read(r.input);
+      if(!nid || nidStatus(nid) !== 'valid' || nid === (r.input.dataset.orig||'')) continue;
+      const found = await Promise.race([checkNationalIndex(nid), new Promise(res=>setTimeout(()=>res(null), 3500))]);
+      if(found && found.campId && found.campId !== campId) return `رقم الهوية${r.label?` (${r.label})`:''} مسجّل بمخيم آخر: ${found.campName||found.campId}${found.fullName?' — '+found.fullName:''}`;
+    }
+    return '';
+  },
+  /* يطبّق نتيجة الحقل على سجل الفرد */
+  apply(p, input){
+    const {nid, none} = NidField.read(input);
+    p.nationalId = nid;
+    if(none) p.noIdYet = true; else delete p.noIdYet;
+  }
+};
+/* ===================== المرجع الوطني المخزّن بالجهاز (A3/F2) =====================
+   كشف وطني شامل يُرفع مرة واحدة ويُحفظ بـIndexedDB (قائمة + حذف + استبدال)، ثم يخدم:
+   (1) مطابقة الكشف الوطني بدون إعادة اختيار الملف، (2) تحقق فوري من أي هوية تُكتب بالنماذج (مطابق/غير وارد + تعبئة الاسم والميلاد)،
+   (3) اقتراح هوية الناقصين بمركز الجودة. الصفوف تُخزَّن دفعات (CHUNK) لتجنب سجل ضخم واحد. */
+const NatRef = {
+  CHUNK: 1500, _ix: null, _fam: null, _bp: null, _v: 0, _meta: [],
+  ROLE_LBL: {head:'رب أسرة', wife:'زوجة', child:'ابن/ابنة'},
+  async list(){ const r = await dbGetAll('natRefs'); return r.sort((a,b)=>b.savedAt - a.savedAt); },
+  async _dropRows(id){
+    const db = await dbOpen();
+    await new Promise((res, rej)=>{
+      const tx = db.transaction('natRefRows', 'readwrite'), st = tx.objectStore('natRefRows');
+      const cur = st.index('refId').openKeyCursor(IDBKeyRange.only(id));
+      cur.onsuccess = ()=>{ const c = cur.result; if(c){ st.delete(c.primaryKey); c.continue(); } };
+      tx.oncomplete = res; tx.onerror = ()=>rej(tx.error); tx.onabort = ()=>rej(tx.error);
+    });
+  },
+  /* يحفظ كشفاً مُحلَّلاً {headers, dataRows, mode, fileName}؛ replaceId = استبدال كشف محفوظ */
+  async save(parsed, replaceId){
+    const id = replaceId || uuid(), rows = parsed.dataRows;
+    if(replaceId) await this._dropRows(id);
+    const db = await dbOpen();
+    await new Promise((res, rej)=>{
+      const tx = db.transaction(['natRefs', 'natRefRows'], 'readwrite'), rs = tx.objectStore('natRefRows');
+      for(let i = 0, n = 0; i < rows.length; i += this.CHUNK, n++) rs.put({key: id + ':' + n, refId: id, n, rows: rows.slice(i, i + this.CHUNK)});
+      tx.objectStore('natRefs').put({id, name: parsed.fileName || 'كشف وطني', mode: parsed.mode, headers: parsed.headers, count: rows.length, savedAt: Date.now(), by: State.user?.id || ''});
+      tx.oncomplete = res; tx.onerror = ()=>rej(tx.error); tx.onabort = ()=>rej(tx.error);
+    });
+    _bumpStore('natRefs'); this._invalidate();
+    return id;
+  },
+  async load(id){
+    const meta = await dbGet('natRefs', id); if(!meta) return null;
+    const chunks = (await dbIndexAll('natRefRows', 'refId', id)).sort((a,b)=>a.n - b.n);
+    return {headers: meta.headers, dataRows: chunks.flatMap(c=>c.rows), fileName: meta.name, mode: meta.mode, ref: meta};
+  },
+  async remove(id){ await this._dropRows(id); await dbDelete('natRefs', id); this._invalidate(); },
+  _invalidate(){ this._v++; this._ix = null; this._fam = null; this._bp = null; },
+  _cols(headers, mode){ return mode === 'horizontal' ? detectHorizontalColumns(headers) : detectFamilySummaryColumns(headers); },
+  _entries(ref, rows, ix, fam){
+    const idx = this._cols(ref.headers, ref.mode), V = (r, i)=>i == null ? '' : cleanCell(r[i]);
+    const ok = n=>/^\d{8,9}$/.test(n);
+    for(const r of rows){
+      const hn = V(r, idx.headName), hid = normNid(V(r, idx.headNid));
+      const members = [];
+      const put = (nid, name, role, dob)=>{
+        if(!ok(nid)) return;
+        const e = {nid, name, role, dob: dob || null, headName: hn, headNid: ok(hid) ? hid : '', ref: ref.name};
+        members.push(e);
+        if(!ix.has(nid)) ix.set(nid, e);
+      };
+      put(hid, hn, 'head', idx.headDob != null ? parseDateCell(r[idx.headDob]) : null);
+      put(normNid(V(r, idx.wifeNid)), V(r, idx.wifeName), 'wife', idx.wifeDob != null ? parseDateCell(r[idx.wifeDob]) : null);
+      for(const c of (idx.children || [])) put(normNid(V(r, c.nid)), V(r, c.name), 'child', c.dob != null ? parseDateCell(r[c.dob]) : null);
+      if(ok(hid) && !fam.has(hid)) fam.set(hid, members);
+    }
+  },
+  /* بناء الفهرس بدفعات مع تنفّس للواجهة؛ يُعاد إن تغيّر المرجع أثناء البناء */
+  async ensure(){
+    if(this._ix) return this._ix;
+    if(this._bp) return this._bp;
+    const v = this._v;
+    this._bp = (async()=>{
+      const ix = new Map(), fam = new Map();
+      const refs = await this.list(); this._meta = refs;
+      for(const ref of refs){
+        const chunks = (await dbIndexAll('natRefRows', 'refId', ref.id)).sort((a,b)=>a.n - b.n);
+        for(const ch of chunks){ this._entries(ref, ch.rows, ix, fam); await new Promise(r=>setTimeout(r, 0)); }
+      }
+      if(v !== this._v){ this._bp = null; return this.ensure(); }
+      this._ix = ix; this._fam = fam; this._bp = null;
+      return ix;
+    })();
+    return this._bp;
+  },
+  ready(){ return !!this._ix; },
+  size(){ return this._ix ? this._ix.size : 0; },
+  peek(nid){ return this._ix ? (this._ix.get(normNid(nid)) || null) : null; },
+  famOf(headNid){ return this._fam ? (this._fam.get(normNid(headNid)) || []) : []; },
+  /* هوية مقترحة لفرد بلا هوية: من أسرة رب أسرته بالكشف الوطني، باسم مطابق وحيد وغير مستخدم بالمخيم */
+  suggestFor(p, ix){
+    if(!this._fam || !p.fullName || p.isFamilyHead) return null;
+    const head = ix.headOf.get(famKey(p)); const hn = head && normNid(head.nationalId);
+    if(!hn) return null;
+    const k = nameKey(p.fullName);
+    const cands = this.famOf(hn).filter(e=>e.role !== 'head' && !ix.byNid.has(e.nid) && (nameKey(e.name) === k || jaroWinkler(nameKey(e.name), k) >= 0.93));
+    return cands.length === 1 ? cands[0] : null;
+  },
+  /* نص حالة التحقق الفوري لحقل هوية: {html, cls} أو null إن لا مرجع محفوظ */
+  hint(n, linkable){
+    if(!/^\d{8,9}$/.test(n) || !this._ix || !this._ix.size) return null;
+    const hit = this._ix.get(n);
+    if(!hit) return {cls: 'warn', html: ' · غير وارد بالكشف الوطني المخزّن'};
+    return {cls: 'ok', html: ` · وارد بالكشف الوطني: <b>${esc(hit.name || '—')}</b> (${this.ROLE_LBL[hit.role]})` + (linkable ? ' <button type="button" class="nid-fill" data-natfill>تعبئة</button>' : '')};
+  },
+  /* يعبّئ الاسم والميلاد الفارغين فقط — لا يستبدل ما كُتب */
+  fill(input){
+    const hit = this.peek(input.value); if(!hit) return;
+    const L = input._link || {}, nameEl = L.name && L.name(), dobEl = L.dob && L.dob(), did = [];
+    const fire = el=>{ el.dispatchEvent(new Event('input', {bubbles:true})); el.dispatchEvent(new Event('change', {bubbles:true})); };
+    if(nameEl && !nameEl.value.trim() && hit.name){ nameEl.value = hit.name; fire(nameEl); did.push('الاسم'); }
+    if(dobEl && !dobEl.value && hit.dob){ dobEl.value = hit.dob; fire(dobEl); did.push('تاريخ الميلاد'); }
+    toast(did.length ? `عُبّئ ${did.join(' و')} من الكشف الوطني` : 'الحقول معبّأة مسبقاً — لم يُستبدل شيء', did.length ? 'ok' : 'warn');
+  }
+};
+/* واجهة اختيار المرجع بشاشة المطابقة الوطنية */
+async function renderNatRefBox(){
+  const box = document.getElementById('natref-box'); if(!box) return;
+  if(!State.reconcileMode){ box.hidden = true; return; }
+  const refs = await NatRef.list();
+  box.hidden = false;
+  const fmt = t=>new Date(t).toLocaleDateString('ar-EG-u-nu-latn');
+  box.innerHTML = `<div class="section-title"><h2><i class="fa-solid fa-database"></i> الكشوف الوطنية المحفوظة بالجهاز</h2><span class="caption">${refs.length ? refs.length + ' كشف' : 'لا يوجد'}</span></div>` +
+    (refs.length ? refs.map(r=>`<div class="natref-row" data-id="${esc(r.id)}">
+        <div class="nr-main"><b>${esc(r.name)}</b><span class="caption">${r.count.toLocaleString('en-US')} صف · حُفظ ${fmt(r.savedAt)}</span></div>
+        <div class="nr-acts">
+          <button class="btn btn-primary btn-sm" data-nr="use"><i class="fa-solid fa-play"></i> استخدام</button>
+          <button class="btn btn-outline btn-sm" data-nr="replace"><i class="fa-solid fa-arrows-rotate"></i> استبدال</button>
+          <button class="btn btn-outline btn-sm" data-nr="del" aria-label="حذف"><i class="fa-solid fa-trash" style="color:var(--danger)"></i></button>
+        </div></div>`).join('')
+      : `<p class="caption">ارفع الكشف الوطني الشامل مرة واحدة فقط — يُحفظ تلقائياً بالجهاز فلا تحتاج لاختياره من جديد، ويفعّل التحقق الفوري من الهويات بكل النماذج.</p>`) +
+    `<p class="caption mt-8">${refs.length ? 'أو ارفع كشفاً جديداً بالأسفل (يُضاف للقائمة؛ نفس اسم الملف يستبدل المحفوظ).' : ''}</p>`;
+  box.querySelectorAll('.natref-row').forEach(row=>{
+    const id = row.dataset.id, ref = refs.find(r=>r.id === id);
+    row.querySelector('[data-nr="use"]').addEventListener('click', async ()=>{
+      const b = row.querySelector('[data-nr="use"]'); b.disabled = true;
+      try{
+        const parsed = await NatRef.load(id);
+        if(!parsed){ toast('تعذّر قراءة الكشف المحفوظ','err'); return; }
+        State.importParsed = {headers: parsed.headers, dataRows: parsed.dataRows, fileName: parsed.fileName, mode: parsed.mode, campMeta: {}, fromNatRef: id};
+        renderReconcilePreview();
+      }catch(e){ console.error(e); toast('تعذّر فتح الكشف المحفوظ','err'); }
+      finally{ b.disabled = false; }
+    });
+    row.querySelector('[data-nr="replace"]').addEventListener('click', ()=>{ State._natReplaceId = id; document.getElementById('import-file-input').click(); });
+    row.querySelector('[data-nr="del"]').addEventListener('click', async ()=>{
+      if(!await confirmDialog(`حذف الكشف «${ref?.name||''}» من الجهاز؟ يمكنك رفع غيره لاحقاً.`, {title:'حذف كشف محفوظ', okText:'حذف', okClass:'btn-danger', icon:'fa-trash'})) return;
+      await NatRef.remove(id); toast('حُذف الكشف المحفوظ','ok'); renderNatRefBox();
+    });
+  });
+}
+/* بعد قراءة كشف جديد بوضع المطابقة: حفظه تلقائياً (استبدال الجاري أو نفس الاسم) */
+async function natRefAutoSave(parsed){
+  try{
+    const refs = await NatRef.list();
+    const rid = State._natReplaceId || (refs.find(r=>r.name === parsed.fileName) || {}).id || null;
+    State._natReplaceId = null;
+    const id = await NatRef.save(parsed, rid);
+    if(State.importParsed) State.importParsed.fromNatRef = id;
+    toast(rid ? 'حُدّث الكشف المحفوظ بالجهاز' : 'حُفظ الكشف بالجهاز — لن تحتاج لرفعه مرة أخرى', 'ok');
+  }catch(e){ console.error('تعذّر حفظ المرجع الوطني:', e); toast('تعذّر حفظ الكشف بالجهاز (المطابقة ستعمل)', 'warn'); }
 }
 /* ===== محرك التواريخ ===== */
 const AR_MONTHS = {
@@ -2244,6 +2641,78 @@ const DX = {
     let ix = this._memo.get(persons);
     if(!ix){ ix = buildPersonIndex(persons); this._memo.set(persons, ix); }
     return ix;
+  }
+};
+/* ===================== أداء: إحصاءات مخزّنة (P1) + بحث موحّد بفهرس محلي (P3) + عامل خلفي للمجموعات الكبيرة (P2) ===================== */
+/* إحصاءات المجموعة تُحسب مرة لكل (مصفوفة أفراد، يوم) — تغيّر أي سجل يُنتج مصفوفة جديدة فتُعاد، غير ذلك فورية */
+const _statsMemo = new WeakMap();
+function statsOf(persons){
+  const day = todayStr(), c = _statsMemo.get(persons);
+  if(c && c.day === day && c.n === persons.length) return c.st;
+  const st = computeStats(persons);
+  _statsMemo.set(persons, {day, n: persons.length, st});
+  return st;
+}
+const SearchIdx = {
+  _m: new WeakMap(), _w: null, _wSrc: null, _wReady: null, _seq: 0, _pend: new Map(), WORKER_MIN: 8000,
+  /* مفاتيح التطبيع تُحسب مرة لكل سجل (وتُبطَل مع كائن السجل نفسه) */
+  key(p){
+    let r = this._m.get(p);
+    if(!r || r.fn !== p.fullName || r.nid !== p.nationalId || r.ph !== p.phone){
+      r = {fn: p.fullName, nid: p.nationalId, ph: p.phone, k: nameKey(p.fullName), n: normNid(p.nationalId), d: toLatinDigits(p.phone||'')};
+      this._m.set(p, r);
+    }
+    return r;
+  },
+  test(p, q, qk, qn, qd){
+    const r = this.key(p);
+    return r.k.includes(qk) || (qn && /^\d{3,}$/.test(qn) && r.n.includes(qn)) || (qd.length >= 4 && r.d.includes(qd));
+  },
+  /* مرشّح قائمة الأفراد: اسم أو هوية أو هاتف (نفس سلوك الشاشة السابق) */
+  filter(list, q){
+    const qk = nameKey(q), qn = normNid(q);
+    return list.filter(p=>{ const r = this.key(p); return (p.fullName||'').includes(q) || r.k.includes(qk) || (qn && r.n.includes(qn)) || (p.phone||'').includes(q); });
+  },
+  findSync(pool, q, limit){
+    const qk = nameKey(q), qn = normNid(q), qd = toLatinDigits(q), out = [];
+    for(const p of pool){ if(this.test(p, q, qk, qn, qd)){ out.push(p); if(out.length >= limit) break; } }
+    return out;
+  },
+  _worker(){
+    if(this._w !== null) return this._w;
+    try{
+      const src = [toLatinDigits, normNid, normalizeArabic, nameKey].map(f=>f.toString()).join('\n') + `
+let rows = [];
+onmessage = e=>{ const m = e.data;
+  if(m.t === 'idx'){ rows = m.rows.map(r=>[r[0], nameKey(r[1]), normNid(r[2]), toLatinDigits(r[3]||'')]); postMessage({t:'ready'}); }
+  else if(m.t === 'q'){
+    const qk = nameKey(m.q), qn = normNid(m.q), qd = toLatinDigits(m.q), ids = [];
+    for(const r of rows){ if(r[1].includes(qk) || (qn && /^\\d{3,}$/.test(qn) && r[2].includes(qn)) || (qd.length >= 4 && r[3].includes(qd))){ ids.push(r[0]); if(ids.length >= m.limit) break; } }
+    postMessage({t:'res', seq:m.seq, ids});
+  } };`;
+      const url = URL.createObjectURL(new Blob([src], {type:'text/javascript'}));
+      const w = new Worker(url); URL.revokeObjectURL(url);
+      w.onmessage = e=>{ const m = e.data; if(m.t === 'res'){ const cb = this._pend.get(m.seq); if(cb){ this._pend.delete(m.seq); cb(m.ids); } } };
+      w.onerror = ev=>{ ev.preventDefault && ev.preventDefault(); this._dead(); };
+      this._w = w;
+    }catch(e){ this._w = false; }
+    return this._w;
+  },
+  _dead(){ try{ this._w && this._w.terminate(); }catch(e){} this._w = false; this._wSrc = null; this._pend.forEach(cb=>cb(null)); this._pend.clear(); },
+  /* بحث غير حاجب: مجموعات كبيرة بالعامل الخلفي (الفهرس يُرسل مرة لكل تغيّر)، وإلا بالخيط الرئيسي */
+  async find(pool, q, limit){
+    limit = limit || 25;
+    const w = pool.length >= this.WORKER_MIN ? this._worker() : null;
+    if(!w) return this.findSync(pool, q, limit);
+    if(this._wSrc !== pool){
+      this._wSrc = pool;
+      w.postMessage({t:'idx', rows: pool.map(p=>[p.id, p.fullName, p.nationalId, p.phone])});
+    }
+    const seq = ++this._seq;
+    const ids = await new Promise(res=>{ this._pend.set(seq, res); w.postMessage({t:'q', seq, q, limit}); setTimeout(()=>{ if(this._pend.delete(seq)) res(null); }, 4000); });
+    if(!ids) return this.findSync(pool, q, limit);
+    const byId = DX.of(pool).byId;
+    return ids.map(id=>byId.get(id)).filter(Boolean);
   }
 };
 /* ===== الحركة ===== */
@@ -2405,7 +2874,9 @@ const DB_SCHEMA = {
   statsSnapshots:{key:'key', idx:{campId:{}, date:{}}},
   appConfig:{key:'key'},
   famDocs:{key:'key', idx:{campId:{}}},
-  localBackups:{key:'id', idx:{at:{}}}
+  localBackups:{key:'id', idx:{at:{}}},
+  natRefs:{key:'id'},
+  natRefRows:{key:'key', idx:{refId:{}}}
 };
 function dbOpen(){
   if(_dbp) return _dbp;
@@ -2509,7 +2980,7 @@ async function dbBulkPut(store, items, batchSize=200, onProgress){
 
 /* ===================== التوجيه بين الشاشات ===================== */
 const SCREEN_REFRESH = {}; // تُملأ لاحقاً من كل وحدة
-const NO_BOTTOMNAV_SCREENS = new Set(['screen-person-form','screen-chat','screen-rapid','screen-similar']);
+const NO_BOTTOMNAV_SCREENS = new Set(['screen-person-form','screen-chat','screen-rapid','screen-similar','screen-quality','screen-aid']);
 /* انتقالات الشاشات: View Transitions عند الدعم، وإلا الحركة الحالية كما هي */
 const VT_OK = typeof document.startViewTransition === 'function';
 if(VT_OK) document.documentElement.classList.add('vt');
@@ -3112,7 +3583,19 @@ function setHTML(el, html){
 const _objIds = new WeakMap(); let _objSeq = 0;
 function objId(o){ if(!o || typeof o !== 'object') return String(o); let v = _objIds.get(o); if(!v){ v = ++_objSeq; _objIds.set(o, v); } return 'o' + v; }
 const _renderMemo = new WeakMap();
+const _idleJobs = new Map();
+/* رسم مؤجَّل لوقت الخمول: لا يحجب أول رسم للشاشة؛ المحتوى السابق يبقى ظاهراً حتى استبداله، وآخر طلب لكل خانة هو الذي يُنفَّذ */
+function idleRender(id, sig, fn, skelH){
+  const el = document.getElementById(id); if(!el) return;
+  const prev = _renderMemo.get(el), full = sig + '|' + document.documentElement.dataset.theme;
+  if(prev && prev.sig === full && el.firstChild && el.firstChild === prev.node){ _idleJobs.delete(id); return; }
+  if(!el.firstChild && skelH) el.innerHTML = `<div class="skel" style="height:${skelH}px;border-radius:14px;margin:8px 0"></div>`;
+  const job = {}; _idleJobs.set(id, job);
+  const run = ()=>{ if(_idleJobs.get(id) !== job) return; try{ memoRender(id, sig, fn); }catch(e){ console.error(e); } };
+  if('requestIdleCallback' in window) requestIdleCallback(run, {timeout: 1200}); else setTimeout(run, 80);
+}
 function memoRender(id, sig, fn){
+  _idleJobs.delete(id);
   const el = document.getElementById(id); if(!el) return;
   const prev = _renderMemo.get(el);
   const full = sig + '|' + document.documentElement.dataset.theme;
@@ -3146,34 +3629,18 @@ async function loadPersonsCache(campId){
   State.familiesCache = campId ? await dbIndexAll('families','campId',campId) : [];
 }
 function computeStats(persons){
-  const families = new Set();
-  let male=0,female=0,infant=0,child=0,adult=0,elderly=0,pregnant=0,chronic=0,disability=0;
-  let preschool=0, school=0, youth=0, midAdult=0, widowed=0, divorced=0, noId=0;
-  const famPhone = {};
-  persons.forEach(p=>{
-    if(p.familyId) families.add(p.familyId);
-    if(p.gender==='male') male++; else if(p.gender==='female') female++;
-    const age = getAge(p);
-    const cat = ageCategory(age);
-    if(cat==='infant') infant++; else if(cat==='child') child++; else if(cat==='adult') adult++; else if(cat==='elderly') elderly++;
-    const bucket = ageBucket(age);
-    if(bucket==='preschool') preschool++; else if(bucket==='school') school++;
-    else if(bucket==='youth') youth++; else if(bucket==='midAdult') midAdult++;
-    if(p.isPregnant) pregnant++;
-    if(p.hasChronicDisease) chronic++;
-    if(p.hasDisability) disability++;
-    if(isWidowed(p)) widowed++;
-    if(isDivorced(p)) divorced++;
-    if(!p.nationalId) noId++;
-    if(p.familyId){ famPhone[p.familyId] = famPhone[p.familyId] || !!p.phone; }
-  });
-  const total = persons.length;
-  const orphans = persons.filter(isOrphan).length;
+  const families = new Set(), c = {}, famPhone = {};
+  for(const p of persons){
+    if(p.familyId){ families.add(p.familyId); famPhone[p.familyId] = famPhone[p.familyId] || !!p.phone; }
+    for(const k of Derive.keys(p)) c[k] = (c[k]||0) + 1;
+  }
+  const g = k=>c[k]||0, total = persons.length;
   return {
-    total, totalFamilies: families.size, male, female, infant, child, adult, elderly, pregnant, chronic, disability,
-    preschool, school, youth, midAdult, widowed, divorced, noId, orphans,
+    total, totalFamilies: families.size, male: g('male'), female: g('female'), infant: g('infant'), child: g('child'), adult: g('adult'), elderly: g('elderly'),
+    pregnant: g('pregnant'), chronic: g('chronic'), disability: g('disability'),
+    preschool: g('preschool'), school: g('school'), youth: g('youth'), midAdult: g('midAdult'), widowed: g('widowed'), divorced: g('divorced'), noId: g('noid'), orphans: g('orphan'),
     familiesNoPhone: Object.values(famPhone).filter(v=>!v).length,
-    malePct: total ? Math.round(male/total*100) : 0, femalePct: total ? Math.round(female/total*100) : 0
+    malePct: total ? Math.round(g('male')/total*100) : 0, femalePct: total ? Math.round(g('female')/total*100) : 0
   };
 }
 
@@ -3331,25 +3798,454 @@ const QUALITY_RULES = [
   {key:'adultnodob', label:'بالغون بلا تاريخ ميلاد', scope:'member', test:p=>(p.isFamilyHead || p.relation==='wife' || p.relation==='husband') && !p.birthDate},
   {key:'noid', label:'أفراد بلا رقم هوية', scope:'member', test:p=>!normNid(p.nationalId)},
   {key:'badid', label:'أرقام هوية غير صحيحة', scope:'member', test:p=>{ const s = nidStatus(p.nationalId); return s === 'invalid' || s === 'format'; }},
-  {key:'nogender', label:'أفراد بلا جنس محدد', scope:'member', test:p=>!p.gender || p.gender === 'unknown'}
+  {key:'nogender', label:'أفراد بلا جنس محدد', scope:'member', test:p=>!p.gender || p.gender === 'unknown'},
+  {key:'dupid', label:'هويات مكررة داخل المخيم', scope:'member', test:(p, ix)=>{ const n = normNid(p.nationalId); return !!n && !!ix && dupNidsOf(ix).has(n); }},
+  {key:'suspectdob', label:'تواريخ ميلاد مشبوهة', scope:'member', test:(p, ix)=>!!dobSuspect(p, ix)},
+  {key:'stalenoid', label:'مواليد بلا هوية تجاوزوا السنتين', scope:'member', test:p=>!normNid(p.nationalId) && !!p.noIdYet && (getAge(p) ?? 0) >= 2}
 ];
 function qualityRuleApplies(rule, p){ return rule.scope === 'member' || !!p.isFamilyHead; }
-function qualityTest(ruleKey, p){
+function qualityTest(ruleKey, p, ix){
   const r = QUALITY_RULES.find(x=>x.key===ruleKey);
-  return !!(r && qualityRuleApplies(r, p) && r.test(p));
+  return !!(r && qualityRuleApplies(r, p) && r.test(p, ix));
 }
 /* تقرير جودة لقائمة أفراد: عدد كل قاعدة + نسبة الاكتمال الكلية */
 function qualityReport(persons){
   const counts = {}; let checks = 0, fails = 0;
+  const ix = DX.of(persons);
   QUALITY_RULES.forEach(r=>counts[r.key] = 0);
   for(const p of persons){
     for(const r of QUALITY_RULES){
       if(!qualityRuleApplies(r, p)) continue;
       checks++;
-      if(r.test(p)){ counts[r.key]++; fails++; }
+      if(r.test(p, ix)){ counts[r.key]++; fails++; }
     }
   }
   return {counts, pct: checks ? Math.round((1 - fails/checks)*100) : 100};
+}
+
+/* ===================== مركز الجودة (A1) — هويات مكررة/ناقصة، تواريخ مشبوهة، اقتراح من الكشف الوطني، إصلاح بضغطة ===================== */
+/* خريطة الهويات المكررة داخل مجموعة (تُخزَّن على فهرس المجموعة فتُحسب مرة) */
+function dupNidsOf(ix){
+  if(ix._dup) return ix._dup;
+  const m = new Map();
+  for(const p of ix.persons){ const n = normNid(p.nationalId); if(!n) continue; let a = m.get(n); if(!a) m.set(n, a = []); a.push(p); }
+  const d = new Map(); for(const [n, a] of m) if(a.length > 1) d.set(n, a);
+  return ix._dup = d;
+}
+/* سبب الشك بتاريخ الميلاد ('' = سليم) */
+function dobSuspect(p, ix){
+  if(!p.birthDate) return '';
+  const d = new Date(p.birthDate + 'T00:00:00');
+  if(isNaN(d.getTime())) return 'تاريخ ميلاد غير صالح';
+  if(d.getTime() > Date.now() + 86400000) return 'تاريخ ميلاد مستقبلي';
+  const age = getAge(p);
+  if(age == null) return '';
+  if(age > 105) return 'عمر يتجاوز 105 سنة';
+  if(p.isFamilyHead && age < 16) return 'رب أسرة أقل من 16 سنة';
+  if((p.relation === 'wife' || p.relation === 'husband') && age < 14) return 'زوج/ة أقل من 14 سنة';
+  if(!p.isFamilyHead && p.relation === 'child' && p.memberRelation !== 'nephew' && p.memberRelation !== 'niece' && ix){
+    const h = ix.headOf.get(famKey(p));
+    if(h && h !== p && h.birthDate){ const ha = getAge(h); if(ha != null && ha - age < 12) return 'فارق العمر عن رب الأسرة أقل من 12 سنة'; }
+  }
+  return '';
+}
+/* تحليل شامل لمجموعة أفراد (ومعها كل المخيمات لكشف التكرار بينها عند الإدارة) */
+function qualityAnalyze(persons, allPersons){
+  const ix = DX.of(persons);
+  const noId = [], badId = [], stale = [], dob = [], notInRef = [];
+  const refOn = NatRef.size() > 0;
+  for(const p of persons){
+    const n = normNid(p.nationalId), st = nidStatus(p.nationalId);
+    if(!n && !p.noIdYet) noId.push(p);
+    if(!n && p.noIdYet && (getAge(p) ?? 0) >= 2) stale.push(p);
+    if(n && (st === 'invalid' || st === 'format')) badId.push(p);
+    const why = dobSuspect(p, ix); if(why) dob.push({p, why});
+    if(refOn && st === 'valid' && !NatRef.peek(n)) notInRef.push(p);
+  }
+  const dupIn = [...dupNidsOf(ix)].map(([nid, list])=>({nid, list}));
+  let dupCross = [];
+  if(allPersons){
+    const scope = new Set(persons.map(p=>p.campId));
+    const byN = new Map();
+    for(const p of allPersons){ const n = normNid(p.nationalId); if(!n) continue; let a = byN.get(n); if(!a) byN.set(n, a = []); a.push(p); }
+    for(const [nid, list] of byN){
+      if(list.length < 2) continue;
+      if(new Set(list.map(p=>p.campId)).size < 2) continue;
+      if(!list.some(p=>scope.has(p.campId))) continue;
+      dupCross.push({nid, list});
+    }
+  }
+  return {ix, noId, badId, stale, dob, notInRef, dupIn, dupCross, refOn};
+}
+function completeness(p){ return ['birthDate','nationalId','phone','address','gender','maritalStatus'].reduce((n,k)=>n + (p[k] && p[k] !== 'unknown' ? 1 : 0), 0); }
+const QC = {shown: {}, step: 30};
+function qcPersonLine(p, ix, extra){
+  const h = ix && !p.isFamilyHead ? ix.headOf.get(famKey(p)) : null;
+  const a = getAge(p);
+  return `<b>${esc(p.fullName||'—')}</b><div class="caption">${esc(relationLabel(p))}${a != null ? ' · ' + a + ' سنة' : ''}${h && h !== p ? ' · أسرة ' + esc(h.fullName||'') : ''}${extra ? ' · ' + extra : ''}</div>`;
+}
+async function qcEdit(p, focusId){
+  if(State.user.role === 'admin' && State.adminViewingCampId !== p.campId) State.adminViewingCampId = p.campId;
+  await loadPersonsCache(p.campId);
+  await openPersonForm(p.id);
+  setTimeout(()=>document.getElementById(focusId)?.focus?.(), 450);
+}
+async function qcApplyNid(p, nid){
+  const cur = await dbGet('persons', p.id); if(!cur) return;
+  const old = JSON.parse(JSON.stringify(cur));
+  cur.nationalId = nid; delete cur.noIdYet;
+  Object.assign(cur, {updatedAt: stampNow(), updatedBy: State.user.id, syncStatus: 'pending'});
+  await dbPut('persons', cur);
+  const camp = await dbGet('camps', cur.campId);
+  pushNationalIndexEntry(cur, camp?.name, camp?.supervisorPhone);
+  await logAudit('edit_person', State.user, cur.id, cur.fullName, old, cur);
+  await syncCampPersonsSoon(cur.campId);
+}
+async function qcClearNid(p){
+  const cur = await dbGet('persons', p.id); if(!cur) return;
+  const old = JSON.parse(JSON.stringify(cur));
+  cur.nationalId = '';
+  Object.assign(cur, {updatedAt: stampNow(), updatedBy: State.user.id, syncStatus: 'pending'});
+  await dbPut('persons', cur);
+  await logAudit('edit_person', State.user, cur.id, cur.fullName, old, cur);
+  await syncCampPersonsSoon(cur.campId);
+}
+function qcSection(key, title, count, note, bodyHtml){
+  const open = count > 0;
+  return `<details class="qc-sec" data-k="${key}"${open ? ' open' : ''}><summary><span class="qc-count ${count ? 'bad' : 'ok'}">${count}</span><span class="qc-title">${esc(title)}</span><i class="fa-solid fa-chevron-down"></i></summary>
+    ${note ? `<p class="caption qc-note">${esc(note)}</p>` : ''}${count ? bodyHtml : '<div class="task-done"><i class="fa-solid fa-circle-check"></i> لا شيء هنا</div>'}</details>`;
+}
+SCREEN_REFRESH['screen-quality'] = async function(){
+  if(!guardRole(['admin','delegate','dataentry'])) return;
+  const campId = currentCampId(), isAdmin = State.user.role === 'admin';
+  const all = await PersonStore.all();
+  const persons = campId ? (DX.of(all).byCamp.get(campId) || []) : all;
+  if(!campId && !isAdmin){ return; }
+  await NatRef.ensure().catch(()=>{});
+  const A = qualityAnalyze(persons, isAdmin ? all : null);
+  const camps = isAdmin ? await dbGetAll('camps') : [];
+  const campName = id=>(camps.find(c=>c.id === id) || {}).name || id;
+  const q = qualityReport(persons);
+  document.getElementById('quality-sub').textContent = (campId ? ((await dbGet('camps', campId))?.name || campId) : 'كل المخيمات') + ` — ${persons.length.toLocaleString('en-US')} فرد`;
+  const slice = (k, arr)=>arr.slice(0, QC.shown[k] || QC.step);
+  const more = (k, arr)=>arr.length > (QC.shown[k] || QC.step) ? `<button class="btn btn-outline btn-sm w-full mt-8" data-more="${k}">عرض المزيد (${arr.length - (QC.shown[k] || QC.step)})</button>` : '';
+  const row = (inner, acts)=>`<div class="qc-row"><div class="qc-who">${inner}</div><div class="qc-acts">${acts}</div></div>`;
+
+  /* 1) هويات مكررة داخل المخيم */
+  const dupBody = slice('dupin', A.dupIn).map((g, gi)=>{
+    const keepDef = [...g.list].sort((a,b)=>((b.isFamilyHead?1:0)-(a.isFamilyHead?1:0)) || (completeness(b)-completeness(a)))[0];
+    return `<div class="qc-group" data-g="${gi}" data-nid="${esc(g.nid)}"><div class="qc-gh">هوية <b dir="ltr">${esc(g.nid)}</b> — ${g.list.length} سجلات</div>
+      ${g.list.map(p=>`<label class="sim-side"><input type="radio" name="qd${gi}" value="${esc(p.id)}"${p === keepDef ? ' checked' : ''}><div>${qcPersonLine(p, A.ix, p.birthDate ? '' : 'بلا ميلاد')}</div></label>`).join('')}
+      <div class="btn-block-row mt-8"><button class="btn btn-primary btn-sm" data-qa="merge"><i class="fa-solid fa-code-merge"></i> دمج بالمختار</button><button class="btn btn-outline btn-sm" data-qa="clear">إزالة الهوية من الباقين</button></div></div>`;
+  }).join('') + more('dupin', A.dupIn);
+  const dupPersons = A.dupIn.reduce((s, g)=>s + g.list.length, 0);
+
+  /* 2) بلا هوية (+ اقتراح من الكشف الوطني) */
+  const sugg = new Map();
+  if(A.refOn) for(const p of A.noId){ const s = NatRef.suggestFor(p, A.ix); if(s) sugg.set(p.id, s); }
+  const noIdBody = slice('noid', A.noId).map(p=>{
+    const s = sugg.get(p.id);
+    return row(qcPersonLine(p, A.ix), `${s ? `<button class="btn btn-primary btn-sm" data-qa="apply" data-id="${esc(p.id)}" data-nid="${esc(s.nid)}" title="${esc(s.name)}"><i class="fa-solid fa-wand-magic-sparkles"></i> <span dir="ltr">${esc(s.nid)}</span></button>` : ''}<button class="btn btn-outline btn-sm" data-qa="edit" data-id="${esc(p.id)}" data-f="pf-nationalId">إكمال</button>`);
+  }).join('') + more('noid', A.noId);
+  const applicable = [...sugg.keys()];
+
+  /* 3) تواريخ ميلاد مشبوهة */
+  const dobBody = slice('dob', A.dob).map(({p, why})=>row(qcPersonLine(p, A.ix, esc(p.birthDate||'') + ' — ' + esc(why)), `<button class="btn btn-outline btn-sm" data-qa="edit" data-id="${esc(p.id)}" data-f="pf-birthDate">تصحيح</button>`)).join('') + more('dob', A.dob);
+
+  /* 4) هويات غير صحيحة */
+  const badBody = slice('bad', A.badId).map(p=>row(qcPersonLine(p, A.ix, `<span dir="ltr">${esc(p.nationalId)}</span>`), `<button class="btn btn-outline btn-sm" data-qa="edit" data-id="${esc(p.id)}" data-f="pf-nationalId">تصحيح</button>`)).join('') + more('bad', A.badId);
+
+  /* 5) مواليد بلا هوية تجاوزوا السنتين */
+  const staleBody = slice('stale', A.stale).map(p=>row(qcPersonLine(p, A.ix), `<button class="btn btn-outline btn-sm" data-qa="edit" data-id="${esc(p.id)}" data-f="pf-nationalId">إكمال الهوية</button>`)).join('') + more('stale', A.stale);
+
+  /* 6) غير واردة بالكشف الوطني المخزّن */
+  const refBody = slice('ref', A.notInRef).map(p=>row(qcPersonLine(p, A.ix, `<span dir="ltr">${esc(p.nationalId)}</span>`), `<button class="btn btn-outline btn-sm" data-qa="edit" data-id="${esc(p.id)}" data-f="pf-nationalId">مراجعة</button>`)).join('') + more('ref', A.notInRef);
+
+  /* 7) تكرار بين المخيمات (إدارة) */
+  const crossBody = slice('cross', A.dupCross).map(g=>`<div class="qc-group"><div class="qc-gh">هوية <b dir="ltr">${esc(g.nid)}</b></div>
+      ${g.list.map(p=>row(qcPersonLine(p, null, 'مخيم ' + esc(campName(p.campId))), `<button class="btn btn-outline btn-sm" data-qa="edit" data-id="${esc(p.id)}" data-f="pf-nationalId">فتح</button><button class="btn btn-outline btn-sm" data-qa="clear1" data-id="${esc(p.id)}">إزالة الهوية</button>`)).join('')}</div>`).join('') + more('cross', A.dupCross);
+
+  const body = document.getElementById('quality-body');
+  body.innerHTML = `<div class="qc-head"><div class="q-pct ${q.pct<60?'low':q.pct<85?'mid':'ok'}">${q.pct}%</div><div><b>اكتمال جودة البيانات</b><div class="caption">${A.noId.length + A.badId.length + A.dupIn.length + A.dob.length} ملاحظة تحتاج إصلاحاً${A.refOn ? ' · الكشف الوطني المخزّن: ' + NatRef.size().toLocaleString('en-US') + ' هوية' : ''}</div></div></div>
+    ${applicable.length ? `<button class="btn btn-primary w-full mb-8" id="qc-apply-all"><i class="fa-solid fa-wand-magic-sparkles"></i> تطبيق كل الهويات المقترحة من الكشف الوطني (${applicable.length})</button>` : ''}
+    ${qcSection('dupin', 'هويات مكررة داخل المخيم', A.dupIn.length, `${dupPersons} سجلاً بنفس الهوية — الدمج يُبقي المختار ويكمل ناقصه من الباقي`, dupBody)}
+    ${qcSection('noid', 'أفراد بلا رقم هوية', A.noId.length, A.refOn ? `${applicable.length} منهم لهم هوية مقترحة من الكشف الوطني (مطابقة الاسم داخل أسرة رب الأسرة)` : 'ارفع الكشف الوطني من «مطابقة كشف وطني» ليقترح النظام الهويات تلقائياً', noIdBody)}
+    ${qcSection('dob', 'تواريخ ميلاد مشبوهة', A.dob.length, 'مستقبلي، عمر مستحيل، أو فارق غير منطقي مع رب الأسرة', dobBody)}
+    ${qcSection('bad', 'أرقام هوية غير صحيحة', A.badId.length, 'لا تجتاز خانة التحقق أو ليست 9 أرقام', badBody)}
+    ${qcSection('stale', 'مواليد بلا هوية تجاوزوا السنتين', A.stale.length, 'حُدّد «لا يوجد رقم هوية بعد» لكن عمرهم تجاوز سنتين — يُرجَّح أن هويتهم صدرت', staleBody)}
+    ${A.refOn ? qcSection('ref', 'هويات غير واردة بالكشف الوطني المخزّن', A.notInRef.length, 'هوية سليمة الصيغة لكنها غير موجودة بأي كشف محفوظ — للمراجعة فقط', refBody) : ''}
+    ${isAdmin ? qcSection('cross', 'هويات مكررة بين المخيمات', A.dupCross.length, 'نفس الهوية مسجّلة بأكثر من مخيم', crossBody) : ''}`;
+
+  const redraw = ()=>SCREEN_REFRESH['screen-quality']();
+  body.querySelectorAll('[data-more]').forEach(b=>b.addEventListener('click', ()=>{ QC.shown[b.dataset.more] = (QC.shown[b.dataset.more] || QC.step) + QC.step; redraw(); }));
+  body.querySelectorAll('[data-qa="edit"]').forEach(b=>b.addEventListener('click', ()=>{ const p = DX.of(all).byId.get(b.dataset.id); if(p) qcEdit(p, b.dataset.f); }));
+  body.querySelectorAll('[data-qa="apply"]').forEach(b=>b.addEventListener('click', async ()=>{
+    b.disabled = true; const p = DX.of(all).byId.get(b.dataset.id);
+    if(p){ await qcApplyNid(p, b.dataset.nid); toast('طُبّقت الهوية المقترحة','ok'); }
+    redraw();
+  }));
+  body.querySelectorAll('[data-qa="clear1"]').forEach(b=>b.addEventListener('click', async ()=>{
+    const p = DX.of(all).byId.get(b.dataset.id); if(!p) return;
+    if(!await confirmDialog(`إزالة رقم الهوية من «${p.fullName}» بمخيم ${campName(p.campId)}؟ يبقى السجل ويظهر ضمن «بلا هوية».`, {title:'إزالة الهوية', okText:'إزالة', okClass:'btn-danger', icon:'fa-eraser'})) return;
+    await qcClearNid(p); toast('أُزيلت الهوية من السجل','ok'); redraw();
+  }));
+  body.querySelectorAll('.qc-group[data-nid]').forEach(grp=>{
+    const g = A.dupIn.find(x=>x.nid === grp.dataset.nid); if(!g) return;
+    const keepOf = ()=>g.list.find(p=>p.id === grp.querySelector('input:checked')?.value) || g.list[0];
+    grp.querySelector('[data-qa="merge"]').addEventListener('click', async ()=>{
+      const keep = keepOf(), drops = g.list.filter(p=>p !== keep);
+      if(drops.some(p=>p.isFamilyHead)){ toast('لا يمكن حذف رب أسرة بالدمج — اختر سجل رب الأسرة للإبقاء','warn'); return; }
+      if(!await confirmDialog(`سيُبقى «${keep.fullName}» ويُحذف ${drops.length} سجل بعد نقل ناقص بياناته إليه.`, {title:'دمج مكررات الهوية', okText:'دمج', okClass:'btn-primary', icon:'fa-code-merge'})) return;
+      for(const d of drops) await mergePersons(keep.id, d.id);
+      toast('تم الدمج','ok'); redraw();
+    });
+    grp.querySelector('[data-qa="clear"]').addEventListener('click', async ()=>{
+      const keep = keepOf(), drops = g.list.filter(p=>p !== keep);
+      if(!await confirmDialog(`ستُزال الهوية من ${drops.length} سجل وتبقى لـ«${keep.fullName}» فقط.`, {title:'إزالة الهوية من الباقين', okText:'إزالة', okClass:'btn-danger', icon:'fa-eraser'})) return;
+      for(const d of drops) await qcClearNid(d);
+      toast('أُزيلت الهوية من الباقين','ok'); redraw();
+    });
+  });
+  document.getElementById('qc-apply-all')?.addEventListener('click', async e=>{
+    const btn = e.currentTarget; btn.disabled = true;
+    const used = new Set(); let n = 0;
+    for(const id of applicable){
+      const p = DX.of(all).byId.get(id), s = sugg.get(id);
+      if(!p || !s || used.has(s.nid)) continue;
+      used.add(s.nid); await qcApplyNid(p, s.nid); n++;
+    }
+    toast(`طُبّقت ${n} هوية مقترحة`,'ok'); redraw();
+  });
+};
+document.getElementById('quality-back').addEventListener('click', ()=>nav('screen-dash'));
+
+/* ===================== تتبع المساعدات لكل فرد (A2) — مربوط بالتصنيف التلقائي =====================
+   كل فرد يحمل سجل مساعداته p.aid = [{id, t:نوع, d:تاريخ, q:كمية/مبلغ, n:ملاحظة, by, at, void}] فيتزامن مع سجل الفرد نفسه (دمج بالاتحاد حسب id؛
+   التراجع علامة void بدل الحذف كي لا يعود السجل من جهاز آخر). المؤهَّل لكل نوع يُشتق من التصنيف: حليب/حفاضات ← دون سنتين،
+   مكملات ← حوامل/مرضعات، أدوية ← أمراض مزمنة... */
+const AID_TYPES = [
+  {k:'food', l:'سلة غذائية', ic:'fa-basket-shopping', t:['head'], hint:'لكل أسرة (رب الأسرة)'},
+  {k:'cash', l:'مساعدة نقدية', ic:'fa-money-bill-wave', t:['head'], hint:'لكل أسرة (رب الأسرة)', ask:'المبلغ'},
+  {k:'milk', l:'حليب أطفال', ic:'fa-baby', t:['under2'], hint:'أطفال دون السنتين'},
+  {k:'diapers', l:'حفاضات', ic:'fa-baby-carriage', t:['under2'], hint:'أطفال دون السنتين'},
+  {k:'prenatal', l:'مكملات حوامل ومرضعات', ic:'fa-person-pregnant', t:['pregnant','breastfeeding'], hint:'الحوامل والمرضعات'},
+  {k:'medicine', l:'أدوية أمراض مزمنة', ic:'fa-pills', t:['chronic'], hint:'ذوو الأمراض المزمنة'},
+  {k:'assist', l:'أدوات مساندة', ic:'fa-wheelchair', t:['disability'], hint:'ذوو الإعاقة'},
+  {k:'orphan', l:'رعاية الأيتام', ic:'fa-hand-holding-heart', t:['orphan'], hint:'الأيتام'},
+  {k:'elder', l:'رعاية كبار السن', ic:'fa-person-cane', t:['elderly'], hint:'كبار السن 60+'},
+  {k:'clothes', l:'كسوة', ic:'fa-shirt', t:['all'], hint:'كل الأفراد'},
+  {k:'other', l:'أخرى', ic:'fa-box', t:['all'], hint:'كل الأفراد'}
+];
+const Aid = {
+  by(k){ return AID_TYPES.find(t=>t.k === k) || AID_TYPES[AID_TYPES.length - 1]; },
+  eligible(p, k){
+    const ty = this.by(k);
+    return ty.t.some(x=>x === 'all' || (x === 'head' ? !!p.isFamilyHead : Derive.has(p, x)));
+  },
+  list(p){ return (p.aid || []).filter(r=>!r.void); },
+  inPeriod(r, period){
+    if(period === 'all') return true;
+    const t = todayStr();
+    return period === 'today' ? r.d === t : (r.d || '').slice(0, 7) === t.slice(0, 7);
+  },
+  /* آخر تسليم من هذا النوع بالفترة (أو null) */
+  got(p, k, period){
+    let best = null;
+    for(const r of (p.aid || [])) if(!r.void && r.t === k && this.inPeriod(r, period) && (!best || (r.at||0) >= (best.at||0))) best = r;
+    return best;
+  },
+  async give(pid, k, opts){
+    opts = opts || {};
+    const cur = await dbGet('persons', pid); if(!cur) return null;
+    const at = stampNow();
+    const rec = {id: uuid(), t: k, d: opts.d || todayStr(), q: opts.q == null ? 1 : opts.q, n: (opts.n||'').trim(), by: State.user.id, at};
+    cur.aid = [...(cur.aid || []), rec].slice(-200);
+    Object.assign(cur, {updatedAt: at, updatedBy: State.user.id, syncStatus: 'pending'});
+    await dbPut('persons', cur);
+    if(!opts.silent){ await logAudit('aid_give', State.user, cur.id, cur.fullName, null, {t: k, q: rec.q, d: rec.d}); await syncCampPersonsSoon(cur.campId); }
+    return cur;
+  },
+  async undo(pid, entryId, opts){
+    const cur = await dbGet('persons', pid); if(!cur) return null;
+    const r = (cur.aid || []).find(x=>x.id === entryId); if(!r) return cur;
+    const at = stampNow();
+    r.void = true; r.at = at;
+    Object.assign(cur, {updatedAt: at, updatedBy: State.user.id, syncStatus: 'pending'});
+    await dbPut('persons', cur);
+    if(!(opts && opts.silent)){ await logAudit('aid_undo', State.user, cur.id, cur.fullName, {t: r.t, d: r.d}, null); await syncCampPersonsSoon(cur.campId); }
+    return cur;
+  }
+};
+const AidUI = {type: 'food', period: 'month', filter: 'todo', q: '', shown: 60, persons: [], campId: null};
+function aidFamHead(p, ix){ return p.isFamilyHead ? null : ix.headOf.get(famKey(p)); }
+function aidRowsFor(){
+  const S = AidUI, ix = DX.of(S.persons);
+  const withState = S.persons.filter(p=>Aid.eligible(p, S.type)).map(p=>({p, got: Aid.got(p, S.type, S.period)}));
+  const total = withState.length, done = withState.filter(x=>x.got).length;
+  let rows = withState;
+  if(S.filter === 'todo') rows = rows.filter(x=>!x.got); else if(S.filter === 'done') rows = rows.filter(x=>x.got);
+  const q = S.q.trim();
+  if(q){ const ps = new Set(SearchIdx.filter(rows.map(x=>x.p), q).map(p=>p.id)); rows = rows.filter(x=>ps.has(x.p.id)); }
+  rows.sort((a,b)=>(a.p.fullName||'').localeCompare(b.p.fullName||'', 'ar'));
+  return {ix, total, done, rows};
+}
+function aidSummaryHtml(total, done, hint){
+  const pct = total ? Math.round(done / total * 100) : 0;
+  return `<div class="aid-sum-nums"><span><b>${total}</b> مؤهّل</span><span class="ok"><b>${done}</b> استلم</span><span class="warn"><b>${total - done}</b> متبقٍ</span></div><div class="aid-bar"><i style="width:${pct}%"></i></div><div class="caption">${esc(hint)} — ${pct}%</div>`;
+}
+function renderAidList(){
+  const S = AidUI, {ix, total, done, rows} = aidRowsFor(), ty = Aid.by(S.type);
+  document.getElementById('aid-sum').innerHTML = aidSummaryHtml(total, done, ty.hint);
+  document.querySelectorAll('#aid-filter .chip').forEach(c=>c.classList.toggle('active', c.dataset.f === S.filter));
+  const box = document.getElementById('aid-list'), shown = rows.slice(0, S.shown);
+  box.innerHTML = shown.length ? shown.map(({p, got})=>{
+    const h = aidFamHead(p, ix), a = getAge(p);
+    return `<div class="aid-row${got ? ' got' : ''}" data-id="${esc(p.id)}"><div class="aid-who"><b>${esc(p.fullName||'—')}</b><div class="caption">${esc(relationLabel(p))}${a != null ? ' · ' + a + ' سنة' : ''}${h ? ' · أسرة ' + esc(h.fullName||'') : ''}</div></div>
+      <div class="aid-act">${got ? `<span class="aid-got"><i class="fa-solid fa-circle-check"></i> ${esc(got.d)}${ty.ask && got.q != null ? ' · ' + esc(String(got.q)) : ''}</span><button class="btn btn-outline btn-sm" data-aid="undo" data-e="${esc(got.id)}">تراجع</button>` : `<button class="btn btn-primary btn-sm" data-aid="give"><i class="fa-solid ${ty.ic}"></i> تسليم</button>`}</div></div>`;
+  }).join('') + (rows.length > S.shown ? `<button class="btn btn-outline btn-sm w-full mt-8" id="aid-more">عرض المزيد (${rows.length - S.shown})</button>` : '')
+    : emptyStateHtml('fa-box-open', total ? 'لا نتائج' : 'لا يوجد مؤهلون', total ? 'غيّر الفلتر أو البحث' : 'لا أحد بالمخيم ينطبق عليه هذا النوع حالياً');
+  const bulk = document.getElementById('aid-bulk');
+  bulk.hidden = !(S.filter === 'todo' && rows.length > 0);
+  bulk.innerHTML = `<i class="fa-solid fa-check-double"></i> تعليم كل المعروض كمُسلَّم (${rows.length})`;
+  document.getElementById('aid-more')?.addEventListener('click', ()=>{ S.shown += 60; renderAidList(); });
+  box.querySelectorAll('.aid-row').forEach(row=>{
+    const pid = row.dataset.id;
+    row.querySelector('[data-aid="give"]')?.addEventListener('click', async e=>{
+      const b = e.currentTarget; b.disabled = true;
+      let q = 1;
+      if(ty.ask){
+        q = await aidAskAmount(`${ty.ask} (${ty.l})`);
+        if(!q){ b.disabled = false; return; }
+      }
+      const cur = await Aid.give(pid, S.type, {q});
+      if(cur) aidReplace(cur);
+      haptic(10); renderAidList();
+    });
+    row.querySelector('[data-aid="undo"]')?.addEventListener('click', async e=>{
+      const b = e.currentTarget; b.disabled = true;
+      const cur = await Aid.undo(pid, b.dataset.e); if(cur) aidReplace(cur); renderAidList();
+    });
+  });
+}
+/* حوار رقمي لمبلغ/كمية المساعدة (يُرجع رقماً موجباً أو 0 عند الإلغاء) */
+function aidAskAmount(title){
+  return new Promise(resolve=>{
+    let done = false; const fin = v=>{ if(!done){ done = true; resolve(v); } };
+    const m = openModal(`<div class="modal-header"><h2>${esc(title)}</h2></div>
+      <div class="field"><input type="number" id="aa-q" inputmode="decimal" min="0" step="any" autocomplete="off"></div>
+      <div class="btn-block-row"><button class="btn btn-outline" id="aa-cancel">إلغاء</button><button class="btn btn-primary" id="aa-ok">حفظ</button></div>`, {onClose: ()=>fin(0)});
+    const inp = m.querySelector('#aa-q');
+    const ok = ()=>{ const v = Number(toLatinDigits(inp.value)); if(!(v > 0)){ toast('أدخل قيمة صحيحة', 'warn'); return; } fin(v); closeModal(); };
+    m.querySelector('#aa-ok').addEventListener('click', ok);
+    m.querySelector('#aa-cancel').addEventListener('click', ()=>{ fin(0); closeModal(); });
+    inp.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); ok(); } });
+    setTimeout(()=>inp.focus(), 60);
+  });
+}
+function aidReplace(cur){ const i = AidUI.persons.findIndex(p=>p.id === cur.id); if(i >= 0){ AidUI.persons = AidUI.persons.slice(); AidUI.persons[i] = cur; } }
+async function renderAidAdminSummary(){
+  const S = AidUI, [all, camps] = await Promise.all([PersonStore.all(), dbGetAll('camps')]);
+  const ix = DX.of(all), ty = Aid.by(S.type);
+  const rows = camps.filter(c=>c.id !== 'HQ').map(c=>{
+    const ps = (ix.byCamp.get(c.id) || []).filter(p=>Aid.eligible(p, S.type));
+    return {c, total: ps.length, done: ps.filter(p=>Aid.got(p, S.type, S.period)).length};
+  }).filter(r=>r.total);
+  const T = rows.reduce((s, r)=>({t: s.t + r.total, d: s.d + r.done}), {t: 0, d: 0});
+  document.getElementById('aid-sum').innerHTML = aidSummaryHtml(T.t, T.d, ty.hint + ' — كل المخيمات');
+  document.getElementById('aid-list').innerHTML = rows.length ? rows.map(r=>{
+    const pc = Math.round(r.done / r.total * 100);
+    return `<div class="aid-row"><div class="aid-who"><b>${esc(r.c.name)}</b><div class="caption">${r.done} / ${r.total} (${pc}%)</div><div class="aid-bar sm"><i style="width:${pc}%"></i></div></div><div class="aid-act"><button class="btn btn-outline btn-sm" data-open="${esc(r.c.id)}">فتح المخيم</button></div></div>`;
+  }).join('') : emptyStateHtml('fa-box-open', 'لا مؤهلين', 'لا أحد بأي مخيم ينطبق عليه هذا النوع');
+  document.querySelectorAll('#aid-list [data-open]').forEach(b=>b.addEventListener('click', ()=>{ State.adminViewingCampId = b.dataset.open; SCREEN_REFRESH['screen-aid'](); }));
+}
+SCREEN_REFRESH['screen-aid'] = async function(){
+  if(!guardRole(['admin','delegate','dataentry'])) return;
+  const S = AidUI, campId = currentCampId(), global = !campId;
+  S.campId = campId; S.shown = 60;
+  document.getElementById('aid-types').innerHTML = AID_TYPES.map(t=>`<button type="button" class="chip${t.k === S.type ? ' active' : ''}" data-k="${t.k}"><i class="fa-solid ${t.ic}"></i> ${esc(t.l)}</button>`).join('');
+  document.querySelectorAll('#aid-period .chip').forEach(c=>c.classList.toggle('active', c.dataset.p === S.period));
+  ['aid-controls','aid-bulk','aid-export'].forEach(id=>{ const el = document.getElementById(id); if(el) el.hidden = global; });
+  if(global){
+    document.getElementById('aid-sub').textContent = 'ملخص كل المخيمات';
+    await renderAidAdminSummary(); return;
+  }
+  document.getElementById('aid-export').hidden = false;
+  const camp = await dbGet('camps', campId);
+  document.getElementById('aid-sub').textContent = camp?.name || campId;
+  await loadPersonsCache(campId);
+  S.persons = State.personsCache.slice();
+  renderAidList();
+};
+document.getElementById('aid-types').addEventListener('click', e=>{
+  const b = e.target.closest('[data-k]'); if(!b) return;
+  AidUI.type = b.dataset.k; AidUI.shown = 60;
+  document.querySelectorAll('#aid-types .chip').forEach(c=>c.classList.toggle('active', c === b));
+  AidUI.campId ? renderAidList() : renderAidAdminSummary();
+});
+document.getElementById('aid-period').addEventListener('click', e=>{
+  const b = e.target.closest('[data-p]'); if(!b) return;
+  AidUI.period = b.dataset.p; AidUI.shown = 60;
+  document.querySelectorAll('#aid-period .chip').forEach(c=>c.classList.toggle('active', c === b));
+  AidUI.campId ? renderAidList() : renderAidAdminSummary();
+});
+document.getElementById('aid-filter').addEventListener('click', e=>{
+  const b = e.target.closest('[data-f]'); if(!b) return;
+  AidUI.filter = b.dataset.f; AidUI.shown = 60; renderAidList();
+});
+document.getElementById('aid-search').addEventListener('input', debounce(e=>{ AidUI.q = e.target.value; AidUI.shown = 60; renderAidList(); }, 150));
+document.getElementById('aid-bulk').addEventListener('click', async e=>{
+  const btn = e.currentTarget;
+  const S = AidUI, {rows} = aidRowsFor(), ty = Aid.by(S.type);
+  if(!rows.length) return;
+  if(ty.ask){ toast('المساعدة النقدية تُسجَّل لكل أسرة على حدة بمبلغها', 'warn'); return; }
+  if(!await confirmDialog(`تعليم ${rows.length} كمُسلَّمين «${ty.l}» بتاريخ اليوم؟`, {title:'تسليم جماعي', okText:'تأكيد التسليم', okClass:'btn-primary', icon:'fa-check-double'})) return;
+  btn.disabled = true;
+  for(const {p} of rows){ const cur = await Aid.give(p.id, S.type, {silent: true}); if(cur) aidReplace(cur); }
+  await logAudit('aid_bulk', State.user, S.campId, ty.l, null, {t: S.type, n: rows.length});
+  await syncCampPersonsSoon(S.campId);
+  btn.disabled = false; toast(`سُجّل تسليم ${rows.length}`, 'ok'); haptic([8, 30, 8]); renderAidList();
+});
+document.getElementById('aid-export').addEventListener('click', async e=>{
+  const S = AidUI, ty = Aid.by(S.type), ix = DX.of(S.persons), btn = e.currentTarget;
+  const elig = S.persons.filter(p=>Aid.eligible(p, S.type));
+  if(!elig.length){ toast('لا يوجد مؤهلون لهذا النوع', 'warn'); return; }
+  btn.disabled = true;
+  try{
+    const camp = await dbGet('camps', S.campId);
+    const per = {today:'اليوم', month:'هذا الشهر', all:'كل الفترات'}[S.period];
+    const header = ['الاسم','رقم الهوية','الصلة','العمر','اسم رب الأسرة','هاتف رب الأسرة','الحالة','تاريخ التسليم', ty.ask || 'الكمية','ملاحظة'];
+    const rows = elig.map(p=>{
+      const g = Aid.got(p, S.type, S.period), h = aidFamHead(p, ix) || p;
+      return [p.fullName||'', p.nationalId||'', relationLabel(p), getAge(p) ?? '', h.fullName||'', h.phone||'', g ? 'استلم' : 'لم يستلم', g ? g.d : '', g ? g.q : '', g ? (g.n||'') : ''];
+    });
+    const bytes = await buildStyledExcelBytes({mainTitle:'نظام إدارة مخيمات النزوح', sheets:[{name: ty.l.slice(0, 31), subtitle:`كشف توزيع: ${ty.l} — ${camp?.name||S.campId} — ${per}`, header, rows}]});
+    triggerBlobDownload(bytes, `كشف_توزيع_${ty.l}_${camp?.name||S.campId}_${timestampSlug()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    toast('تم تجهيز كشف التوزيع', 'ok');
+  }catch(err){ console.error(err); toast('تعذّر تجهيز الكشف', 'err'); }
+  finally{ btn.disabled = false; }
+});
+document.getElementById('aid-back').addEventListener('click', ()=>nav('screen-dash'));
+/* قسم «المساعدات» بتفاصيل الفرد: السجل + تسجيل مساعدة بأي نوع */
+function aidDetailHtml(p, canEdit){
+  const items = Aid.list(p).slice().sort((a,b)=>(b.at||0) - (a.at||0));
+  const elig = AID_TYPES.filter(t=>t.k !== 'other' && t.k !== 'clothes' && Aid.eligible(p, t.k));
+  return `<div class="section-title"><h2>المساعدات</h2>${canEdit ? '<button class="btn btn-outline btn-sm" id="pd-aid-add"><i class="fa-solid fa-plus"></i> تسجيل مساعدة</button>' : ''}</div>
+    ${elig.length ? `<div class="caption mb-8">مؤهّل لـ: ${elig.map(t=>esc(t.l)).join('، ')}</div>` : ''}
+    ${items.length ? `<div>${items.slice(0, 8).map(r=>`<div class="detail-row"><span><i class="fa-solid ${Aid.by(r.t).ic}"></i> ${esc(Aid.by(r.t).l)}${r.n ? ' — ' + esc(r.n) : ''}</span><span>${esc(r.d||'')}${r.q != null && r.q !== 1 ? ' · ' + esc(String(r.q)) : ''}</span></div>`).join('')}${items.length > 8 ? `<p class="caption">+ ${items.length - 8} سجلات أقدم</p>` : ''}</div>` : '<p class="caption">لم تُسجَّل مساعدات لهذا الفرد بعد</p>'}`;
+}
+async function aidAddDialog(p){
+  const html = `<div class="modal-header"><h2>تسجيل مساعدة — ${esc(p.fullName)}</h2><button class="icon-btn" style="color:var(--ink);background:var(--surface-2)" id="ad-close"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="field"><label>نوع المساعدة</label><select id="ad-type">${AID_TYPES.map(t=>`<option value="${t.k}">${esc(t.l)}${Aid.eligible(p, t.k) ? '' : ' (غير مؤهّل بالتصنيف)'}</option>`).join('')}</select></div>
+    <div class="field"><label>الكمية / المبلغ</label><input type="number" id="ad-q" value="1" min="0" inputmode="decimal"></div>
+    <div class="field"><label>ملاحظة (اختياري)</label><input type="text" id="ad-n"></div>
+    <div class="btn-block-row mt-16"><button class="btn btn-primary" id="ad-save"><i class="fa-solid fa-check"></i> حفظ</button></div>`;
+  const m = openModal(html);
+  m.querySelector('#ad-close').addEventListener('click', closeModal);
+  m.querySelector('#ad-save').addEventListener('click', async ()=>{
+    const q = Number(m.querySelector('#ad-q').value) || 1;
+    await Aid.give(p.id, m.querySelector('#ad-type').value, {q, n: m.querySelector('#ad-n').value});
+    toast('سُجّلت المساعدة', 'ok'); closeModal(); await loadPersonsCache(currentCampId()); openPersonDetail(p.id);
+  });
 }
 
 /* ===== اللقطات اليومية للمؤشرات ===== */
@@ -3359,7 +4255,7 @@ const SNAP_METRICS = [
   {k:'chronic', l:'أمراض مزمنة'}, {k:'disability', l:'ذوو إعاقة'}, {k:'elderly', l:'كبار السن'}, {k:'critical', l:'أسر حرجة'}
 ];
 function buildSnapshot(campId, persons){
-  const st = computeStats(persons);
+  const st = statsOf(persons);
   const ix = DX.of(persons);
   const tiers = {critical:0, high:0, medium:0, stable:0};
   for(const [, h] of ix.headOf){ if(h && h.isFamilyHead) tiers[Vuln.ofPerson(h, ix).tier]++; }
@@ -3527,15 +4423,16 @@ async function refreshCampDashboard(){
   renderConnBadge(); renderOfflineBanner(); renderPendingSyncBanner();
   await renderAdminCampActions(campId);
   await loadPersonsCache(campId);
-  const stats = computeStats(State.personsCache);
+  const stats = statsOf(State.personsCache);
   renderDashStats(stats, camp);
   renderDashCharts(stats);
   const dsig = objId(State.personsCache) + '|' + Vuln.ver + '|' + FamRecs.v;
   memoRender('dash-tiers', dsig, ()=>renderTierBar('dash-tiers', State.personsCache));
-  memoRender('dash-quality', dsig, ()=>renderQualityTasks('dash-quality', State.personsCache));
-  memoRender('chart-pyramid', dsig, ()=>renderPyramid('chart-pyramid', State.personsCache));
+  const pc = State.personsCache;
+  idleRender('dash-quality', dsig, ()=>renderQualityTasks('dash-quality', pc), 190);
+  idleRender('chart-pyramid', dsig, ()=>renderPyramid('chart-pyramid', pc), 180);
   countUpIn(document.getElementById('dash-body'));
-  memoRender('dash-trends', campId + '|' + storeVersion('statsSnapshots') + '|' + todayStr(), ()=>renderTrendsSection('dash-trends', [campId]));
+  idleRender('dash-trends', campId + '|' + storeVersion('statsSnapshots') + '|' + todayStr(), ()=>renderTrendsSection('dash-trends', [campId]));
 }
 async function renderAdminCampActions(campId){
   const slot = document.getElementById('dash-admin-actions');
@@ -3598,33 +4495,36 @@ async function refreshDataEntryDashboard(){
     </div>`);
   if(deNew) document.getElementById('de-rapid').addEventListener('click', openRapidEntry);
 }
+/* بطاقات الإحصاء كلها بشبكة واحدة: عدد زوجي دائماً فلا يبقى فراغ بجانب بطاقة وحيدة (I3/B1) */
+function evenCards(cards){
+  const list = cards.filter(Boolean);
+  if(list.length % 2) list.push(`<div class="stat-card stat-card-fill" aria-hidden="true"></div>`);
+  return list.join('');
+}
 function renderDashStats(stats, camp){
-  setHTML(document.getElementById('dash-stats'), [
+  setHTML(document.getElementById('dash-stats'), evenCards([
     statCard('fa-users','navy', stats.total, 'إجمالي الأفراد', null, 'all'),
     statCard('fa-house-chimney','teal', stats.totalFamilies, 'إجمالي الأسر', null, 'headOfFamily'),
     statCard('fa-mars','navy', stats.male, 'الذكور', stats.malePct+'%', 'male'),
     statCard('fa-venus','teal', stats.female, 'الإناث', stats.femalePct+'%', 'female'),
     statCard('fa-baby','danger', stats.infant, 'رضّع أقل من سنة', null, 'infant'),
+    statCard('fa-child-reaching','warning', stats.orphans, 'أيتام', null, 'orphan'),
     statCard('fa-child','warning', stats.child, 'أطفال 1-18', null, 'child'),
     statCard('fa-person-cane','purple', stats.elderly, 'كبار السن +60', null, 'elderly'),
     statCard('fa-baby-carriage','pregnant', stats.pregnant, 'حوامل', null, 'pregnant'),
-    statCard('fa-child-reaching','warning', stats.orphans, 'أيتام', null, 'orphan'),
     statCard('fa-notes-medical','warning', stats.chronic, 'أمراض مزمنة', null, 'chronic'),
     statCard('fa-wheelchair','blue', stats.disability, 'ذوو إعاقة', null, 'disability'),
     statCard('fa-phone-slash','gray', stats.familiesNoPhone, 'أسر بلا هاتف', null, 'nophone'),
-    statCardCustom('fa-clock-rotate-left','teal', esc(fmtDate(camp?.lastUpdated)), 'آخر تحديث')
-  ].join(''));
-  const extraCards2 = [
     statCard('fa-child-reaching','danger', stats.preschool, 'أطفال 1-5 سنوات', null, 'preschool'),
     statCard('fa-school','warning', stats.school, 'أطفال 6-18 (سن مدرسي)', null, 'school'),
     statCard('fa-user','teal', stats.youth, 'شباب 18-30', null, 'youth'),
     statCard('fa-user-tie','navy', stats.midAdult, 'بالغون 30-60', null, 'midAdult'),
     statCard('fa-ring','gray', stats.widowed, 'أرامل', null, 'widowed'),
     statCard('fa-heart-crack','gray', stats.divorced, 'مطلّقات/ين', null, 'divorced'),
-    statCard('fa-id-card-clip','danger', stats.noId, 'بلا رقم هوية', null, 'noid')
-  ];
-  setHTML(document.getElementById('dash-stats-extra-wrap'), extraCards2.length
-    ? `<div class="stat-grid">${extraCards2.join('')}</div>` : '');
+    statCard('fa-id-card-clip','danger', stats.noId, 'بلا رقم هوية', null, 'noid'),
+    statCardCustom('fa-clock-rotate-left','teal', esc(fmtDate(camp?.lastUpdated)), 'آخر تحديث')
+  ]));
+  setHTML(document.getElementById('dash-stats-extra-wrap'), '');
 }
 function renderDashCharts(stats){
   setHTML(document.getElementById('dash-charts'), `
@@ -3673,11 +4573,15 @@ function renderQualityTasks(slotId, persons){
     <div class="btn-block-row mt-8">
       <button class="btn btn-outline btn-sm" id="${slotId}-rapid"><i class="fa-solid fa-bolt"></i> إدخال سريع</button>
       <button class="btn btn-outline btn-sm" id="${slotId}-batches"><i class="fa-solid fa-clock-rotate-left"></i> سجل الاستيراد</button>
+      <button class="btn btn-outline btn-sm" id="${slotId}-center"><i class="fa-solid fa-shield-halved"></i> مركز الجودة</button>
+      <button class="btn btn-outline btn-sm" id="${slotId}-aid"><i class="fa-solid fa-box-open"></i> المساعدات</button>
     </div>`;
   slot.querySelectorAll('[data-q]').forEach(b=>b.addEventListener('click', ()=>openFilteredList('q:' + b.dataset.q)));
   slot.querySelector('[data-sim]')?.addEventListener('click', ()=>nav('screen-similar'));
   slot.querySelector(`#${slotId}-rapid`).addEventListener('click', ()=>openRapidEntry());
   slot.querySelector(`#${slotId}-batches`).addEventListener('click', ()=>openImportBatches(currentCampId()));
+  slot.querySelector(`#${slotId}-center`).addEventListener('click', ()=>nav('screen-quality'));
+  slot.querySelector(`#${slotId}-aid`).addEventListener('click', ()=>nav('screen-aid'));
   countUpIn(slot);
 }
 function handleStatCardClick(e){
@@ -3729,39 +4633,14 @@ function matchesPersonFilter(p, f, ix){
   if(!f || f === 'all') return true;
   if(f === 'headOfFamily') return !!p.isFamilyHead;
   if(f.startsWith('tier:')) return !!p.isFamilyHead && Vuln.ofPerson(p, ix).tier === f.slice(5);
-  if(f.startsWith('q:')) return qualityTest(f.slice(2), p);
+  if(f.startsWith('q:')) return qualityTest(f.slice(2), p, ix);
   if(f.startsWith('tag:')) return !!(p.tags && p.tags.includes(f.slice(4)));
   if(f.startsWith('shelter:')) return !!p.isFamilyHead && effectiveShelter(p) === f.slice(8);
   if(f.startsWith('pyr:')){
     const [range, g] = f.slice(4).split(':'), [lo, hi] = range.split('-').map(Number), a = getAge(p);
     return p.gender === g && a != null && a >= lo && a <= hi;
   }
-  if(f === 'child') return ageCategory(getAge(p)) === 'child';
-  const bucket = ageBucket(getAge(p));
-  switch(f){
-    case 'male': return p.gender==='male';
-    case 'female': return p.gender==='female';
-    case 'infant': return bucket==='infant';
-    case 'preschool': return bucket==='preschool';
-    case 'school': return bucket==='school';
-    case 'youth': return bucket==='youth';
-    case 'midAdult': return bucket==='midAdult';
-    case 'elderly': return bucket==='elderly';
-    case 'pregnant': return !!p.isPregnant;
-    case 'chronic': return !!p.hasChronicDisease;
-    case 'disability': return !!p.hasDisability;
-    case 'widowed': return isWidowed(p);
-    case 'divorced': return isDivorced(p);
-    case 'nophone': return !!p.isFamilyHead && !p.phone;
-    case 'noid': return !p.nationalId;
-    case 'orphan': return isOrphan(p);
-    case 'breastfeeding': return !!p.isBreastfeeding;
-    case 'injured': return !!(p.tags && p.tags.includes('injured'));
-    case 'martyr': return !!(p.tags && p.tags.includes('martyr_family'));
-    case 'under2': { const a = getAge(p); return a != null && a < 2; }
-    case 'adults18': { const a = getAge(p); return !p.isFamilyHead && (p.relation === 'child' || p.relation === 'orphan') && a != null && a >= 18; }
-    default: return true;
-  }
+  return Derive.KNOWN.has(f) ? Derive.has(p, f) : true;
 }
 function filterLabel(f){
   if(PERSON_FILTER_LABELS[f]) return PERSON_FILTER_LABELS[f];
@@ -3779,10 +4658,7 @@ function getFilteredPersons(){
   const f = State.personsFilter;
   if(f !== 'all') list = list.filter(p=>matchesPersonFilter(p, f, ix));
   const q = (State.personsSearch||'').trim();
-  if(q){
-    const qk = nameKey(q), qn = normNid(q);
-    list = list.filter(p => (p.fullName||'').includes(q) || nameKey(p.fullName).includes(qk) || (qn && normNid(p.nationalId).includes(qn)) || (p.phone||'').includes(q));
-  }
+  if(q) list = SearchIdx.filter(list, q);
   if(State.personsSort === 'vuln') list = [...list].sort((a,b)=>(Vuln.ofPerson(b, ix).score - Vuln.ofPerson(a, ix).score) || ((b.isFamilyHead?1:0)-(a.isFamilyHead?1:0)));
   return list;
 }
@@ -4083,6 +4959,7 @@ async function openPersonDetail(id, fromEl){
           <button class="btn btn-outline btn-sm" data-req="${esc(r.id)}" data-st="done">تم التسليم</button>
           ${r.status==='pending'?`<button class="btn btn-danger btn-sm" data-req="${esc(r.id)}" data-st="rejected">رفض</button>`:''}</div>`:''}
       </div>`; }).join('')}</div>` : ''}
+    ${staffView ? aidDetailHtml(p, canEdit) : ''}
     <div class="section-title"><h2>أفراد الأسرة</h2></div>
     <div>${familyHtml}</div>
     <div class="section-title"><h2>سجل التعديلات</h2></div>
@@ -4102,6 +4979,7 @@ async function openPersonDetail(id, fromEl){
   if(getPersonConflict(p.id)) clearPersonConflict(p.id);
   m.querySelector('#pd-close').addEventListener('click', closeModal);
   m.querySelector('#pd-tags')?.addEventListener('click', ()=>{ closeModal(); openTagsEditor(p); });
+  m.querySelector('#pd-aid-add')?.addEventListener('click', ()=>{ closeModal(); aidAddDialog(p); });
   const editBtn = m.querySelector('#pd-edit'); if(editBtn) editBtn.addEventListener('click', ()=>{ closeModal(); openPersonForm(p.id); });
   const delBtn = m.querySelector('#pd-delete'); if(delBtn) delBtn.addEventListener('click', async ()=>{
     let warnMsg = 'سيتم حذف هذا السجل نهائياً ولا يمكن التراجع.';
@@ -4199,6 +5077,7 @@ document.getElementById('pf-gender-btns').addEventListener('click', e=>{
   document.getElementById('pf-gender-btns').dataset.selected = b.dataset.g;
   updateMaternalVisibility();
   updateSpouseMaternalVisibility();
+  pfRefreshDv();
 });
 function updateMaternalVisibility(){
   const gender = document.getElementById('pf-gender-btns').dataset.selected;
@@ -4227,8 +5106,9 @@ document.getElementById('pf-birthDate').addEventListener('input', e=>{
   const age = calcAge(e.target.value);
   document.getElementById('pf-age-out').textContent = age != null ? age+' سنة' : '—';
   updateMaternalVisibility();
+  pfRefreshDv();
 });
-document.getElementById('pf-spouseDob').addEventListener('input', updateSpouseMaternalVisibility);
+document.getElementById('pf-spouseDob').addEventListener('input', ()=>{ updateSpouseMaternalVisibility(); pfRefreshDv(); });
 document.getElementById('pf-isFamilyHead').addEventListener('click', ()=>{
   setTimeout(()=>{
     const on = document.getElementById('pf-isFamilyHead').classList.contains('on');
@@ -4237,6 +5117,7 @@ document.getElementById('pf-isFamilyHead').addEventListener('click', ()=>{
     _updateSpouseCardVisibility();
     document.getElementById('pf-children-card').hidden = !on;
     updateSpouseMaternalVisibility();
+    pfRefreshDv();
   }, 0);
 });
 document.getElementById('pf-marital-btns').addEventListener('click', e=>{
@@ -4263,6 +5144,10 @@ const CHILD_RELATIONS = [
   {v:'orphan',   l:'يتيم في رعاية الأسرة'}
 ];
 function childRelLabel(v){ return (CHILD_RELATIONS.find(r=>r.v===v)||{l:'فرد'}).l; }
+function childGenderFromRel(rel){ return rel === 'son' || rel === 'nephew' ? 'male' : rel === 'daughter' || rel === 'niece' ? 'female' : ''; }
+function childDvHtml(c){
+  return Derive.previewHtml({birthDate: c.birthDate || null, gender: childGenderFromRel(c.relation||'son') || 'unknown', relation: c.relation === 'orphan' ? 'orphan' : 'child', isFamilyHead:false});
+}
 function renderChildRows(){
   const wrap = document.getElementById('pf-children-list');
   wrap.innerHTML = State.pfChildren.map((c,i)=>`
@@ -4274,22 +5159,38 @@ function renderChildRows(){
         <button type="button" class="icon-btn child-remove" data-idx="${i}" style="width:28px;height:28px"><i class="fa-solid fa-trash" style="color:var(--danger)"></i></button>
       </div>
       <div class="field"><label>الاسم الكامل</label><input type="text" class="child-fullName" data-idx="${i}" value="${esc(c.fullName||'')}" placeholder="الاسم الرباعي"></div>
-      <div class="field"><label>تاريخ الميلاد</label><input type="date" class="child-birthDate" data-idx="${i}" value="${esc(c.birthDate||'')}"></div>
+      <div class="field"><label>رقم الهوية <span class="caption">(مطلوب إن أُدخل الاسم)</span></label><input type="text" class="child-nationalId" data-idx="${i}" value="${esc(c.nationalId||'')}"></div>
+      <div class="field"><label>تاريخ الميلاد</label><input type="date" class="child-birthDate" data-idx="${i}" value="${esc(c.birthDate||'')}"><div class="dv-row" data-dv="${i}">${childDvHtml(c)}</div></div>
       <div class="field"><label>ملاحظة صحية <span class="caption">(اختياري)</span></label><input type="text" class="child-note" data-idx="${i}" value="${esc(c.note||'')}" placeholder="مثال: يعاني من ربو"></div>
     </div>`).join('');
+  wrap.querySelectorAll('.child-nationalId').forEach(inp=>{
+    const c = State.pfChildren[+inp.dataset.idx] || {};
+    inp.dataset.self = c._id || '';
+    NidField.link(NidField.enhance(inp), ()=>inp.closest('.child-row')?.querySelector('.child-fullName'), ()=>inp.closest('.child-row')?.querySelector('.child-birthDate'));
+    NidField.set(inp, c.nationalId || '', c.noIdYet);
+  });
 }
 document.getElementById('pf-add-child').addEventListener('click', ()=>{
-  State.pfChildren.push({fullName:'', nationalId:'', birthDate:'', note:'', relation:'son', _id:null});
+  State.pfChildren.push({fullName:'', nationalId:'', noIdYet:false, birthDate:'', note:'', relation:'son', _id:null});
   renderChildRows();
 });
+function pfChildDv(idx){
+  const c = State.pfChildren[idx], el = document.querySelector(`#pf-children-list [data-dv="${idx}"]`);
+  if(c && el) el.innerHTML = childDvHtml(c);
+}
 document.getElementById('pf-children-list').addEventListener('input', e=>{
   const idx = +e.target.dataset.idx; if(Number.isNaN(idx)) return;
   const c = State.pfChildren[idx]; if(!c) return;
   if(e.target.classList.contains('child-fullName')) c.fullName = e.target.value;
-  else if(e.target.classList.contains('child-nationalId')) c.nationalId = e.target.value;
-  else if(e.target.classList.contains('child-birthDate')) c.birthDate = e.target.value;
+  else if(e.target.classList.contains('child-nationalId')){ c.nationalId = e.target.value; if(e.target.value) c.noIdYet = false; }
+  else if(e.target.classList.contains('child-birthDate')){ c.birthDate = e.target.value; pfChildDv(idx); }
   else if(e.target.classList.contains('child-note')) c.note = e.target.value;
-  else if(e.target.classList.contains('child-relation')) c.relation = e.target.value;
+  else if(e.target.classList.contains('child-relation')){ c.relation = e.target.value; pfChildDv(idx); }
+});
+document.getElementById('pf-children-list').addEventListener('change', e=>{
+  if(e.target.type !== 'checkbox') return;
+  const row = e.target.closest('.child-row'); const c = row && State.pfChildren[+row.dataset.idx]; if(!c) return;
+  c.noIdYet = e.target.checked; if(c.noIdYet) c.nationalId = '';
 });
 document.getElementById('pf-children-list').addEventListener('click', e=>{
   const b = e.target.closest('.child-remove'); if(!b) return;
@@ -4297,6 +5198,15 @@ document.getElementById('pf-children-list').addEventListener('click', e=>{
   if(removed && removed._id) State.pfRemovedChildIds.push(removed._id);
   renderChildRows();
 });
+/* تصنيف تلقائي فوري لرب الأسرة/الفرد والزوج/ة من تاريخ الميلاد */
+function pfRefreshDv(){
+  const g = document.getElementById('pf-gender-btns').dataset.selected || 'unknown';
+  const head = document.getElementById('pf-isFamilyHead').classList.contains('on');
+  document.getElementById('pf-dv').innerHTML = Derive.previewHtml({birthDate: document.getElementById('pf-birthDate').value || null, gender: g, isFamilyHead: head});
+  document.getElementById('pf-spouse-dv').innerHTML = Derive.previewHtml({birthDate: document.getElementById('pf-spouseDob').value || null, gender: g==='male'?'female':g==='female'?'male':'unknown', relation:'wife', isFamilyHead:false});
+}
+NidField.link(NidField.enhance(document.getElementById('pf-nationalId')), ()=>document.getElementById('pf-fullName'), ()=>document.getElementById('pf-birthDate'));
+NidField.link(NidField.enhance(document.getElementById('pf-spouseNationalId')), ()=>document.getElementById('pf-spouseName'), ()=>document.getElementById('pf-spouseDob'));
 
 async function openPersonForm(id){
   if(!guardRole(['admin','delegate','dataentry'])) return;
@@ -4319,7 +5229,9 @@ async function openPersonForm(id){
   document.querySelectorAll('#pf-marital-btns .seg-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('pf-marital-btns').dataset.selected = 'married';
   document.getElementById('pf-spouseName').value = '';
-  document.getElementById('pf-spouseNationalId').value = '';
+  NidField.pool = null;
+  NidField.set(document.getElementById('pf-nationalId'), '', false); document.getElementById('pf-nationalId').dataset.self = id || '';
+  NidField.set(document.getElementById('pf-spouseNationalId'), '', false); document.getElementById('pf-spouseNationalId').dataset.self = '';
   document.getElementById('pf-spouseDob').value = '';
   document.getElementById('pf-phone2').value = '';
   document.getElementById('pf-shelterType').value = '';
@@ -4334,7 +5246,7 @@ async function openPersonForm(id){
     if(!p){ toast('السجل غير موجود','err'); return; }
     document.getElementById('pf-title').textContent = 'تعديل بيانات فرد';
     document.getElementById('pf-fullName').value = p.fullName||'';
-    document.getElementById('pf-nationalId').value = p.nationalId||'';
+    NidField.set(document.getElementById('pf-nationalId'), p.nationalId||'', p.noIdYet);
     document.getElementById('pf-birthDate').value = p.birthDate||'';
     const age = getAge(p); document.getElementById('pf-age-out').textContent = age!=null ? age+' سنة':'—';
     if(p.gender){ const btn = document.querySelector(`#pf-gender-btns .seg-btn[data-g="${p.gender}"]`); if(btn) btn.click(); }
@@ -4371,7 +5283,8 @@ async function openPersonForm(id){
         || members.find(m=>!m.isFamilyHead && m.relation!=='child' && (getAge(m)==null || getAge(m)>=15));
       if(spouse && !document.getElementById('pf-spouse-card').hidden){
         document.getElementById('pf-spouseName').value = spouse.fullName||'';
-        document.getElementById('pf-spouseNationalId').value = spouse.nationalId||'';
+        NidField.set(document.getElementById('pf-spouseNationalId'), spouse.nationalId||'', spouse.noIdYet);
+        document.getElementById('pf-spouseNationalId').dataset.self = spouse.id;
         document.getElementById('pf-spouseDob').value = spouse.birthDate||'';
         if(spouse.isPregnant) document.getElementById('pf-spouseIsPregnant').classList.add('on');
         if(spouse.isBreastfeeding) document.getElementById('pf-spouseIsBreastfeeding').classList.add('on');
@@ -4382,7 +5295,7 @@ async function openPersonForm(id){
       State.pfChildren = children.map(c=>{
         // أولوية للـ memberRelation المحفوظة، ثم استنتاج من الجنس
         let rv = c.memberRelation || (c.relation==='orphan' ? 'orphan' : null) || (c.gender==='female' ? 'daughter' : 'son');
-        return {fullName:c.fullName||'', nationalId:c.nationalId||'', birthDate:c.birthDate||'', note:c.notes||'', relation: rv, _id:c.id};
+        return {fullName:c.fullName||'', nationalId:c.nationalId||'', noIdYet:!!c.noIdYet, birthDate:c.birthDate||'', note:c.notes||'', relation: rv, _id:c.id};
       });
       renderChildRows();
     }
@@ -4396,6 +5309,7 @@ async function openPersonForm(id){
     _updateSpouseCardVisibility();
     document.getElementById('pf-children-card').hidden = false;
   }
+  pfRefreshDv();
   nav('screen-person-form');
 }
 document.getElementById('pf-close-btn').addEventListener('click', ()=>{
@@ -4442,7 +5356,18 @@ document.getElementById('pf-save-btn').addEventListener('click', async ()=>{
   const customFields = { ...(person.customFields||{}) };
   const phone2 = document.getElementById('pf-phone2').value.trim();
   if(phone2) customFields['هاتف إضافي'] = phone2; else delete customFields['هاتف إضافي'];
-  const nationalId = document.getElementById('pf-nationalId').value.trim();
+  /* بوابة الهوية (N1): رب الأسرة/الفرد + الزوج/ة (إن أُدخل اسمها) + كل فرد مُدخَل بالاسم */
+  const pfNidInput = document.getElementById('pf-nationalId'), spNidInput = document.getElementById('pf-spouseNationalId');
+  const nidRows = [{input: pfNidInput, label: isFamilyHead ? 'رب الأسرة' : 'الفرد', self: person.id}];
+  if(isFamilyHead && document.getElementById('pf-spouseName').value.trim()) nidRows.push({input: spNidInput, label: 'الزوج/ة', self: State.pfSpouseId || '', legacy: !!State.pfSpouseId});
+  if(isFamilyHead) document.querySelectorAll('#pf-children-list .child-row').forEach((row, i)=>{
+    const c = State.pfChildren[i]; if(!c || !c.fullName || !c.fullName.trim()) return;
+    nidRows.push({input: row.querySelector('.child-nationalId'), label: c.fullName.trim().split(/\s+/)[0], self: c._id || '', legacy: !!c._id});
+  });
+  const nidErr = NidField.validate(nidRows) || await NidField.crossCamp(nidRows, campId);
+  if(nidErr){ toast(nidErr, 'err'); return; }
+  const nidSkipped = NidField.skipped;
+  const nationalId = NidField.read(pfNidInput).nid;
   const familyId = person.familyId || (isFamilyHead ? (nationalId || person.id) : null);
   const msMap = {married:'متزوج/ة', widowed:'أرمل/ة', divorced:'مطلق/ة', single:'أعزب'};
   const msKey = document.getElementById('pf-marital-btns').dataset.selected || '';
@@ -4465,6 +5390,7 @@ document.getElementById('pf-save-btn').addEventListener('click', async ()=>{
     maritalStatus: isFamilyHead ? maritalStatus : (person.maritalStatus||''),
     customFields, updatedAt: now, updatedBy: State.user.id, syncStatus: 'pending'
   });
+  NidField.apply(person, pfNidInput);
 
   try{
     await dbPut('persons', person);
@@ -4480,7 +5406,7 @@ document.getElementById('pf-save-btn').addEventListener('click', async ()=>{
         let spouse = State.pfSpouseId ? await dbGet('persons', State.pfSpouseId) : null;
         if(!spouse) spouse = {id: uuid(), campId, createdAt: now, createdBy: State.user.id};
         Object.assign(spouse, {
-          fullName: spouseName, nationalId: document.getElementById('pf-spouseNationalId').value.trim(),
+          fullName: spouseName, nationalId: NidField.read(spNidInput).nid,
           birthDate: spouseDob, calculatedAge: calcAge(spouseDob),
           gender: spouseGender,
           isFamilyHead:false, relation: spouse.relation || 'wife', familyId,
@@ -4492,6 +5418,7 @@ document.getElementById('pf-save-btn').addEventListener('click', async ()=>{
           maritalStatus: person.maritalStatus||'',
           customFields: spouse.customFields||{}, updatedAt: now, updatedBy: State.user.id, syncStatus:'pending'
         });
+        NidField.apply(spouse, spNidInput);
         await dbPut('persons', spouse);
         if(spouse.nationalId) pushNationalIndexEntry(spouse, campRec?.name, campRec?.supervisorPhone);
       } else if(State.pfSpouseId){
@@ -4511,9 +5438,9 @@ document.getElementById('pf-save-btn').addEventListener('click', async ()=>{
         const childRel = c.relation || 'child';
         // للأيتام في رعاية الأسرة: تُحفظ صلتهم كـ orphan لا child
         Object.assign(child, {
-          fullName: c.fullName.trim(), nationalId: (c.nationalId||'').trim(),
+          fullName: c.fullName.trim(), nationalId: normNid(c.nationalId||''),
           birthDate: c.birthDate || null, calculatedAge: calcAge(c.birthDate),
-          gender: resolveGender(null, null, c.fullName), isFamilyHead:false,
+          gender: childGenderFromRel(childRel) || (child.gender && child.gender !== 'unknown' ? child.gender : resolveGender(null, null, c.fullName)), isFamilyHead:false,
           relation: childRel === 'orphan' ? 'orphan' : (childRel === 'niece' || childRel === 'daughter' ? 'child' : 'child'),
           familyId, campId, phone:'', address: person.address, notes: (c.note||'').trim(),
           hasChronicDisease: !!child.hasChronicDisease, diseaseDetails: child.diseaseDetails||'',
@@ -4522,6 +5449,7 @@ document.getElementById('pf-save-btn').addEventListener('click', async ()=>{
           customFields: child.customFields||{}, updatedAt: now, updatedBy: State.user.id, syncStatus:'pending',
           memberRelation: childRel // يُحفظ النوع الدقيق للعرض (ابن/ابنة/ابن أخ...)
         });
+        if(child.nationalId) delete child.noIdYet; else if(c.noIdYet) child.noIdYet = true;
         await dbPut('persons', child);
         if(child.nationalId) pushNationalIndexEntry(child, campRec?.name, campRec?.supervisorPhone);
         ci++;
@@ -4533,6 +5461,7 @@ document.getElementById('pf-save-btn').addEventListener('click', async ()=>{
     await logAudit(State.editingPersonId?'edit_person':'add_person', State.user, person.id, person.fullName, oldValue, person);
     await syncCampPersonsSoon(campId);
     toast(State.editingPersonId?'تم تحديث البيانات بنجاح':'تمت إضافة الفرد بنجاح','ok');
+    if(nidSkipped) setTimeout(()=>toast(`${nidSkipped} من أفراد الأسرة بلا رقم هوية — أكمله قريباً`,'warn'), 900);
     await loadPersonsCache(campId);
     nav(State.user.role==='dataentry' ? 'screen-dash' : 'screen-persons');
   }catch(err){
@@ -6087,13 +7016,14 @@ async function readWorkbook(file){
   return out;
 }
 function resetImportScreen(){
-  ['import-step-match','import-step-progress','import-step-done','import-step-preflight'].forEach(id=>{ const el = document.getElementById(id); if(el) el.hidden = true; });
+  ['import-step-match','import-step-progress','import-step-done','import-step-preflight','import-step-form'].forEach(id=>{ const el = document.getElementById(id); if(el) el.hidden = true; });
   document.getElementById('import-step-drop').hidden = false;
   document.getElementById('import-progress-bar').style.width = '0%';
   document.getElementById('import-campmeta-slot').innerHTML = '';
   document.getElementById('import-wizard-slot').innerHTML = '';
   document.getElementById('import-undo-btn').hidden = true;
   document.getElementById('import-file-input').value = '';
+  renderNatRefBox();
 }
 
 /* ===== القوالب: بصمة الرؤوس ← مطابقة محفوظة، تُشارك بين الأجهزة ===== */
@@ -7144,11 +8074,14 @@ function openTagsEditor(p0){
 
 /* ===================== قراءة الملف وتحديد النموذج ===================== */
 async function handleImportFile(file){
+  State._importBusy = true;
   try{
     const wb = await readWorkbook(file);
     if(!wb) return;
     await GenderLex.ensure();
     if(!State.reconcileMode){
+      const formSheet = detectFormSheet(wb);
+      if(formSheet){ await runFormImport(formSheet, file.name); return; }
       const sig = readGrcsSignature(wb);
       if(sig && sig.persons.length){ await runNativeImport(sig, file.name); return; }
     }
@@ -7182,6 +8115,7 @@ async function handleImportFile(file){
       if(shape === 'flat'){ toast('هذا الملف صف=فرد ولا يصلح للمطابقة الوطنية — يلزم كشف بصيغة عائلة (رب أسرة + زوجة/أبناء)','err'); resetImportScreen(); return; }
       State.importParsed = {headers, dataRows, fileName: file.name, mode: shape, campMeta};
       renderReconcilePreview();
+      natRefAutoSave(State.importParsed);
       return;
     }
     if(shape === 'horizontal'){
@@ -7205,7 +8139,7 @@ async function handleImportFile(file){
     console.error('خطأ قراءة ملف الاستيراد:', err);
     toast('تعذّر قراءة الملف — تأكد من صيغته (xlsx / xls / csv)','err');
     resetImportScreen();
-  }
+  }finally{ State._importBusy = false; }
 }
 /* ===================== تنفيذ الاستيراد (النموذج المسطّح) ===================== */
 async function runImport(){
@@ -7341,7 +8275,7 @@ _dz.addEventListener('click', ()=>document.getElementById('import-file-input').c
 ['dragenter','dragover'].forEach(ev=>_dz.addEventListener(ev, e=>{ e.preventDefault(); _dz.classList.add('drag'); }));
 ['dragleave','drop'].forEach(ev=>_dz.addEventListener(ev, e=>{ e.preventDefault(); _dz.classList.remove('drag'); }));
 _dz.addEventListener('drop', e=>{ const f = e.dataTransfer.files[0]; if(f) handleImportFile(f); });
-document.getElementById('import-file-input').addEventListener('change', e=>{ const f = e.target.files[0]; if(f) handleImportFile(f); });
+document.getElementById('import-file-input').addEventListener('change', e=>{ const f = e.target.files[0]; e.target.value = ''; /* يسمح باختيار نفس الملف مجدداً */ if(f) handleImportFile(f); });
 document.getElementById('import-cancel-btn').addEventListener('click', ()=>{
   State.importParsed = null;
   resetImportScreen();
@@ -7368,6 +8302,8 @@ document.getElementById('import-excluded-btn').addEventListener('click', e=>{
 });
 document.getElementById('cat-import-btn').addEventListener('click', openCatPicker);
 document.getElementById('hq-cats-btn').addEventListener('click', ()=>{ State.adminViewingCampId = null; openCategoriesPanel(); });
+document.getElementById('hq-aid-btn').addEventListener('click', ()=>{ State.adminViewingCampId = null; nav('screen-aid'); });
+document.getElementById('hq-quality-btn').addEventListener('click', ()=>{ State.adminViewingCampId = null; nav('screen-quality'); });
 document.getElementById('reconcile-open-btn').addEventListener('click', ()=>{
   if(!guardRole(['admin'])) return;
   State.reconcileMode = true;
@@ -7377,6 +8313,14 @@ document.getElementById('reconcile-open-btn').addEventListener('click', ()=>{
 SCREEN_REFRESH['screen-import'] = function(){
   if(!guardRole(['admin','delegate','dataentry'])) return;
   updateAdminBackBtns();
+  /* لا يُعاد ضبط الشاشة بتحديث/مزامنة تصل أثناء تحميل المكتبة أو قراءة الملف أو معاينته (سبب الرجوع لاختيار الملف أول مرة):
+     الضبط فقط عند دخول جديد للشاشة */
+  const freshEntry = State._importSeq !== State._navSeq;
+  State._importSeq = State._navSeq;
+  const working = State._importBusy || State.importParsed || State.formParsed ||
+    ['import-step-match','import-step-progress','import-step-done','import-step-preflight','import-step-form'].some(id=>{ const el = document.getElementById(id); return el && !el.hidden; });
+  if(!freshEntry && working){ document.getElementById('form-promo').hidden = !!State.reconcileMode; return; }
+  document.getElementById('form-promo').hidden = !!State.reconcileMode;
   document.getElementById('import-title').textContent = State.reconcileMode ? 'مطابقة كشف وطني شامل' : 'استيراد Excel';
   document.getElementById('import-step-drop').hidden = false;
   document.getElementById('import-step-match').hidden = true;
@@ -7389,6 +8333,8 @@ SCREEN_REFRESH['screen-import'] = function(){
   document.getElementById('import-wizard-slot').innerHTML = '';
   document.getElementById('import-step-preflight').hidden = true;
   document.getElementById('import-undo-btn').hidden = true;
+  State._natReplaceId = null;
+  renderNatRefBox();
 };
 function populateExportFamilyDropdown(){
   document.getElementById('exp-family').innerHTML = '<option value="all">كل الأسر</option>' +
@@ -7764,6 +8710,432 @@ function printReport(){
   setTimeout(()=>win.print(), 400);
   logAudit('export', State.user, currentCampId(), null, null, {type:'print', mode, count: data.length});
 }
+/* ===================== الفورمة الموحّدة (FORM) — كل ما يطلبه النظام بملف واحد =====================
+   المندوب يحمّل الفورمة ويعبّئها (صف = فرد، ورب الأسرة يربط الأسرة) ثم يرفعها: يفهمها النظام بلا تخمين،
+   يتحقق من كل صف قبل الكتابة، يرتّب كل فرد بمكانه، ويصنّفه تلقائياً من تاريخ ميلاده. */
+const FORM_SHEET = 'الفورمة', FORM_ROWS = 1000;
+const FORM_RELS = [
+  {l:'رب الأسرة', rel:'head', head:true, al:['رب الاسره','رب العائله','المستفيد']},
+  {l:'زوجة', rel:'wife', g:'female', minAge:14, al:['زوجه','الزوجه']},
+  {l:'زوج', rel:'husband', g:'male', minAge:14, al:['الزوج']},
+  {l:'ابن', rel:'child', mr:'son', g:'male', al:['ولد','الابن']},
+  {l:'ابنة', rel:'child', mr:'daughter', g:'female', al:['ابنه','بنت','الابنه','البنت']},
+  {l:'ابن أخ/عم', rel:'child', mr:'nephew', g:'male', al:['ابن اخ','ابن عم','ابن اخ او عم','ابن اخ/عم']},
+  {l:'ابنة أخ/عم', rel:'child', mr:'niece', g:'female', al:['ابنه اخ','ابنه عم','بنت اخ','بنت عم','ابنه اخ/عم']},
+  {l:'يتيم في رعاية الأسرة', rel:'orphan', mr:'orphan', al:['يتيم','يتيمه','يتيم في رعايه الاسره']},
+  {l:'أب', rel:'other', detail:'الأب', g:'male', minAge:15, al:['الاب','والد']},
+  {l:'أم', rel:'other', detail:'الأم', g:'female', minAge:15, al:['الام','والده']},
+  {l:'أخ', rel:'other', detail:'أخ', g:'male', al:['اخ','الاخ']},
+  {l:'أخت', rel:'other', detail:'أخت', g:'female', al:['اخت','الاخت']},
+  {l:'جد/جدة', rel:'other', detail:'جد / جدة', minAge:30, al:['جد','جده','جد / جده','جد/جده']},
+  {l:'قريب آخر', rel:'other', detail:'قريب آخر', al:['قريب','فرد اخر','قريب اخر','اخرى','فرد اخر']}
+];
+const FORM_YN = ['نعم','لا'];
+const FORM_MARITAL = ['متزوج/ة','أرمل/ة','مطلق/ة','أعزب'];
+const FORM_ORPHAN = ['لا','يتيم الأب','يتيم الأبوين'];
+const FORM_COLS = [
+  {k:'headNid', h:'رقم هوية رب الأسرة', req:true, w:20, text:true, note:'يُكتب في كل صف من أسرة واحدة (صف رب الأسرة وأفراده)'},
+  {k:'rel', h:'الصلة', req:true, w:20, list:FORM_RELS.map(r=>r.l), note:'اختر من القائمة. صف واحد فقط «رب الأسرة» لكل أسرة'},
+  {k:'fullName', h:'الاسم الكامل', req:true, w:30, note:'الاسم الرباعي'},
+  {k:'nid', h:'رقم الهوية', req:true, w:18, text:true, note:'9 أرقام — ولمولود لم تصدر هويته اكتب: لا يوجد'},
+  {k:'dob', h:'تاريخ الميلاد', req:true, w:16, date:true, note:'سنة-شهر-يوم (مثل 2015-03-27) — منه يُصنَّف الفرد تلقائياً'},
+  {k:'gender', h:'الجنس', w:10, list:['ذكر','أنثى'], note:'اختياري: يُستنتج من الصلة'},
+  {k:'marital', h:'الحالة الاجتماعية', w:16, list:FORM_MARITAL, note:'لرب الأسرة'},
+  {k:'phone', h:'رقم الجوال', w:15, text:true, note:'لرب الأسرة'},
+  {k:'phone2', h:'جوال إضافي', w:15, text:true},
+  {k:'shelter', h:'نوع المأوى', w:18, list:SHELTER_TYPES.map(s=>s.l), note:'لرب الأسرة'},
+  {k:'address', h:'العنوان / الموقع', w:24},
+  {k:'preg', h:'حامل', w:9, list:FORM_YN},
+  {k:'bf', h:'مرضعة', w:9, list:FORM_YN},
+  {k:'chronic', h:'مرض مزمن', w:11, list:FORM_YN},
+  {k:'chronicD', h:'تفاصيل المرض', w:22},
+  {k:'dis', h:'إعاقة', w:9, list:FORM_YN},
+  {k:'disD', h:'تفاصيل الإعاقة', w:22},
+  {k:'orphan', h:'يتيم', w:13, list:FORM_ORPHAN},
+  {k:'injured', h:'جريح / مصاب', w:12, list:FORM_YN},
+  {k:'martyr', h:'أسرة شهيد', w:11, list:FORM_YN},
+  {k:'notes', h:'ملاحظات', w:26}
+];
+function formHKey(h){ return normalizeArabic(String(h||'').replace(/[*＊]/g,'')).replace(/\s+/g,' ').trim(); }
+function formRelOf(raw){
+  const s = formHKey(raw); if(!s) return null;
+  return FORM_RELS.find(r=>formHKey(r.l) === s) || FORM_RELS.find(r=>r.al.some(a=>formHKey(a) === s)) || null;
+}
+/* يكتشف ورقة الفورمة بالرؤوس (لا بورقة مخفية) فيصمد أمام إعادة الحفظ من أي برنامج */
+function detectFormSheet(wb){
+  const need = ['headNid','rel','fullName','nid','dob'].map(k=>formHKey(FORM_COLS.find(c=>c.k===k).h));
+  for(const name of wb.SheetNames){
+    if(/مثال|تعليمات/.test(name)) continue;
+    const rows = (wb.Sheets[name] && wb.Sheets[name]._rows) || [];
+    for(let i=0;i<Math.min(rows.length, 15);i++){
+      const keys = (rows[i]||[]).map(formHKey);
+      if(need.every(n=>keys.includes(n))){
+        const col = {};
+        FORM_COLS.forEach(c=>{ const j = keys.indexOf(formHKey(c.h)); if(j >= 0) col[c.k] = j; });
+        return {name, rows, headerIdx: i, col};
+      }
+    }
+  }
+  return null;
+}
+function formYes(v){ return parseBoolCell(v) || /^(نعم|ايوه|أيوه|يس|yes)$/i.test(String(v??'').trim()); }
+function formNoId(v){ const s = formHKey(v); return !!s && /^(لا يوجد|لايوجد|لا|بدون|لم تصدر|مولود|-+|غير موجود|لا هويه|لا هوية)/.test(s); }
+
+/* ---------- تحميل الفورمة ---------- */
+async function buildGrcsFormBytes(){
+  const exampleRows = [
+    ['400000009','رب الأسرة','محمد أحمد سالم حسن','400000009','1985-04-12','ذكر','متزوج/ة','0599000000','','خيمة سليمة','خانيونس — منطقة المواصي','لا','لا','لا','','لا','','لا','لا','لا',''],
+    ['400000009','زوجة','فاطمة خالد محمود علي','400000017','1990-08-02','','','','','','','نعم','لا','لا','','لا','','لا','لا','لا','حامل بالشهر السادس'],
+    ['400000009','ابن','أحمد محمد أحمد سالم','410000005','2014-02-20','','','','','','','لا','لا','لا','','لا','','لا','لا','لا',''],
+    ['400000009','ابنة','سارة محمد أحمد سالم','لا يوجد','2025-11-03','','','','','','','لا','لا','لا','','لا','','لا','لا','لا','مولودة جديدة لم تصدر هويتها'],
+    ['400000009','أب','أحمد سالم حسن علي','405550001','1950-06-01','','','','','','','لا','لا','نعم','ضغط وسكري','لا','','لا','لا','لا','']
+  ];
+  const guide = [
+    'الفورمة الموحّدة لنظام إدارة مخيمات النزوح',
+    '',
+    '١) صف واحد لكل فرد. أول صف لكل أسرة هو «رب الأسرة» ثم زوجته وأبناؤه وبقية أفراده تحته.',
+    '٢) «رقم هوية رب الأسرة» يُكتب في كل صف من الأسرة نفسها — هو الذي يجمع أفراد الأسرة.',
+    '٣) الأعمدة الحمراء مطلوبة: رقم هوية رب الأسرة، الصلة، الاسم الكامل، رقم الهوية، تاريخ الميلاد.',
+    '٤) رقم الهوية 9 أرقام. للمولود الذي لم تصدر هويته اكتب «لا يوجد» وتُضاف هويته لاحقاً.',
+    '٥) تاريخ الميلاد بصيغة سنة-شهر-يوم (2015-03-27). النظام يصنّف الفرد تلقائياً منه: رضيع، طفل، شاب، كبير سن...',
+    '٦) الجنس يُستنتج من الصلة (ابن/ابنة/زوجة...) إن تُرك فارغاً.',
+    '٧) أعمدة نعم/لا: اتركها فارغة = لا. «حامل» و«مرضعة» للإناث البالغات فقط.',
+    '٨) لا تغيّر عناوين الأعمدة ولا ترتيبها ولا تحذف صف العناوين. للمزيد من الصفوف انسخ آخر صف للأسفل.',
+    '٩) عند الرفع يفحص النظام كل صف ويعرض الأخطاء بأرقام الصفوف قبل أن يكتب أي شيء. الأسر السليمة فقط تُستورد.'
+  ];
+  const ok = await loadExcelJS();
+  if(ok && window.ExcelJS){
+    const wb = new ExcelJS.Workbook(); wb.creator = 'نظام إدارة مخيمات النزوح'; wb.created = new Date();
+    const ws = wb.addWorksheet(FORM_SHEET, {views:[{rightToLeft:true, state:'frozen', ySplit:3}]});
+    const n = FORM_COLS.length;
+    ws.mergeCells(1,1,1,n);
+    Object.assign(ws.getCell(1,1), {value:'الفورمة الموحّدة — نظام إدارة مخيمات النزوح'});
+    ws.getCell(1,1).font = {size:15, bold:true, color:{argb:XL_BRAND.white}};
+    ws.getCell(1,1).fill = {type:'pattern', pattern:'solid', fgColor:{argb:XL_BRAND.navy}};
+    ws.getCell(1,1).alignment = {horizontal:'center', vertical:'middle'}; ws.getRow(1).height = 30;
+    ws.mergeCells(2,1,2,n);
+    ws.getCell(2,1).value = 'صف لكل فرد • الأعمدة الحمراء مطلوبة • اقرأ ورقة «تعليمات» • لا تغيّر العناوين';
+    ws.getCell(2,1).font = {size:11, bold:true, color:{argb:XL_BRAND.white}};
+    ws.getCell(2,1).fill = {type:'pattern', pattern:'solid', fgColor:{argb:XL_BRAND.teal}};
+    ws.getCell(2,1).alignment = {horizontal:'center', vertical:'middle'}; ws.getRow(2).height = 22;
+    FORM_COLS.forEach((c,i)=>{
+      const cell = ws.getCell(3, i+1);
+      cell.value = c.h + (c.req ? ' *' : '');
+      cell.font = {bold:true, size:11, color:{argb:XL_BRAND.white}};
+      cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb: c.req ? 'FFB91C1C' : XL_BRAND.navyDark}};
+      cell.alignment = {horizontal:'center', vertical:'middle', wrapText:true}; cell.border = xlThinBorder();
+      if(c.note) cell.note = c.note;
+      ws.getColumn(i+1).width = c.w;
+    });
+    ws.getRow(3).height = 36;
+    for(let r=4; r<4+FORM_ROWS; r++){
+      FORM_COLS.forEach((c,i)=>{
+        const cell = ws.getCell(r, i+1);
+        cell.border = xlThinBorder(); cell.alignment = {horizontal:'center', vertical:'middle'};
+        if(c.text) cell.numFmt = '@'; else if(c.date) cell.numFmt = 'yyyy-mm-dd';
+        if(c.list) cell.dataValidation = {type:'list', allowBlank:true, showErrorMessage:true, errorTitle:'قيمة غير صحيحة', error:'اختر من القائمة', formulae:['"'+c.list.join(',')+'"']};
+      });
+    }
+    const wx = wb.addWorksheet('مثال (لا يُرفع)', {views:[{rightToLeft:true}]});
+    wx.addRow(FORM_COLS.map(c=>c.h));
+    wx.getRow(1).eachCell(cell=>{ cell.font = {bold:true, color:{argb:XL_BRAND.white}}; cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:XL_BRAND.navyDark}}; cell.alignment = {horizontal:'center', wrapText:true}; });
+    exampleRows.forEach(r=>wx.addRow(r.map(v=>v)));
+    FORM_COLS.forEach((c,i)=>{ wx.getColumn(i+1).width = c.w; });
+    const wg = wb.addWorksheet('تعليمات', {views:[{rightToLeft:true}]});
+    guide.forEach((t,i)=>{ const r = wg.addRow([t]); r.getCell(1).alignment = {wrapText:true, vertical:'top'}; if(i===0) r.getCell(1).font = {bold:true, size:14}; });
+    wg.getColumn(1).width = 110;
+    return new Uint8Array(await wb.xlsx.writeBuffer());
+  }
+  if(!(await ensureSheetJS())) throw new Error('مكتبة Excel غير متاحة — اتصل بالإنترنت مرة واحدة ثم أعد المحاولة');
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([['الفورمة الموحّدة — نظام إدارة مخيمات النزوح'], ['صف لكل فرد • الأعمدة المعلّمة * مطلوبة'], FORM_COLS.map(c=>c.h + (c.req ? ' *' : ''))]);
+  ws['!cols'] = FORM_COLS.map(c=>({wch:c.w}));
+  XLSX.utils.book_append_sheet(wb, ws, FORM_SHEET);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([FORM_COLS.map(c=>c.h), ...exampleRows]), 'مثال (لا يُرفع)');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(guide.map(t=>[t])), 'تعليمات');
+  wb.Workbook = {Views:[{RTL:true}]};
+  return new Uint8Array(XLSX.write(wb, {bookType:'xlsx', type:'array'}));
+}
+async function downloadGrcsForm(){
+  const btn = document.getElementById('form-dl-btn');
+  if(btn){ btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ تجهيز الفورمة...'; }
+  try{
+    const bytes = await buildGrcsFormBytes();
+    const fileName = `الفورمة_الموحدة_${timestampSlug().slice(0,10)}.xlsx`;
+    const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    triggerBlobDownload(bytes, fileName, mimeType);
+    try{ await saveExportLocally(currentCampId(), fileName, mimeType, bytes); }catch(e){}
+    toast('تم تحميل الفورمة — عبّئها ثم ارفعها من هنا','ok');
+  }catch(e){ console.error('تعذّر تجهيز الفورمة:', e); toast(e.message || 'تعذّر تجهيز الفورمة','err'); }
+  finally{ if(btn){ btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-download"></i> تحميل الفورمة'; } }
+}
+
+/* ---------- قراءة الصفوف والتحقق ---------- */
+function formParse(sheet){
+  const {rows, headerIdx, col} = sheet;
+  const V = (r, k)=>col[k] == null ? '' : String(r[col[k]] ?? '').trim();
+  const out = [];
+  for(let i = headerIdx + 1; i < rows.length; i++){
+    const r = rows[i] || [];
+    const key = ['headNid','rel','fullName','nid','dob'];
+    if(!key.some(k=>V(r,k)) && !['notes','phone','address'].some(k=>V(r,k))) continue; // صف فارغ
+    out.push({n: i + 1, r, v: k=>V(r,k)});
+  }
+  return out;
+}
+function formPlan(sheet, ctx){
+  const today = new Date(); today.setHours(23,59,59,999);
+  const rowsIn = formParse(sheet);
+  const issues = [];            // {n, name, msg, sev:'err'|'warn', fam}
+  const add = (row, sev, msg)=>issues.push({n: row.n, name: row.v('fullName') || '—', msg, sev, fam: row.fam});
+  const P = [];                 // صفوف محلّلة
+  for(const row of rowsIn){
+    const x = {row, n: row.n, name: row.v('fullName').replace(/\s+/g,' ')};
+    row.fam = normNid(row.v('headNid')); x.fam = row.fam;
+    x.errs = [];
+    const e = m=>{ x.errs.push(m); add(row, 'err', m); };
+    const w = m=>add(row, 'warn', m);
+    if(!x.fam) e('رقم هوية رب الأسرة مطلوب');
+    else if(!/^\d{8,9}$/.test(x.fam)) e('رقم هوية رب الأسرة يجب أن يكون 9 أرقام');
+    x.rel = formRelOf(row.v('rel'));
+    if(!row.v('rel')) e('الصلة مطلوبة'); else if(!x.rel) e(`صلة غير معروفة «${row.v('rel')}» — اختر من القائمة`);
+    if(!x.name) e('الاسم الكامل مطلوب');
+    // الهوية
+    const rawNid = row.v('nid');
+    x.nid = '';
+    if(rawNid && formNoId(rawNid)) x.noId = true;
+    else if(rawNid){
+      const n = normNid(rawNid);
+      if(!/^\d+$/.test(n) || !/^\d{8,9}$/.test(n)) e('رقم الهوية يجب أن يكون 9 أرقام (أو «لا يوجد» لمولود لم تصدر هويته)');
+      else { x.nid = n; if(nidStatus(n) === 'invalid') w('رقم الهوية لا يجتاز خانة التحقق — تأكد منه'); }
+    } else if(x.rel && x.rel.head) x.nid = x.fam && /^\d{8,9}$/.test(x.fam) ? x.fam : '';
+    else e('رقم الهوية مطلوب (أو اكتب «لا يوجد» لمولود لم تصدر هويته)');
+    if(x.rel && x.rel.head && !x.nid && !x.errs.length) e('رب الأسرة يلزمه رقم هوية');
+    // الميلاد
+    const rawDob = row.v('dob');
+    x.dob = null;
+    if(!rawDob) e('تاريخ الميلاد مطلوب — منه يُصنَّف الفرد تلقائياً');
+    else {
+      const d = _parseDateAny(rawDob);
+      if(!d) e(`تاريخ الميلاد غير مفهوم «${rawDob}» — اكتبه سنة-شهر-يوم`);
+      else if(new Date(d) > today) e('تاريخ الميلاد في المستقبل');
+      else { x.dob = d; const a = calcAge(d); if(a > 115) e('العمر يتجاوز 115 سنة — راجع تاريخ الميلاد'); x.age = a; }
+    }
+    // الجنس
+    const gCell = row.v('gender');
+    let g = gCell ? parseGenderCell(gCell) : 'unknown';
+    if(gCell && g === 'unknown') w(`قيمة الجنس «${gCell}» غير مفهومة — تجاهلت`);
+    if(x.rel && x.rel.g){ if(g !== 'unknown' && g !== x.rel.g) w(`الجنس لا يتفق مع الصلة «${x.rel.l}» — اعتمدت الصلة`); g = x.rel.g; }
+    if(g === 'unknown') g = resolveGender(null, row.v('marital'), x.name);
+    x.gender = g;
+    if(x.rel && x.rel.minAge && x.age != null && x.age < x.rel.minAge) e(`العمر (${x.age}) لا يتفق مع الصلة «${x.rel.l}»`);
+    if(x.rel && x.rel.head && x.age != null && x.age < 15) e('عمر رب الأسرة لا يتجاوز 15 سنة — راجع الصلة أو تاريخ الميلاد');
+    // الأعلام
+    x.preg = formYes(row.v('preg')); x.bf = formYes(row.v('bf'));
+    if((x.preg || x.bf) && (g !== 'female' || (x.age != null && x.age < 12))){ w('«حامل/مرضعة» للإناث البالغات فقط — تجاهلتها'); x.preg = x.bf = false; }
+    x.chronic = formYes(row.v('chronic')) || !!row.v('chronicD'); x.dis = formYes(row.v('dis')) || !!row.v('disD');
+    const orf = formHKey(row.v('orphan'));
+    x.orphanType = /ابوين|والدين|كلا/.test(orf) ? 'both' : /يتيم|اب|ابو|الاب/.test(orf) && !/^لا$/.test(orf) && orf ? 'father' : '';
+    if(!x.orphanType && orf && formYes(row.v('orphan'))) x.orphanType = 'father';
+    if(x.rel && x.rel.rel === 'orphan' && !x.orphanType) x.orphanType = 'father';
+    P.push(x);
+  }
+  // تكرار الهويات داخل الملف
+  const seen = new Map();
+  P.forEach(x=>{ if(x.nid){ if(seen.has(x.nid)){ const o = seen.get(x.nid); const m = `رقم الهوية مكرر بالملف (الصف ${o.n})`; x.errs.push(m); add(x.row, 'err', m); } else seen.set(x.nid, x); } });
+  // الأسر
+  const fams = new Map();
+  P.forEach(x=>{ if(!x.fam) return; if(!fams.has(x.fam)) fams.set(x.fam, {fam: x.fam, rows: [], head: null, heads: 0, errs: 0}); const f = fams.get(x.fam); f.rows.push(x); if(x.rel && x.rel.head){ f.heads++; f.head = f.head || x; } });
+  fams.forEach(f=>{
+    const first = f.rows[0].row;
+    if(f.heads === 0){ const m = `لا يوجد صف «رب الأسرة» للأسرة (${f.fam}) — أضف صفه بنفس رقم الهوية`; f.rows.forEach(x=>x.errs.push(m)); add(first, 'err', m); }
+    else if(f.heads > 1){ const m = `أكثر من صف «رب الأسرة» للأسرة (${f.fam}) — يجب صف واحد`; f.rows.forEach(x=>x.errs.push(m)); f.rows.filter(x=>x.rel && x.rel.head).slice(1).forEach(x=>add(x.row, 'err', m)); }
+    else if(f.head.nid && f.head.nid !== f.fam){ const m = 'رقم هوية رب الأسرة بصفه يخالف «رقم هوية رب الأسرة» المكتوب'; f.rows.forEach(x=>x.errs.push(m)); add(f.head.row, 'err', m); }
+    f.bad = f.rows.some(x=>x.errs.length);
+  });
+  P.forEach(x=>{ const f = fams.get(x.fam); x.bad = !f || f.bad || x.errs.length > 0; });
+  issues.sort((a,b)=>a.n - b.n);
+  const goodFams = [...fams.values()].filter(f=>!f.bad);
+  return {rows: P, fams, goodFams, badFams: [...fams.values()].filter(f=>f.bad), issues,
+    errs: issues.filter(i=>i.sev === 'err').length, warns: issues.filter(i=>i.sev === 'warn').length,
+    total: P.length, ok: P.filter(x=>!x.bad).length};
+}
+function formRecOf(x, fam, orderIndex){
+  const row = x.row, rel = x.rel;
+  const rec = {
+    fullName: x.name, nationalId: x.nid || '', birthDate: x.dob, calculatedAge: calcAge(x.dob), gender: x.gender,
+    isFamilyHead: !!rel.head, relation: rel.rel, familyId: fam.fam, orderIndex,
+    isPregnant: x.preg, isBreastfeeding: x.bf,
+    hasChronicDisease: x.chronic, diseaseDetails: row.v('chronicD'), hasDisability: x.dis, disabilityDetails: row.v('disD'),
+    notes: row.v('notes'), address: row.v('address') || (fam.head && fam.head.row.v('address')) || ''
+  };
+  if(rel.mr) rec.memberRelation = rel.mr;
+  if(rel.detail) rec.relationDetail = rel.detail;
+  if(!x.nid) rec.noIdYet = true;
+  if(rel.head){
+    const ms = normalizeMaritalWord(row.v('marital')); rec.maritalStatus = ms ? ms.canonical : row.v('marital');
+    rec.phone = row.v('phone'); rec.shelterType = inferShelterFromText(row.v('shelter'));
+  }
+  const p2 = row.v('phone2'); if(p2) rec.customFields = {'هاتف إضافي': p2};
+  const tags = [], tagData = {};
+  if(x.orphanType){ tags.push('orphan'); tagData.orphan = {type: x.orphanType, soleSurvivor: x.orphanType === 'both'}; }
+  if(formYes(row.v('injured'))) tags.push('injured');
+  if(formYes(row.v('martyr'))) tags.push('martyr_family');
+  if(tags.length){ rec.tags = tags; rec.tagData = tagData; }
+  return rec;
+}
+
+/* ---------- المعاينة ---------- */
+function formEsc(s){ return esc(String(s ?? '')); }
+async function runFormImport(sheet, fileName){
+  const campId = currentCampId();
+  if(!campId){ toast('لا يوجد مخيم محدد','err'); resetImportScreen(); return; }
+  const plan = formPlan(sheet);
+  if(!plan.total){ toast('الفورمة فارغة — لا توجد صفوف معبّأة','err'); resetImportScreen(); return; }
+  const existing = await dbIndexAll('persons','campId',campId);
+  const exByNid = new Map(); existing.forEach(p=>{ const n = normNid(p.nationalId); if(n) exByNid.set(n, p); });
+  let upd = 0, add = 0;
+  plan.rows.filter(x=>!x.bad).forEach(x=>{ if(x.nid && exByNid.has(x.nid)) upd++; else add++; });
+  const okRows = plan.rows.filter(x=>!x.bad);
+  const st = computeStats(okRows.map(x=>({birthDate:x.dob, gender:x.gender, isPregnant:x.preg, isBreastfeeding:x.bf, hasChronicDisease:x.chronic, hasDisability:x.dis,
+    tags: x.orphanType ? ['orphan'] : [], nationalId: x.nid || 'x', familyId: x.fam, isFamilyHead: !!(x.rel && x.rel.head), relation: x.rel && x.rel.rel})));
+  State.formParsed = {plan, fileName, campId};
+  const noIdN = okRows.filter(x=>!x.nid).length;
+  document.getElementById('ff-summary').innerHTML = `
+    <h3 class="mb-8"><i class="fa-solid fa-file-circle-check" style="color:var(--teal)"></i> نتيجة فحص الفورمة</h3>
+    <div class="ff-grid">
+      <div><b>${plan.fams.size}</b><span>أسرة بالملف</span></div>
+      <div class="ok"><b>${plan.goodFams.length}</b><span>أسرة سليمة</span></div>
+      <div class="${plan.badFams.length?'bad':''}"><b>${plan.badFams.length}</b><span>أسرة فيها أخطاء</span></div>
+      <div><b>${plan.total}</b><span>فرد (صف)</span></div>
+      <div class="ok"><b>${plan.ok}</b><span>فرد جاهز</span></div>
+      <div class="${plan.warns?'warn':''}"><b>${plan.warns}</b><span>تنبيه</span></div>
+    </div>
+    <p class="caption mt-8">سيُضاف <b>${add}</b> فرد جديد ويُحدَّث <b>${upd}</b> موجود بالمخيم${noIdN?` • ${noIdN} بلا هوية بعد (مواليد جدد)`:''}</p>
+    <div class="caption mt-8"><i class="fa-solid fa-wand-magic-sparkles"></i> التصنيف التلقائي من تاريخ الميلاد: رضّع ${st.infant} • أطفال ${st.child} • شباب ${st.youth} • بالغون ${st.midAdult} • كبار السن ${st.elderly}${st.orphans?` • أيتام ${st.orphans}`:''}${st.pregnant?` • حوامل ${st.pregnant}`:''}</div>`;
+  const iss = document.getElementById('ff-issues');
+  iss.hidden = !plan.issues.length;
+  iss.innerHTML = plan.issues.length ? `<h3 class="mb-8">${plan.errs ? 'أخطاء تمنع استيراد أسرها' : ''}${plan.errs && plan.warns ? ' وتنبيهات' : !plan.errs ? 'تنبيهات' : ''}</h3>` +
+    plan.issues.slice(0, 40).map(i=>`<div class="ff-issue ${i.sev}"><i class="fa-solid ${i.sev==='err'?'fa-circle-xmark':'fa-triangle-exclamation'}"></i><div><b>صف ${i.n}</b> · ${formEsc(i.name)}<br><span>${formEsc(i.msg)}</span></div></div>`).join('') +
+    (plan.issues.length > 40 ? `<p class="caption mt-8">و ${plan.issues.length - 40} أخرى — حمّل التقرير الكامل</p>` : '') : '';
+  const go = document.getElementById('ff-go');
+  go.disabled = !plan.goodFams.length;
+  go.innerHTML = plan.goodFams.length ? `<i class="fa-solid fa-play"></i> استيراد ${plan.goodFams.length} أسرة سليمة (${plan.ok} فرد)` : 'لا توجد أسرة سليمة للاستيراد';
+  document.getElementById('ff-report').hidden = !plan.issues.length;
+  ['import-step-drop','import-step-match','import-step-progress'].forEach(id=>{ document.getElementById(id).hidden = true; });
+  document.getElementById('import-step-form').hidden = false;
+}
+async function formReport(){
+  const fp = State.formParsed; if(!fp) return;
+  const header = ['الصف','الاسم','النوع','الملاحظة'];
+  const rows = fp.plan.issues.map(i=>[i.n, i.name, i.sev === 'err' ? 'خطأ — يمنع الأسرة' : 'تنبيه', i.msg]);
+  const bytes = await buildStyledExcelBytes({sheets:[{name:'تقرير الفورمة', subtitle:'أخطاء وتنبيهات الفورمة — '+new Date().toLocaleDateString('ar-EG-u-nu-latn'), header, rows}]});
+  triggerBlobDownload(bytes, `تقرير-الفورمة-${timestampSlug().slice(0,10)}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+
+/* ---------- التنفيذ ---------- */
+async function runFormImportExec(){
+  const fp = State.formParsed; if(!fp) return;
+  const {plan, campId, fileName} = fp;
+  State._importBusy = true;
+  document.getElementById('import-step-form').hidden = true;
+  document.getElementById('import-step-progress').hidden = false;
+  document.getElementById('import-progress-text').textContent = 'جارٍ تحضير الأسر...';
+  try{ await silentBackup(); }catch(e){ console.error('فشل النسخ الاحتياطي قبل الاستيراد:', e); }
+  try{
+    const camp = await dbGet('camps', campId);
+    const now = stampNow();
+    const existing = await dbIndexAll('persons','campId',campId);
+    const exByNid = new Map(), exByFamName = new Map();
+    existing.forEach(p=>{ const n = normNid(p.nationalId); if(n) exByNid.set(n, p); else if(p.familyId) exByFamName.set(p.familyId + '|' + normalizeArabic(p.fullName||''), p); });
+    // أسر بلا تعارض مع سجلات قائمة (رب أسرة ↔ فرد)
+    const clashes = [], families = [];
+    for(const f of plan.goodFams){
+      const recs = [], upd = [];
+      let idx = 2, clash = false;
+      f.rows.sort((a,b)=>(a.rel.head ? -1 : b.rel.head ? 1 : 0) || a.n - b.n);
+      for(const x of f.rows){
+        const order = x.rel.head ? 0 : (x.rel.rel === 'wife' || x.rel.rel === 'husband') ? 1 : idx++;
+        const rec = formRecOf(x, f, order);
+        const ex = (rec.nationalId && exByNid.get(rec.nationalId)) || (!rec.nationalId && exByFamName.get(f.fam + '|' + normalizeArabic(rec.fullName)));
+        if(ex && (!!ex.isFamilyHead !== !!rec.isFamilyHead || (ex.familyId && ex.familyId !== rec.familyId))){
+          clashes.push(importClash(rec, ex)); clash = true; continue;
+        }
+        recs.push({rec, ex: ex || null});
+      }
+      if(recs.length) families.push({fam: f.fam, recs, headRow: f.head});
+    }
+    // التكرار بالمخيمات الأخرى (الجدد فقط)
+    document.getElementById('import-progress-text').textContent = 'جارٍ التحقق من التكرار عبر المخيمات...';
+    const fresh = []; families.forEach(f=>f.recs.forEach(r=>{ if(!r.ex && r.rec.nationalId) fresh.push(r.rec); }));
+    const dd = await dedupAgainstOtherCamps(fresh, campId, []);
+    const rejected = new Set(dd.excluded.map(e=>e.nationalId));
+    const dropFam = new Set();
+    families.forEach(f=>{ const h = f.recs.find(r=>r.rec.isFamilyHead); if(h && !h.ex && rejected.has(h.rec.nationalId)) dropFam.add(f.fam); });
+    const excluded = [...dd.excluded, ...clashes];
+    const toWrite = [], updates = [];
+    for(const f of families){
+      if(dropFam.has(f.fam)){ f.recs.forEach(r=>{ if(!rejected.has(r.rec.nationalId)) excluded.push({fullName:r.rec.fullName, nationalId:r.rec.nationalId, reason:'أسرته مستبعدة (رب الأسرة مسجّل بمخيم آخر)', existingCampName:'', existingPhone:''}); }); continue; }
+      for(const {rec, ex} of f.recs){
+        if(!ex && rec.nationalId && rejected.has(rec.nationalId)) continue;
+        if(ex){
+          const before = ex; updates.push({existingPerson: JSON.parse(JSON.stringify(before))});
+          if(rec.tags){ rec.tags = [...new Set([...(before.tags||[]), ...rec.tags])]; rec.tagData = {...(before.tagData||{}), ...(rec.tagData||{})}; }
+          mergeImportRec(before, rec);
+          if(rec.nationalId) delete before.noIdYet; 
+          Object.assign(before, {campId, updatedAt: now, updatedBy: State.user.id, syncStatus:'pending'});
+          toWrite.push(before);
+        } else {
+          toWrite.push({id: uuid(), campId, createdAt: now, createdBy: State.user.id, customFields: {}, chronicConditions: [], ...rec, updatedAt: now, updatedBy: State.user.id, syncStatus:'pending'});
+        }
+      }
+    }
+    const _batch = ImportBatch.begin(campId, 'form', fileName, updates, toWrite);
+    await dbBulkPut('persons', toWrite, 200, (done,total)=>{
+      const pct = total ? Math.round(done/total*100) : 100;
+      document.getElementById('import-progress-bar').style.width = pct+'%';
+      document.getElementById('import-progress-count').textContent = `${done} / ${total}`;
+      document.getElementById('import-progress-text').textContent = `جاري الترتيب والحفظ... ${pct}%`;
+    });
+    const famIds = new Set(toWrite.map(p=>p.familyId).filter(Boolean));
+    for(const fid of famIds) await ensureFamily(campId, fid, {});
+    document.getElementById('import-progress-text').textContent = 'جارٍ إنشاء حسابات المستفيدين...';
+    const benBatch = [];
+    for(const p of toWrite.filter(x=>x.isFamilyHead && x.nationalId)){
+      try{ await ensureBeneficiaryUser(p, campId, camp?.name || campId, DEFAULT_BEN_PW, benBatch); }catch(e){ console.error('فشل حساب مستفيد:', p.fullName, e); }
+    }
+    await pushUsersBatch(benBatch);
+    const batchId = await _batch.commit(toWrite, benBatch);
+    markCampDirty(campId);
+    await syncCampPersonsSoon(campId);
+    await pushNationalIndexBatch(toWrite, camp?.name, camp?.supervisorPhone);
+    let excludedFileId = null;
+    if(excluded.length) excludedFileId = await saveExcludedDuplicatesReport(excluded, campId);
+    showUndoOnDone(batchId);
+    const added = toWrite.length - updates.length;
+    await logAudit('import_excel', State.user, campId, camp?.name || campId, null, {file: fileName, form:true, inserted: added, updated: updates.length, skippedFamilies: plan.badFams.length, excluded: excluded.length});
+    await loadPersonsCache(campId);
+    document.getElementById('import-step-progress').hidden = true;
+    document.getElementById('import-step-done').hidden = false;
+    document.getElementById('import-summary').innerHTML =
+      `الفورمة: أُضيف <b>${added}</b> وحُدِّث <b>${updates.length}</b> فرد في <b>${famIds.size}</b> أسرة — كلٌّ بمكانه وبتصنيفه من تاريخ ميلاده` +
+      (plan.badFams.length ? `<br><span style="color:var(--warning)">لم تُستورد <b>${plan.badFams.length}</b> أسرة لوجود أخطاء — صحّحها بالملف وارفعه ثانية</span>` : '') +
+      (excluded.length ? `<br><span style="color:var(--danger)">استُبعد <b>${excluded.length}</b> سجل (مكرر/متعارض)</span>` : '') +
+      (!dd.checkedOnline ? `<br><span class="caption">لم يُتحقق من التكرار عبر المخيمات الأخرى لعدم توفر الإنترنت</span>` : '');
+    const exBtn = document.getElementById('import-excluded-btn');
+    if(excludedFileId){ exBtn.hidden = false; exBtn.dataset.fileId = excludedFileId; } else exBtn.hidden = true;
+    State.formParsed = null;
+  }catch(err){
+    console.error('خطأ استيراد الفورمة:', err);
+    toast('تعذّر استيراد الفورمة: ' + (err.message || 'خطأ غير معروف'), 'err');
+    resetImportScreen();
+  }finally{ State._importBusy = false; }
+}
+document.getElementById('form-dl-btn').addEventListener('click', downloadGrcsForm);
+document.getElementById('ff-go').addEventListener('click', runFormImportExec);
+document.getElementById('ff-report').addEventListener('click', formReport);
+document.getElementById('ff-cancel').addEventListener('click', ()=>{ State.formParsed = null; resetImportScreen(); });
+
 /* ===================== توقيع GRCS — سجلات كاملة بورقة مخفية لإعادة استيراد مطابقة 100% ===================== */
 const GRCS_SIG_SHEET = '_grcs_data', GRCS_SIG = 'GRCS-EXPORT';
 async function buildGrcsSignatureSheet(campId, persons){
@@ -8463,11 +9835,14 @@ function addTombstone(campId, personId, nationalId, docId){
   markCampDirty(campId);
   if(nationalId) removeNationalIndexEntry(nationalId);
 }
+/* قوائم الفرد التي تُدمج بالاتحاد حسب المعرّف عند تعارض الأجهزة: طلبات الأسرة + سجل المساعدات (التراجع = void بختم أحدث) */
 function mergeRequests(a, b){
-  if(!(a.requests||[]).length && !(b.requests||[]).length) return a;
-  const map = {};
-  [...(b.requests||[]), ...(a.requests||[])].forEach(r=>{ if(!map[r.id] || (r.updatedAt||0) >= (map[r.id].updatedAt||0)) map[r.id] = r; });
-  a.requests = Object.values(map);
+  for(const [k, ts] of [['requests', r=>r.updatedAt||0], ['aid', r=>r.at||0]]){
+    if(!(a[k]||[]).length && !(b[k]||[]).length) continue;
+    const map = {};
+    [...(b[k]||[]), ...(a[k]||[])].forEach(r=>{ if(!map[r.id] || ts(r) >= ts(map[r.id])) map[r.id] = r; });
+    a[k] = Object.values(map);
+  }
   return a;
 }
 function getCampClearedAt(campId){ return +localStorage.getItem('grcs_cleared_'+campId) || 0; }
@@ -9435,7 +10810,7 @@ const ACTION_LABELS = {
   edit_person:'تعديل فرد', delete_person:'حذف فرد', sync:'مزامنة', export:'تصدير', add_message:'رسالة',
   change_password:'تغيير كلمة المرور', create_user:'إنشاء حساب', update_user:'تعديل حساب',
   camp_info:'تحديث معلومات المخيم', restore_backup:'استعادة نسخة احتياطية', delete_camp:'حذف مخيم',
-  security_upgrade:'ترقية حماية الحسابات', restore_trash:'استعادة من سلة المحذوفات', purge_trash:'حذف نهائي من السلة'
+  security_upgrade:'ترقية حماية الحسابات', aid_give:'تسليم مساعدة', aid_undo:'تراجع عن مساعدة', aid_bulk:'تسليم جماعي', restore_trash:'استعادة من سلة المحذوفات', purge_trash:'حذف نهائي من السلة'
 };
 async function logAudit(action, user, targetId, targetName, oldValue, newValue){
   try{
@@ -9617,7 +10992,7 @@ function rapidSetRel(rel){
   rapidSetGender(g || '');
   document.getElementById('rapid-gender-wrap').hidden = ['son','daughter','wife'].includes(rel);
   document.getElementById('rapid-phone-wrap').hidden = rel !== 'head';
-  rapidPreview(); rapidSuggest();
+  rapidPreview(); rapidSuggest(); rapidRefreshDv();
 }
 function rapidSetGender(g){
   Rapid.gender = g;
@@ -9662,8 +11037,10 @@ function rapidCheckNid(){
   const local = DX.of(State.personsCache).byNid.get(n);
   if(local){ Rapid.nidOk = false; st.className = 'nid-status bad'; st.textContent = `مسجّل مسبقاً بهذا المخيم: ${local.fullName}`; return; }
   const s = nidStatus(n);
-  st.className = 'nid-status ' + (s === 'valid' ? 'ok' : 'warn');
-  st.textContent = s === 'valid' ? 'رقم صالح' : s === 'format' ? 'الرقم يجب أن يكون 9 أرقام' : 'لا يجتاز خانة التحقق — تأكد من الرقم';
+  let cls = s === 'valid' ? 'ok' : 'warn', html = esc(s === 'valid' ? 'رقم صالح' : s === 'format' ? 'الرقم يجب أن يكون 9 أرقام' : 'لا يجتاز خانة التحقق — تأكد من الرقم');
+  if(!NatRef.ready()) NatRef.ensure().then(()=>{ if(el.isConnected && normNid(el.value) === n) rapidCheckNid(); }).catch(()=>{});
+  else { el._link = {name: ()=>document.getElementById('rapid-name'), dob: ()=>document.getElementById('rapid-dob')}; const h = NatRef.hint(n, true); if(h){ html += h.html; if(h.cls === 'warn') cls = 'warn'; } }
+  st.className = 'nid-status ' + cls; st.innerHTML = html;
   clearTimeout(Rapid.nidCheckT);
   if(s === 'valid' && State.online){
     Rapid.nidCheckT = setTimeout(async ()=>{
@@ -9681,6 +11058,9 @@ async function rapidSave(){
   const name = rapidFinalName();
   if(!name){ toast('الاسم مطلوب','err'); document.getElementById('rapid-name').focus(); return; }
   if(Rapid.rel !== 'head' && !Rapid.family){ toast('أدخل رب الأسرة أولاً','warn'); rapidSetRel('head'); return; }
+  const rapidNid0 = normNid(document.getElementById('rapid-nid').value), rapidNone = document.getElementById('rapid-nid-none').checked;
+  if(!rapidNid0 && !rapidNone){ toast('رقم الهوية مطلوب — أدخله أو حدّد «لا يوجد رقم هوية بعد»','err'); document.getElementById('rapid-nid').focus(); return; }
+  if(rapidNid0 && nidStatus(rapidNid0) === 'format'){ toast('رقم الهوية يجب أن يكون 9 أرقام','err'); document.getElementById('rapid-nid').focus(); return; }
   if(!Rapid.nidOk){ toast('رقم الهوية مسجّل مسبقاً','err'); return; }
   const btn = document.getElementById('rapid-save'); btn.disabled = true;
   try{
@@ -9699,6 +11079,7 @@ async function rapidSave(){
       maritalStatus:'', orderIndex: isHead ? 0 : Rapid.rel === 'wife' ? 1 : 2 + (Rapid.family?.members||1), customFields:{},
       updatedAt: now, updatedBy: State.user.id, syncStatus:'pending'};
     if(p.relationDetail === undefined) delete p.relationDetail;
+    if(!nid && rapidNone) p.noIdYet = true;
     await dbPut('persons', p);
     const camp = await dbGet('camps', campId);
     if(nid) pushNationalIndexEntry(p, camp?.name, camp?.supervisorPhone);
@@ -9717,6 +11098,7 @@ async function rapidSave(){
     document.getElementById('rapid-counter').classList.remove('bump'); void document.getElementById('rapid-counter').offsetWidth; document.getElementById('rapid-counter').classList.add('bump');
     haptic(12);
     ['rapid-nid','rapid-name','rapid-dob','rapid-phone'].forEach(i=>document.getElementById(i).value = '');
+    document.getElementById('rapid-nid-none').checked = false; document.getElementById('rapid-nid').disabled = false; rapidRefreshDv();
     document.getElementById('rapid-nid-status').textContent = ''; document.getElementById('rapid-suggest').innerHTML = '';
     Rapid.nidOk = true;
     rapidSetRel(isHead ? 'wife' : Rapid.rel === 'wife' ? 'son' : Rapid.rel);
@@ -9770,10 +11152,22 @@ document.getElementById('rapid-gender').addEventListener('click', e=>{ const b =
 document.getElementById('rapid-nid').addEventListener('input', e=>{
   const v = toLatinDigits(e.target.value).replace(/[^\d]/g,'');
   if(v !== e.target.value) e.target.value = v;
+  if(v) document.getElementById('rapid-nid-none').checked = false;
   rapidCheckNid();
   if(v.length === 9 && Rapid.nidOk) document.getElementById('rapid-name').focus();
 });
 document.getElementById('rapid-name').addEventListener('input', ()=>{ rapidPreview(); rapidSuggest(); });
+document.getElementById('rapid-nid-none').addEventListener('change', e=>{
+  const inp = document.getElementById('rapid-nid');
+  if(e.target.checked){ inp.value = ''; document.getElementById('rapid-nid-status').textContent = ''; Rapid.nidOk = true; }
+  inp.disabled = e.target.checked;
+  if(e.target.checked) document.getElementById('rapid-name').focus(); else inp.focus();
+});
+function rapidRefreshDv(){
+  const g = Rapid.rel === 'son' ? 'male' : ['daughter','wife'].includes(Rapid.rel) ? 'female' : (Rapid.gender || 'unknown');
+  document.getElementById('rapid-dv').innerHTML = Derive.previewHtml({birthDate: document.getElementById('rapid-dob').value || null, gender: g, relation: Rapid.rel === 'head' ? 'head' : Rapid.rel === 'wife' ? 'wife' : 'child', isFamilyHead: Rapid.rel === 'head'});
+}
+document.getElementById('rapid-dob').addEventListener('input', rapidRefreshDv);
 document.getElementById('rapid-save').addEventListener('click', rapidSave);
 document.getElementById('rapid-undo').addEventListener('click', rapidUndo);
 document.querySelector('#screen-rapid .rapid-card').addEventListener('keydown', e=>{
@@ -10245,6 +11639,8 @@ function gsActions(){
     {l:'استيراد Excel', ic:'fa-file-arrow-up', ok: inCamp, go:()=>nav('screen-import')},
     {l:'سجل الاستيراد والتراجع', ic:'fa-clock-rotate-left', ok: inCamp, go:()=>openImportBatches(currentCampId())},
     {l:'الأسماء المتشابهة', ic:'fa-user-group', ok: inCamp, go:()=>nav('screen-similar')},
+    {l:'مركز الجودة', ic:'fa-shield-halved', ok: true, go:()=>nav('screen-quality')},
+    {l:'المساعدات', ic:'fa-box-open', ok: true, go:()=>nav('screen-aid')},
     {l:'تصدير تقرير', ic:'fa-file-export', ok: inCamp && r !== 'dataentry', go:()=>nav('screen-export')},
     {l:'المخيمات', ic:'fa-tents', ok: r === 'admin', go:()=>nav('screen-camps-admin')},
     {l:'الحسابات', ic:'fa-users-gear', ok: r === 'admin', go:()=>nav('screen-accounts-admin')},
@@ -10274,16 +11670,16 @@ async function openGlobalSearch(){
   const pool = scopeCamp && role !== 'admin' ? (DX.of(all).byCamp.get(scopeCamp) || []) : all;
   const campMap = {}; camps.forEach(c=>campMap[c.id] = c);
   const actions = gsActions();
-  const render = ()=>{
+  let _rs = 0;
+  const render = async ()=>{
+    const my = ++_rs;
     const q = input.value.trim();
+    let people = null;
+    if(q){ people = await SearchIdx.find(pool, q, 25); if(my !== _rs || !wrap.isConnected) return; }
     if(!q){
       out.innerHTML = `<div class="gs-sec">إجراءات سريعة</div>` + actions.map((a,i)=>`<button class="gs-item" data-a="${i}"><i class="fa-solid ${a.ic}"></i><span>${esc(a.l)}</span></button>`).join('');
     } else {
-      const qk = nameKey(q), qn = normNid(q), qd = toLatinDigits(q);
-      const people = [];
-      for(const p of pool){
-        if(nameKey(p.fullName).includes(qk) || (qn && /^\d{3,}$/.test(qn) && normNid(p.nationalId).includes(qn)) || (qd.length >= 4 && (p.phone||'').includes(qd))){ people.push(p); if(people.length >= 25) break; }
-      }
+      const qk = nameKey(q);
       const cs = role === 'admin' ? camps.filter(c=>c.id !== 'HQ' && (nameKey(c.name).includes(qk) || (c.supervisor && nameKey(c.supervisor).includes(qk)))).slice(0,6) : [];
       const acts = actions.filter(a=>nameKey(a.l).includes(qk));
       out.innerHTML =
@@ -10334,39 +11730,38 @@ async function refreshAdminDashboard(){
   const [allPersons] = await Promise.all([PersonStore.all(), FamRecs.ensure()]);
   const allIx = DX.of(allPersons);
   const totals = {total:0, totalFamilies:0, male:0, female:0, infant:0, child:0, adult:0, elderly:0, pregnant:0,
-    chronic:0, disability:0, preschool:0, school:0, youth:0, midAdult:0, widowed:0, divorced:0, noId:0, familiesNoPhone:0};
+    chronic:0, disability:0, preschool:0, school:0, youth:0, midAdult:0, widowed:0, divorced:0, noId:0, familiesNoPhone:0, orphans:0};
   let totalCritical = 0;
   const campStatsList = [];
   for(const c of camps){
     const persons = allIx.byCamp.get(c.id) || [];
-    const st = computeStats(persons);
+    const st = statsOf(persons);
     Object.keys(totals).forEach(k=>{ totals[k] += st[k]||0; });
     const isCritical = st.infant>=50 || st.pregnant>=30 || st.chronic>=100;
     if(isCritical) totalCritical++;
     campStatsList.push({...c, ...st, criticalFlag: isCritical, critical: st.infant+st.pregnant+st.chronic});
   }
-  setHTML(document.getElementById('dash-stats'), [
+  setHTML(document.getElementById('dash-stats'), evenCards([
     statCard('fa-tents','navy', camps.length, 'إجمالي المخيمات', null, 'camps'),
     statCard('fa-users','teal', totals.total, 'إجمالي الأفراد', null, 'all'),
     statCard('fa-house-chimney','navy', totals.totalFamilies, 'إجمالي الأسر', null, 'headOfFamily'),
     statCard('fa-triangle-exclamation','danger', totalCritical, 'مخيمات بحالات حرجة', null, 'criticalCamps'),
     statCard('fa-baby','danger', totals.infant, 'رضّع أقل من سنة', null, 'infant'),
+    statCard('fa-child-reaching','warning', totals.orphans, 'أيتام', null, 'orphan'),
     statCard('fa-child','warning', totals.school, 'أطفال 6-18', null, 'school'),
     statCard('fa-person-cane','purple', totals.elderly, 'كبار السن +60', null, 'elderly'),
-    statCard('fa-baby-carriage','pregnant', totals.pregnant, 'حوامل', null, 'pregnant')
-  ].join(''));
-  const adminExtraCards = [
+    statCard('fa-baby-carriage','pregnant', totals.pregnant, 'حوامل', null, 'pregnant'),
     statCard('fa-notes-medical','warning', totals.chronic, 'أمراض مزمنة', null, 'chronic'),
     statCard('fa-wheelchair','blue', totals.disability, 'ذوو إعاقة', null, 'disability'),
     statCard('fa-child-reaching','danger', totals.preschool, 'أطفال 1-5 سنوات', null, 'preschool'),
     statCard('fa-user','teal', totals.youth, 'شباب 18-30', null, 'youth'),
+    statCard('fa-user-tie','navy', totals.midAdult, 'بالغون 30-60', null, 'midAdult'),
     statCard('fa-ring','gray', totals.widowed, 'أرامل', null, 'widowed'),
     statCard('fa-heart-crack','gray', totals.divorced, 'مطلّقات/ين', null, 'divorced'),
     statCard('fa-phone-slash','gray', totals.familiesNoPhone, 'أسر بلا هاتف', null, 'nophone'),
     statCard('fa-id-card-clip','danger', totals.noId, 'بلا رقم هوية', null, 'noid')
-  ];
-  setHTML(document.getElementById('dash-stats-extra-wrap'), adminExtraCards.length
-    ? `<div class="stat-grid">${adminExtraCards.join('')}</div>` : '');
+  ]));
+  setHTML(document.getElementById('dash-stats-extra-wrap'), '');
   campStatsList.sort((a,b)=>b.total-a.total);
   setHTML(document.getElementById('dash-charts'), `
     <div id="dash-tiers"></div>
@@ -10385,10 +11780,10 @@ async function refreshAdminDashboard(){
   State._adminCampStats = campStatsList;
   const asig = objId(allPersons) + '|' + Vuln.ver + '|' + FamRecs.v;
   memoRender('dash-tiers', asig, ()=>renderTierBar('dash-tiers', allPersons, 'مؤشر الهشاشة — كل المخيمات'));
-  memoRender('dash-camp-quality', asig + '|' + camps.map(c=>c.id+':'+(c.name||'')).join(','), ()=>renderCampQualityRanking('dash-camp-quality', camps, allIx));
-  memoRender('chart-pyramid', asig, ()=>renderPyramid('chart-pyramid', allPersons));
+  idleRender('dash-camp-quality', asig + '|' + camps.map(c=>c.id+':'+(c.name||'')).join(','), ()=>renderCampQualityRanking('dash-camp-quality', camps, allIx), 160);
+  idleRender('chart-pyramid', asig, ()=>renderPyramid('chart-pyramid', allPersons), 180);
   countUpIn(document.getElementById('dash-body'));
-  memoRender('dash-trends', camps.map(c=>c.id).join(',') + '|' + storeVersion('statsSnapshots') + '|' + todayStr(), ()=>renderTrendsSection('dash-trends', camps.map(c=>c.id)));
+  idleRender('dash-trends', camps.map(c=>c.id).join(',') + '|' + storeVersion('statsSnapshots') + '|' + todayStr(), ()=>renderTrendsSection('dash-trends', camps.map(c=>c.id)));
 }
 /* ترتيب المخيمات حسب اكتمال البيانات — الأضعف أولاً */
 function renderCampQualityRanking(slotId, camps, allIx){
@@ -10564,7 +11959,7 @@ async function refreshCampsAdminScreen(){
   if(!camps.length){ body.innerHTML = emptyStateHtml('fa-tent','لا توجد مخيمات بعد','أنشئ حساب مندوب مخيم من شاشة الحسابات'); return; }
   body.innerHTML = camps.map(c=>{
     const persons = allIx.byCamp.get(c.id) || [];
-    const st = computeStats(persons);
+    const st = statsOf(persons);
     const q = qualityReport(persons);
     const cix = DX.of(persons);
     let critFam = 0; for(const [,h] of cix.headOf){ if(h && h.isFamilyHead && Vuln.ofPerson(h, cix).tier === 'critical') critFam++; }
@@ -11857,13 +13252,7 @@ async function refreshBeneficiaryScreen(){
     const oi = orphanInfo(o) || {};
     return `<div class="detail-row"><span>${esc(o.fullName)}${getAge(o)!=null?' · '+getAge(o)+' سنة':''}</span><span>${esc(ORPHAN_TYPES[oi.type] || ORPHAN_TYPES.father)}${oi.soleSurvivor?' · الناجي الوحيد':''}</span></div>`;
   }).join('')}<p class="caption mt-8">هؤلاء الأطفال مسجّلون بأسرتك كأيتام في رعايتك — أي تصحيح تواصل فيه مع المندوب</p></div>` : '';
-  document.getElementById('ben-family-list').innerHTML = family.length ? family.map(f=>`
-    <div class="person-card" data-mid="${esc(f.id)}" style="margin-bottom:6px;cursor:pointer">
-      <div class="p-avatar ${f.gender||'unknown'}"><i class="fa-solid ${f.gender==='male'?'fa-mars':f.gender==='female'?'fa-venus':'fa-question'}"></i></div>
-      <div class="p-info"><div class="p-name">${esc(f.fullName)}</div>
-        <div class="p-sub">${esc(relationLabel(f))}${getAge(f)!=null?' · '+getAge(f)+' سنة':''}${f.isPregnant?' · حامل':''}${f.isBreastfeeding?' · مرضعة':''}${isOrphan(f)?' · '+esc(ORPHAN_TYPES[(orphanInfo(f)||{}).type]||ORPHAN_TYPES.father):''}</div></div>
-      <i class="fa-solid fa-chevron-left" style="color:var(--text-3,#94A3B8)"></i>
-    </div>`).join('') : emptyStateHtml('fa-people-roof','لا يوجد أفراد آخرون','أضف مولوداً أو فرداً من الأزرار بالأعلى');
+  document.getElementById('ben-family-list').innerHTML = family.length ? benFamilyGroupsHtml(family) : emptyStateHtml('fa-people-roof','لا يوجد أفراد آخرون','أضف فرداً من الزر بالأعلى — يُصنَّف تلقائياً حسب عمره');
   document.querySelectorAll('#ben-family-list [data-mid]').forEach(el=>{
     el.addEventListener('click', ()=>{ const m = family.find(x=>x.id===el.dataset.mid); if(m) openBenMemberModal(p, m); });
   });
@@ -11915,6 +13304,25 @@ async function refreshBeneficiaryScreen(){
       <div class="caption">${esc(e.userName||'—')}${e.targetName?' · '+esc(e.targetName):''}</div>
     </div>`).join('') : `<p class="caption">لا يوجد سجل تعديلات بعد</p>`;
 }
+/* قائمة الأسرة مرتبة بالأماكن المناسبة تلقائياً من العمر: الزوج/ة ← الأطفال ← البالغون ← كبار السن */
+const FAM_GROUPS = [
+  {k:'spouse', l:'الزوج / الزوجة', t:m=>m.relation==='wife'||m.relation==='husband'},
+  {k:'child', l:'الأطفال (دون 18)', t:m=>Derive.place(m)==='child'},
+  {k:'adult', l:'البالغون', t:m=>Derive.place(m)==='adult'},
+  {k:'elderly', l:'كبار السن (60+)', t:m=>Derive.place(m)==='elderly'},
+  {k:'unknown', l:'بلا تاريخ ميلاد', t:()=>true}
+];
+function benFamilyGroupsHtml(family){
+  const buckets = FAM_GROUPS.map(()=>[]);
+  family.forEach(m=>{ const i = FAM_GROUPS.findIndex(g=>g.t(m)); buckets[i].push(m); });
+  return FAM_GROUPS.map((g,i)=>!buckets[i].length ? '' : `<div class="fam-group">${esc(g.l)} <em>${buckets[i].length}</em></div>` + buckets[i].map(f=>`
+    <div class="person-card" data-mid="${esc(f.id)}" style="margin-bottom:6px;cursor:pointer">
+      <div class="p-avatar ${f.gender||'unknown'}"><i class="fa-solid ${f.gender==='male'?'fa-mars':f.gender==='female'?'fa-venus':'fa-question'}"></i></div>
+      <div class="p-info"><div class="p-name">${esc(f.fullName)}</div>
+        <div class="p-sub">${esc(relationLabel(f))}${getAge(f)!=null?' · '+getAge(f)+' سنة':''}${f.isPregnant?' · حامل':''}${f.isBreastfeeding?' · مرضعة':''}${isOrphan(f)?' · '+esc(ORPHAN_TYPES[(orphanInfo(f)||{}).type]||ORPHAN_TYPES.father):''}${!normNid(f.nationalId)?' · <span style="color:var(--warning)">'+(f.noIdYet?'لا هوية بعد':'بلا هوية')+'</span>':''}</div></div>
+      <i class="fa-solid fa-chevron-left" style="color:var(--text-3,#94A3B8)"></i>
+    </div>`).join('')).join('');
+}
 /* حلقة اكتمال الملف — تُحسب فقط مما يستطيع المستفيد إكماله، والباقي يُعرض كملاحظة للمندوب */
 function renderBenCompleteness(p, family){
   const box = document.getElementById('ben-completeness'); if(!box) return;
@@ -11930,8 +13338,7 @@ function renderBenCompleteness(p, family){
   const staffGaps = [];
   if(!p.birthDate) staffGaps.push('تاريخ ميلادك');
   family.filter(m=>m.relation === 'wife' && !m.birthDate).forEach(()=>staffGaps.push('تاريخ ميلاد الزوجة'));
-  const noId = family.filter(m=>!normNid(m.nationalId)).length;
-  if(noId) staffGaps.push(`${noId} فرد بلا رقم هوية`);
+  family.filter(m=>!normNid(m.nationalId) && !m.noIdYet).forEach(m=>items.push({ok:false, label:`هوية ${String(m.fullName||'').split(' ')[0]||'فرد'}`, go:{member:m.id, focus:'bm-nid'}}));
   const done = items.filter(i=>i.ok).length, pct = items.length ? Math.round(done/items.length*100) : 100;
   const missing = items.filter(i=>!i.ok);
   box.innerHTML = `<div class="ring-card${pct===100?' is-done':''}">
@@ -11949,7 +13356,7 @@ function renderBenCompleteness(p, family){
       switchBenTab('family');
       const m = family.find(x=>x.id === g.member); if(!m) return;
       await openBenMemberModal(p, m);
-      focusField(document.getElementById('bm-dob'));
+      focusField(document.getElementById(g.focus || 'bm-dob'));
       return;
     }
     switchBenTab(g.tab);
@@ -11977,25 +13384,32 @@ function renderBenPushState(){
          ${isIosSafari() && !isAppInstalled() ? `<p class="caption mt-8">على iPhone: ثبّت التطبيق على الشاشة الرئيسية أولاً لتعمل الإشعارات</p>` : ''}`;
   document.getElementById('ben-push-enable')?.addEventListener('click', async ()=>{ await subscribeWebPush(); renderBenPushState(); });
 }
-/* نافذة فرد الأسرة — صلاحيات محددة: لا تعديل لاسم/هوية الموجودين، لا حذف للزوجة، لا تغيير للعلاقة */
-async function openBenMemberModal(head, member, kind){
+/* نافذة فرد الأسرة — «إضافة فرد جديد» واحدة: الهوية مطلوبة، والعمر من تاريخ الميلاد يحدد تلقائياً أنه طفل أو بالغ أو كبير سن ويضعه بمكانه */
+const BEN_REL_OPTIONS = [
+  ['child','ابن / ابنة'], ['nephew','ابن / ابنة أخ أو عم'], ['orphan','يتيم / يتيمة في رعاية الأسرة'],
+  ['father','الأب'], ['mother','الأم'], ['brother','أخ'], ['sister','أخت'], ['grandparent','جد / جدة'], ['other','قريب آخر']
+];
+async function openBenMemberModal(head, member){
   const isNew = !member;
-  const m0 = member || {gender: kind==='baby' ? 'unknown' : 'unknown', relation: kind==='baby' ? 'child' : 'other'};
+  const m0 = member || {gender: 'unknown', relation: 'child'};
   const isWife = m0.relation === 'wife';
   const canRename = isNew || (!m0.nationalId && m0.relation !== 'wife');
+  const canSetId = isNew || !normNid(m0.nationalId);
   const canDelete = !isNew && !isWife && !m0.isFamilyHead;
   const female = m0.gender === 'female';
-  const title = isNew ? (kind==='baby' ? 'إضافة مولود' : 'إضافة فرد للأسرة') : m0.fullName;
+  const title = isNew ? 'إضافة فرد جديد' : m0.fullName;
   const html = `
     <div class="modal-header"><h2>${esc(title)}</h2><button class="icon-btn" style="color:var(--ink);background:var(--surface-2)" id="bm-close"><i class="fa-solid fa-xmark"></i></button></div>
-    ${canRename ? `<div class="field"><label>الاسم الكامل</label><input type="text" id="bm-name" value="${esc(m0.fullName||'')}"></div>`
+    ${canRename ? `<div class="field"><label>الاسم الكامل *</label><input type="text" id="bm-name" value="${esc(m0.fullName||'')}"></div>`
                 : `<div class="lock-note"><i class="fa-solid fa-lock"></i> ${esc(m0.fullName)}${m0.nationalId?' · '+esc(m0.nationalId):''}</div>`}
-    ${isNew && kind!=='baby' ? `<div class="field"><label>صلة القرابة</label><select id="bm-rel">${Object.entries(OTHER_RELATIONS).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('')}</select></div>` : ''}
+    ${canSetId ? `<div class="field"><label>رقم الهوية ${isNew?'*':''}</label><input type="text" id="bm-nid"></div>` : ''}
+    ${isNew ? `<div class="field"><label>صلة القرابة</label><select id="bm-rel">${BEN_REL_OPTIONS.map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('')}</select></div>` : ''}
     ${isNew || m0.gender==='unknown' ? `<div class="field"><label>الجنس</label><select id="bm-gender"><option value="male" ${m0.gender==='male'?'selected':''}>ذكر</option><option value="female" ${m0.gender==='female'?'selected':''}>أنثى</option></select></div>` : ''}
-    ${!isWife ? `<div class="field"><label>تاريخ الميلاد</label><input type="date" id="bm-dob" value="${esc(m0.birthDate||'')}" max="${new Date().toISOString().slice(0,10)}"></div>` : ''}
-    ${isWife || (!isNew && female) ? `
+    ${!isWife ? `<div class="field"><label>تاريخ الميلاد ${isNew?'*':''}</label><input type="date" id="bm-dob" value="${esc(m0.birthDate||'')}" max="${new Date().toISOString().slice(0,10)}"><div class="dv-row" id="bm-dv"></div></div>` : ''}
+    ${isWife || (!isNew && female) || isNew ? `
+      <div id="bm-mat" ${isNew ? 'hidden' : ''}>
       <div class="switch-row"><span>حامل</span><div class="switch ${m0.isPregnant?'on':''}" id="bm-preg"></div></div>
-      <div class="switch-row"><span>مرضعة</span><div class="switch ${m0.isBreastfeeding?'on':''}" id="bm-breast"></div></div>` : ''}
+      <div class="switch-row"><span>مرضعة</span><div class="switch ${m0.isBreastfeeding?'on':''}" id="bm-breast"></div></div></div>` : ''}
     <div class="switch-row"><span>مرض مزمن</span><div class="switch ${m0.hasChronicDisease?'on':''}" id="bm-chronic"></div></div>
     <div class="field" id="bm-chronic-wrap" ${m0.hasChronicDisease?'':'hidden'}><label>تفاصيل المرض</label><input type="text" id="bm-chronic-d" value="${esc(m0.diseaseDetails||'')}"></div>
     <div class="switch-row"><span>إعاقة</span><div class="switch ${m0.hasDisability?'on':''}" id="bm-dis"></div></div>
@@ -12006,7 +13420,28 @@ async function openBenMemberModal(head, member, kind){
       ${canDelete ? `<button class="btn btn-danger" id="bm-del"><i class="fa-solid fa-trash"></i> حذف</button>` : ''}
     </div>`;
   const md = openModal(html);
-  md.querySelector('#bm-close').addEventListener('click', closeModal);
+  const h0pre = await dbGet('persons', head.id) || head;
+  const famPool = [h0pre, ...(await getFamilyMembers(h0pre))];
+  NidField.pool = famPool;
+  const nidIn = md.querySelector('#bm-nid');
+  if(nidIn){ nidIn.dataset.self = m0.id || ''; NidField.link(NidField.enhance(nidIn), ()=>md.querySelector('#bm-name'), ()=>md.querySelector('#bm-dob')); NidField.set(nidIn, '', !isNew && m0.noIdYet); }
+  const dobIn = md.querySelector('#bm-dob');
+  const genderOf = ()=>{
+    const g = md.querySelector('#bm-gender')?.value || m0.gender || 'unknown';
+    return g;
+  };
+  /* معاينة التصنيف التلقائي + إظهار حقول الحمل للأنثى البالغة */
+  const refresh = ()=>{
+    if(dobIn) md.querySelector('#bm-dv').innerHTML = Derive.previewHtml({birthDate: dobIn.value || null, gender: genderOf(), relation: m0.relation === 'wife' ? 'wife' : 'child', isFamilyHead:false});
+    const mat = md.querySelector('#bm-mat');
+    if(mat && isNew){
+      const age = dobIn && dobIn.value ? calcAge(dobIn.value) : null;
+      mat.hidden = !(genderOf() === 'female' && age != null && age >= 15);
+      if(mat.hidden){ md.querySelector('#bm-preg')?.classList.remove('on'); md.querySelector('#bm-breast')?.classList.remove('on'); }
+    }
+  };
+  dobIn?.addEventListener('input', refresh); md.querySelector('#bm-gender')?.addEventListener('change', refresh); refresh();
+  md.querySelector('#bm-close').addEventListener('click', ()=>{ NidField.pool = null; closeModal(); });
   ['bm-preg','bm-breast'].forEach(id=>md.querySelector('#'+id)?.addEventListener('click', e=>e.currentTarget.classList.toggle('on')));
   [['bm-chronic','bm-chronic-wrap'],['bm-dis','bm-dis-wrap']].forEach(([s,w])=>md.querySelector('#'+s).addEventListener('click', e=>{
     e.currentTarget.classList.toggle('on'); md.querySelector('#'+w).hidden = !e.currentTarget.classList.contains('on');
@@ -12016,7 +13451,19 @@ async function openBenMemberModal(head, member, kind){
     const name = canRename ? md.querySelector('#bm-name').value.trim() : m0.fullName;
     if(!name){ toast('الاسم مطلوب','err'); return; }
     const dob = md.querySelector('#bm-dob')?.value || m0.birthDate || null;
-    if(isNew && kind==='baby' && !dob){ toast('تاريخ الولادة مطلوب للمولود','err'); return; }
+    if(isNew && !dob){ toast('تاريخ الميلاد مطلوب — منه يُحدَّد تصنيف الفرد ومكانه','err'); md.querySelector('#bm-dob')?.focus(); return; }
+    const relSel = isNew ? md.querySelector('#bm-rel').value : null;
+    const age = dob ? calcAge(dob) : null;
+    if(isNew && age != null && age < 15 && ['father','mother','grandparent'].includes(relSel)){ toast('العمر لا يتفق مع صلة القرابة المختارة','err'); return; }
+    if(nidIn){
+      const rows = [{input: nidIn, label: '', self: m0.id || ''}];
+      /* الجديد: الهوية مطلوبة. الموجود الذي بلا هوية: تُقبل فارغة، وإن أُدخلت تُفحص */
+      const {nid, none} = NidField.read(nidIn);
+      if(isNew || nid || none){
+        const err = NidField.validate(rows) || await NidField.crossCamp(rows, head.campId);
+        if(err){ toast(err, 'err'); return; }
+      }
+    }
     btn.disabled = true;
     try{
       const h0 = await dbGet('persons', head.id) || head;
@@ -12026,9 +13473,13 @@ async function openBenMemberModal(head, member, kind){
       const old = isNew ? null : JSON.parse(JSON.stringify(p));
       p.fullName = name;
       const g = md.querySelector('#bm-gender')?.value; if(g) p.gender = g;
+      if(nidIn) NidField.apply(p, nidIn);
       if(isNew){
-        if(kind === 'baby'){ p.relation = 'child'; }
-        else { const rel = md.querySelector('#bm-rel').value; p.relation = 'other'; p.relationDetail = OTHER_RELATIONS[rel]; }
+        /* المكان من العمر والصلة: ابن/ابنة وقريب صغير ← طفل بالأسرة، وغيرهم ← فرد آخر بصلته */
+        if(relSel === 'child'){ p.relation = 'child'; p.memberRelation = p.gender === 'female' ? 'daughter' : 'son'; }
+        else if(relSel === 'nephew'){ p.relation = 'child'; p.memberRelation = p.gender === 'female' ? 'niece' : 'nephew'; }
+        else if(relSel === 'orphan'){ p.relation = 'orphan'; p.memberRelation = 'orphan'; }
+        else { p.relation = 'other'; p.relationDetail = OTHER_RELATIONS[relSel]; }
         const fam = await getFamilyMembers(h0); p.orderIndex = 2 + fam.length;
       }
       if(md.querySelector('#bm-dob')){ p.birthDate = dob; p.calculatedAge = calcAge(dob); }
@@ -12042,6 +13493,8 @@ async function openBenMemberModal(head, member, kind){
       p.disabilityDetails = p.hasDisability ? md.querySelector('#bm-dis-d').value.trim() : '';
       p.notes = md.querySelector('#bm-notes').value.trim();
       await benPersistPerson(p, old, isNew ? 'add_person' : 'edit_person');
+      if(p.nationalId && State.online){ try{ const c = await dbGet('camps', p.campId); pushNationalIndexEntry(p, c?.name, c?.supervisorPhone); }catch(e){} }
+      NidField.pool = null;
       closeModal();
       toast(State.online ? (isNew ? 'تمت الإضافة ووصلت للمندوب' : 'تم الحفظ ووصل للمندوب') : 'حُفظ — سيصل للمندوب عند الاتصال','ok');
       refreshBeneficiaryScreen();
@@ -12056,7 +13509,7 @@ async function openBenMemberModal(head, member, kind){
       await logAudit('delete_person', State.user, m0.id, m0.fullName, m0, null);
       if(m0.familyId) await ensureFamily(m0.campId, m0.familyId, head);
       await syncCampPersonsSoon(m0.campId);
-      closeModal(); toast('تم الحذف','ok'); refreshBeneficiaryScreen();
+      NidField.pool = null; closeModal(); toast('تم الحذف','ok'); refreshBeneficiaryScreen();
     }catch(err){ console.error('فشل حذف فرد الأسرة:', err); toast('تعذّر الحذف','err'); }
   });
 }
@@ -12064,8 +13517,7 @@ document.querySelectorAll('#ben-tabs .chip').forEach(c=>c.addEventListener('clic
 bindSwitchReveal('ben-chronic','ben-chronic-wrap');
 bindSwitchReveal('ben-disability','ben-disability-wrap');
 bindSwitchReveal('ben-urgent','ben-urgent-wrap');
-document.getElementById('ben-add-baby').addEventListener('click', async ()=>{ const p = await currentBeneficiaryPerson(); if(p) openBenMemberModal(p, null, 'baby'); });
-document.getElementById('ben-add-member').addEventListener('click', async ()=>{ const p = await currentBeneficiaryPerson(); if(p) openBenMemberModal(p, null, 'member'); });
+document.getElementById('ben-add-member').addEventListener('click', async ()=>{ const p = await currentBeneficiaryPerson(); if(p) openBenMemberModal(p, null); });
 document.getElementById('ben-save').addEventListener('click', async ()=>{
   const p = await currentBeneficiaryPerson();
   if(!p){ toast('تعذّر إيجاد بياناتك','err'); return; }
@@ -12284,7 +13736,7 @@ async function performInitialPull(){
     await withTimeout(doPull(), PULL_TIMEOUT_MS);
     localStorage.setItem('grcs_last_sync', String(Date.now()));
     setSplashStatus('✓ تم تحميل البيانات بنجاح');
-    await new Promise(r=>setTimeout(r, 600));
+    await new Promise(r=>setTimeout(r, 300));
 
   }catch(err){
     console.error('خطأ في التحميل الأول:', err);
@@ -12297,6 +13749,127 @@ async function performInitialPull(){
 }
 
 /* ===================== الإقلاع ===================== */
+/* ===================== اختبار ذاتي مخفي (#test) — منطق صرف بلا كتابة بالبيانات ===================== */
+const SelfTest = {
+  async run(){
+    const R = [], ok = (name, cond, info)=>R.push({name, ok: !!cond, info: cond ? '' : String(info ?? '')});
+    const ago = (y, d = 0)=>{ const t = new Date(); t.setFullYear(t.getFullYear() - y); t.setDate(t.getDate() - d); return `${t.getFullYear()}-${pad2(t.getMonth() + 1)}-${pad2(t.getDate())}`; };
+    const mk = (o)=>({id: o.id || uuid(), campId: 'T', familyId: 'F1', fullName: 'اسم', nationalId: '', ...o});
+    const t = (name, fn)=>{ try{ fn(); }catch(e){ ok(name + ' (استثناء)', false, e && e.message); } };
+
+    t('Derive', ()=>{
+      ok('Derive: مواليد 1950 كبير سن', Derive.keys({birthDate: '1950-06-01'}).includes('elderly'));
+      ok('Derive: 59 سنة ليس كبير سن', !Derive.has({birthDate: ago(59, 20)}, 'elderly'));
+      ok('Derive: 60 سنة كبير سن', Derive.has({birthDate: ago(60, 20)}, 'elderly'));
+      ok('Derive: رضيع', Derive.has({birthDate: ago(0, 30)}, 'infant') && Derive.has({birthDate: ago(0, 30)}, 'under2'));
+      ok('Derive: سنة ونصف دون السنتين وليس رضيعاً', Derive.has({birthDate: ago(1, 150)}, 'under2') && !Derive.has({birthDate: ago(1, 150)}, 'infant'));
+      ok('Derive.place', Derive.place({birthDate: ago(17, 20)}) === 'child' && Derive.place({birthDate: ago(18, 20)}) === 'adult' && Derive.place({birthDate: ago(61)}) === 'elderly' && Derive.place({}) === 'unknown');
+    });
+    t('الهوية', ()=>{
+      ok('nidStatus: صالحة', nidStatus('123456782') === 'valid');
+      ok('nidStatus: خانة تحقق خاطئة', nidStatus('123456789') === 'invalid');
+      ok('nidStatus: صيغة', nidStatus('12345') === 'format' && nidStatus('') === 'empty');
+      ok('normNid: أرقام عربية ومسافات', normNid('١٢٣ ٤٥٦-٧٨٢') === '123456782');
+    });
+    t('الأسماء والبحث', ()=>{
+      ok('nameKey: همزة وتاء مربوطة', nameKey('أحمد') === nameKey('احمد') && nameKey('فاطمة') === nameKey('فاطمه'));
+      const ps = [mk({fullName: 'أحمد محمد علي', nationalId: '123456782', phone: '0599123456'}), mk({fullName: 'مريم خالد', nationalId: '400000009'})];
+      ok('SearchIdx: اسم', SearchIdx.filter(ps, 'احمد').length === 1);
+      ok('SearchIdx: هوية', SearchIdx.filter(ps, '400000009').length === 1);
+      ok('SearchIdx: هاتف بأرقام عربية', SearchIdx.findSync(ps, '٠٥٩٩١٢٣', 5).length === 1);
+      ok('SearchIdx: لا نتائج', SearchIdx.filter(ps, 'زززز').length === 0);
+    });
+    t('الإحصاءات والبطاقات', ()=>{
+      const ps = [mk({isFamilyHead: true, relation: 'head', gender: 'male', birthDate: ago(40)}), mk({gender: 'female', relation: 'wife', birthDate: ago(61)})];
+      const a = statsOf(ps), b = statsOf(ps);
+      ok('statsOf: مخزّن لنفس المصفوفة', a === b);
+      ok('statsOf: يساوي computeStats', JSON.stringify(a) === JSON.stringify(computeStats(ps)));
+      ok('statsOf: كبار السن', a.elderly === 1 && a.total === 2);
+      ok('evenCards: عدد زوجي', (evenCards(['<i></i>', '<i></i>', '<i></i>']).match(/<(i|div)/g) || []).length % 2 === 0);
+    });
+    t('الجودة', ()=>{
+      const head = mk({id: 'H', isFamilyHead: true, relation: 'head', gender: 'male', birthDate: ago(30), nationalId: '123456782'});
+      const kid = mk({id: 'K', relation: 'child', gender: 'male', birthDate: ago(25), nationalId: '123456782'});
+      const fut = mk({id: 'U', relation: 'child', birthDate: '2999-01-01'});
+      const old = mk({id: 'O', relation: 'other', birthDate: '1900-01-01'});
+      const ps = [head, kid, fut, old], ix = DX.of(ps);
+      ok('dupNidsOf: مكرر', dupNidsOf(ix).size === 1 && dupNidsOf(ix).get('123456782').length === 2);
+      ok('dobSuspect: فارق عمر مع رب الأسرة', /فارق/.test(dobSuspect(kid, ix)));
+      ok('dobSuspect: مستقبلي', /مستقبلي/.test(dobSuspect(fut, ix)));
+      ok('dobSuspect: عمر مستحيل', /105/.test(dobSuspect(old, ix)));
+      ok('dobSuspect: سليم', dobSuspect(head, ix) === '');
+      const q = qualityReport(ps);
+      ok('qualityReport: قواعد جديدة', q.counts.dupid === 2 && q.counts.suspectdob === 3 && q.pct < 100, JSON.stringify(q.counts));
+      ok('qualityTest: dupid بالفلتر', qualityTest('dupid', kid, ix) && !qualityTest('dupid', fut, ix));
+    });
+    t('المرجع الوطني', ()=>{
+      const headers = ['اسم رب الأسرة', 'رقم الهوية', 'اسم الزوجة', 'هوية الزوجة'];
+      const rows = [['محمد أحمد', '123456782', 'سارة علي', '400000009'], ['', '', '', '']];
+      const ix = new Map(), fam = new Map();
+      NatRef._entries({headers, mode: 'family_summary', name: 'اختبار'}, rows, ix, fam);
+      ok('NatRef: أدرج رب الأسرة والزوجة', ix.size === 2 && ix.get('400000009')?.role === 'wife' && fam.get('123456782')?.length === 2, ix.size);
+      const keep = NatRef._ix; NatRef._ix = ix;
+      const h = NatRef.hint('123456782', false), miss = NatRef.hint('111111118', false);
+      NatRef._ix = keep;
+      ok('NatRef.hint: وارد/غير وارد', h && h.cls === 'ok' && miss && miss.cls === 'warn');
+    });
+    t('المساعدات', ()=>{
+      const ps = {
+        inf: mk({birthDate: ago(0, 100)}), pg: mk({gender: 'female', isPregnant: true, birthDate: ago(30)}),
+        ch: mk({hasChronicDisease: true, birthDate: ago(50)}), hd: mk({isFamilyHead: true, birthDate: ago(40)})
+      };
+      ok('Aid: حليب للرضّع فقط', Aid.eligible(ps.inf, 'milk') && !Aid.eligible(ps.hd, 'milk'));
+      ok('Aid: مكملات للحامل', Aid.eligible(ps.pg, 'prenatal') && !Aid.eligible(ps.hd, 'prenatal'));
+      ok('Aid: أدوية للمزمن', Aid.eligible(ps.ch, 'medicine') && !Aid.eligible(ps.inf, 'medicine'));
+      ok('Aid: سلة لرب الأسرة', Aid.eligible(ps.hd, 'food') && !Aid.eligible(ps.ch, 'food'));
+      const today = todayStr();
+      ps.hd.aid = [{id: 'a1', t: 'food', d: today, q: 1, at: 5}, {id: 'a2', t: 'food', d: '2000-01-01', q: 1, at: 1}];
+      ok('Aid.got: بالفترة', Aid.got(ps.hd, 'food', 'today')?.id === 'a1' && Aid.got(ps.hd, 'food', 'month')?.id === 'a1' && !Aid.got(ps.hd, 'cash', 'all'));
+      ps.hd.aid[0].void = true;
+      ok('Aid.got: التراجع (void) يلغي', !Aid.got(ps.hd, 'food', 'today') && Aid.got(ps.hd, 'food', 'all')?.id === 'a2');
+      const m = mergeRequests({aid: [{id: 'x', at: 1}]}, {aid: [{id: 'x', at: 2, void: true}, {id: 'y', at: 1}]});
+      ok('mergeRequests: دمج المساعدات بالاتحاد والأحدث يفوز', m.aid.length === 2 && m.aid.find(r=>r.id === 'x').void === true);
+    });
+    t('الفورمة', ()=>{
+      ok('FORM_COLS: الأعمدة الأساسية', FORM_COLS.length >= 20 && FORM_COLS.some(c=>/رقم الهوية/.test(c.h || c.header || c.label || c)));
+    });
+    try{
+      const big = Array.from({length: SearchIdx.WORKER_MIN + 200}, (_, i)=>mk({id: 'w' + i, fullName: 'اسم' + i + ' عائلة', nationalId: String(500000000 + i), phone: '059' + String(1000000 + i)}));
+      big[4321].fullName = 'مريم نادرة الاسم';
+      const viaW = await SearchIdx.find(big, 'نادرة', 5), viaS = SearchIdx.findSync(big, 'نادرة', 5);
+      ok('SearchIdx: مسار العامل الخلفي يطابق المتزامن', viaW.length === 1 && viaS.length === 1 && viaW[0].id === viaS[0].id && viaW[0].id === 'w4321', JSON.stringify(viaW.map(x=>x.id)));
+      const byNid = await SearchIdx.find(big, '500004321', 5);
+      ok('SearchIdx: بحث بالهوية عبر العامل', byNid.length === 1 && byNid[0].id === 'w4321', JSON.stringify(byNid.map(x=>x.id)));
+    }catch(e){ ok('SearchIdx: مسار العامل (استثناء)', false, e && e.message); }
+    try{
+      const el = document.createElement('div'); el.id = 'st-idle'; document.body.appendChild(el);
+      idleRender('st-idle', 's1', ()=>{ el.innerHTML = '<b>x</b>'; }, 40);
+      const sk = !!el.querySelector('.skel');
+      await new Promise(r=>setTimeout(r, 1500));
+      ok('idleRender: هيكل ثم المحتوى', sk && !!el.querySelector('b') && !el.querySelector('.skel'));
+      idleRender('st-idle', 's2', ()=>{ el.innerHTML = '<i>old</i>'; });
+      idleRender('st-idle', 's3', ()=>{ el.innerHTML = '<u>new</u>'; });
+      await new Promise(r=>setTimeout(r, 1500));
+      ok('idleRender: آخر طلب يفوز', !!el.querySelector('u') && !el.querySelector('i'));
+      el.remove();
+    }catch(e){ ok('idleRender (استثناء)', false, e && e.message); }
+    return R;
+  },
+  async ui(){
+    const R = await this.run(), bad = R.filter(r=>!r.ok);
+    const wrap = document.createElement('div');
+    wrap.id = 'selftest';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:99999;background:var(--bg,#fff);color:var(--ink,#111);overflow:auto;padding:16px;direction:rtl;font:14px/1.7 system-ui';
+    wrap.innerHTML = `<h2>الاختبار الذاتي — ${R.length - bad.length} / ${R.length}</h2>` +
+      R.map(r=>`<div style="color:${r.ok ? '#1a7f4b' : '#c0392b'}">${r.ok ? '✓' : '✗'} ${esc(r.name)}${r.ok ? '' : ' — ' + esc(r.info)}</div>`).join('') +
+      '<button style="margin-top:16px;min-height:44px;padding:0 20px" id="st-x">إغلاق</button>';
+    document.body.appendChild(wrap);
+    wrap.querySelector('#st-x').addEventListener('click', ()=>wrap.remove());
+    return R;
+  }
+};
+window.GRCS_SELFTEST = ()=>SelfTest.run();
+
 async function boot(){
   const t0 = performance.now();
   document.getElementById('login-ver').textContent = APP_VERSION;
@@ -12311,6 +13884,7 @@ async function boot(){
   attachOnlineListeners();
   Theme.init();
   IconFont.init();
+  if(location.hash === '#test') SelfTest.ui();
   await Vuln.load();
   let restored = false;
   try{ restored = await restoreSession(); }catch(e){ console.error('فشل استعادة الجلسة:', e); }
