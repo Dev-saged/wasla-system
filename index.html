@@ -876,6 +876,163 @@ body.gs-open{overflow:hidden}
   body{background:#fff}
   .screen-body{max-width:100%;padding:0}
 }
+/* ===================== v3.6 — حلقات تقدّم، هياكل، حالات فارغة مرسومة ===================== */
+.pring{--sz:56px;--rc:var(--teal);position:relative;display:inline-grid;place-items:center;width:var(--sz);height:var(--sz);flex-shrink:0}
+.pring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.pring .pr-track{fill:none;stroke:var(--track)}
+.pring .pr-val{fill:none;stroke:var(--rc);stroke-linecap:round;stroke-dasharray:100;transition:stroke-dashoffset .9s var(--silk)}
+.pring b{position:relative;font-size:calc(var(--sz)*.27);font-weight:800;color:var(--ink);line-height:1}
+.pring.sm b{font-size:11px}
+.stat-card{position:relative}
+.stat-card .sc-ring{position:absolute;inset-block-start:10px;inset-inline-end:10px;--sz:34px;opacity:.95}
+.stat-card .sc-ring b{display:none}
+.skel-wrap{display:flex;flex-direction:column;gap:9px}
+.skel-wrap:has(.stat-card){display:contents}
+.skel-person,.skel-row{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow-card)}
+.skel-person .sk-av{width:44px;height:44px;border-radius:12px;flex-shrink:0}
+.skel-row .sk-ic{width:38px;height:38px;border-radius:11px;flex-shrink:0}
+.sk-lines{flex:1;display:flex;flex-direction:column;gap:8px}
+.empty-state.es-art{padding:34px 20px 40px}
+.ea{width:min(190px,56vw);height:auto;margin:0 auto 8px;display:block;overflow:visible}
+.ea .ea-ground{fill:var(--track)}
+.ea .ea-line{fill:none;stroke:var(--ink);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.ea .ea-fill{fill:var(--surface-2)}
+.ea .ea-fill.ea-line{fill:var(--surface-2)}
+.ea .ea-acc{fill:none;stroke:var(--teal);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+circle.ea-acc{fill:var(--teal);stroke:none}
+.ea .ea-dash{stroke-dasharray:3 6}
+.ea .ea-dot{fill:var(--gold)}.ea .ea-dot.d2{fill:var(--teal)}
+.ea .ea-flag{fill:var(--gold)}
+.ea .ea-float{animation:eaFloat 3.6s ease-in-out infinite;transform-origin:center bottom}
+.ea .ea-dot{animation:eaTw 2.4s ease-in-out infinite}
+@keyframes eaFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes eaTw{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+.es-act{margin-top:14px}
+/* ===== الاستجابة الحسّية (الإعدادات) ===== */
+.fx-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px dashed var(--border)}
+.fx-row:last-of-type{border-bottom:0}.fx-row small{display:block;color:var(--muted);font-size:12px}
+/* ===== السحب لليمين على بطاقة الفرد ===== */
+#persons-scroll,#category-list{overflow-x:clip}
+.person-card{touch-action:pan-y;position:relative}
+.person-card.sw-drag{transition:none;will-change:transform;z-index:2}
+.person-card.sw-drag:active{transform:none}
+.cv-list>.person-card.sw-drag{content-visibility:visible;contain:none}
+#persons-scroll .person-card:has(.pc-tray){content-visibility:visible;contain:none}
+.pc-tray{position:absolute;top:0;bottom:0;right:100%;display:flex;align-items:stretch;border-radius:14px 0 0 14px;overflow:hidden;
+  background:linear-gradient(90deg,var(--teal-d),var(--teal));box-shadow:inset -6px 0 10px -8px rgba(0,0,0,.35)}
+.pc-act{width:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#fff;font-size:11px;font-weight:700;
+  opacity:var(--o,0);transform:scale(calc(.7 + var(--o,0)*.3));transition:background .15s}
+.pc-act i{font-size:17px}
+.pc-act:active{background:rgba(255,255,255,.18)}
+.pc-act.pri{background:rgba(255,255,255,.12)}
+.person-card.sw-armed .pc-act.pri{background:rgba(255,255,255,.3)}
+.person-card.sw-armed .pc-act.pri i{animation:swPop .3s var(--spring)}
+@keyframes swPop{from{transform:scale(.6)}to{transform:scale(1.18)}}
+/* ===== انتقالات العناصر المشتركة ===== */
+::view-transition-group(sh-el){animation-duration:.42s;animation-timing-function:var(--silk);z-index:5}
+::view-transition-old(sh-el),::view-transition-new(sh-el){height:100%;object-fit:cover}
+::view-transition-group(sh-hd){animation-duration:.42s;animation-timing-function:var(--silk)}
+/* ===== لوحة الأوامر (البحث العام) ===== */
+.gs-panel.cp{max-width:680px}
+.cp-chips{display:flex;gap:6px;overflow-x:auto;padding:8px 2px 2px;scrollbar-width:none}
+.cp-chips::-webkit-scrollbar{display:none}
+.cp-chip{flex-shrink:0;padding:5px 12px;border-radius:var(--radius-pill);font-size:12.5px;font-weight:700;background:var(--surface-2);color:var(--muted);border:1px solid var(--border);min-height:32px}
+.cp-chip.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.gs-item{position:relative}
+.gs-item.kb{background:var(--surface-2);box-shadow:inset 3px 0 0 var(--teal)}
+.gs-item mark{background:var(--gold-glow);color:inherit;border-radius:3px;padding:0 1px}
+.gs-item .gs-k{font-size:10.5px;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:1px 6px;font-style:normal}
+.gs-meta{display:flex;justify-content:space-between;align-items:center;padding:6px 8px 2px;font-size:11.5px;color:var(--muted)}
+.cp-foot{display:flex;gap:12px;justify-content:center;padding:8px 4px 2px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);margin-top:6px}
+.cp-foot kbd{font-family:inherit;border:1px solid var(--border);border-radius:5px;padding:0 5px;background:var(--surface-2)}
+@media (hover:none){.cp-foot{display:none}}
+.gs-empty.es-art{padding:8px 8px 18px}.gs-empty .ea{width:150px}
+.gs-skel{display:flex;flex-direction:column;gap:6px;padding:6px}
+/* ===== تشخيص المزامنة ===== */
+.sd-hero{display:flex;align-items:center;gap:14px;padding:14px;border-radius:16px;background:var(--surface-2);margin-bottom:10px;border-inline-start:5px solid var(--c,var(--success))}
+.sd-hero.warn{--c:var(--warning)}.sd-hero.bad{--c:var(--danger)}.sd-hero.ok{--c:var(--success)}
+.sd-hero h3{font-size:15.5px;margin-bottom:2px}.sd-hero p{font-size:13px;color:var(--muted)}
+.sd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.sd-box{background:var(--surface-2);border-radius:12px;padding:10px 6px;text-align:center}
+.sd-box b{display:block;font-size:20px;font-weight:800;color:var(--ink)}.sd-box span{font-size:11.5px;color:var(--muted);font-weight:700}
+.sd-box.hot b{color:var(--danger)}
+.sd-sec{font-size:12px;font-weight:800;color:var(--muted);margin:12px 2px 6px}
+.sd-camp{background:var(--surface-2);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.sd-camp .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sd-camp .nm{font-weight:700;font-size:14px}
+.sd-camp .ln{font-size:12px;color:var(--muted);margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sd-err{margin-top:6px;font-size:12px;color:var(--danger);background:var(--danger-bg);border-radius:8px;padding:6px 9px;word-break:break-word}
+.sd-hint{margin-top:5px;font-size:12px;color:var(--ink);background:var(--warning-bg);border-radius:8px;padding:6px 9px}
+.sd-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.sd-q{font-size:12px;border-top:1px dashed var(--border);padding:6px 0;display:flex;justify-content:space-between;gap:8px}
+.sd-banner-link{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+/* ===== معاينة الاستيراد الفاخرة ===== */
+.ip{display:flex;flex-direction:column;gap:12px;padding-bottom:190px}
+.ip-top{display:flex;align-items:center;gap:14px;padding:14px;border-radius:18px;background:linear-gradient(135deg,var(--navy),var(--navy-l));color:#fff;box-shadow:var(--shadow-card);position:relative;overflow:hidden}
+.ip-top::after{content:'';position:absolute;inset-inline-start:-40px;top:-50px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(63,208,234,.28),transparent 70%)}
+.ip-top .t{flex:1;min-width:0;position:relative;z-index:1}
+.ip-top h3{font-size:16px;color:#fff;margin-bottom:2px}.ip-top p{font-size:12.5px;opacity:.82;word-break:break-word}
+.ip-donut{--sz:92px;position:relative;width:var(--sz);height:var(--sz);flex-shrink:0;z-index:1}
+.ip-donut svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ip-donut circle{fill:none;stroke-width:7;stroke-linecap:butt;transition:stroke-dashoffset .9s var(--silk),stroke-dasharray .9s var(--silk)}
+.ip-donut .tr{stroke:rgba(255,255,255,.14)}
+.ip-donut .c-new{stroke:#34D399}.ip-donut .c-upd{stroke:#60A5FA}.ip-donut .c-same{stroke:#94A3B8}.ip-donut .c-exc{stroke:#FBBF24}
+.ip-donut b{position:absolute;inset:0;display:grid;place-items:center;font-size:20px;font-weight:800;color:#fff}
+.ip-donut b small{display:block;font-size:10px;font-weight:600;opacity:.75;text-align:center;margin-top:-4px}
+.ip-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;position:sticky;top:calc(var(--header-h) + var(--safe-t));z-index:5;background:var(--bg);padding:6px 0}
+.ip-tabs::-webkit-scrollbar{display:none}
+.ip-tab{flex:1 0 auto;min-width:78px;padding:8px 10px;border-radius:14px;background:var(--surface);box-shadow:var(--shadow-card);text-align:center;border:1.5px solid transparent;min-height:56px}
+.ip-tab b{display:block;font-size:18px;font-weight:800;color:var(--c,var(--ink))}.ip-tab span{font-size:11.5px;color:var(--muted);font-weight:700}
+.ip-tab.on{border-color:var(--c,var(--teal));background:var(--surface-2)}
+.ip-tab[data-t="new"]{--c:var(--success)}.ip-tab[data-t="upd"]{--c:var(--blue)}.ip-tab[data-t="same"]{--c:var(--gray-alert)}.ip-tab[data-t="exc"]{--c:var(--warning)}.ip-tab[data-t="warn"]{--c:var(--danger)}
+.ip-search{display:flex;align-items:center;gap:8px;background:var(--surface);border-radius:12px;padding:0 10px;box-shadow:var(--shadow-card)}
+.ip-search input{border:0;background:transparent;min-height:42px;flex:1;box-shadow:none}
+.ip-search i{color:var(--muted)}
+.ip-list{display:flex;flex-direction:column;gap:7px}
+.ip-row{display:flex;align-items:flex-start;gap:10px;background:var(--surface);border-radius:13px;padding:10px 12px;box-shadow:var(--shadow-card);border-inline-start:4px solid var(--c,var(--teal));animation:ipIn .3s var(--silk) both}
+@keyframes ipIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.ip-row.off{opacity:.5}.ip-row.off .nm{text-decoration:line-through}
+.ip-row .ck{width:24px;height:24px;margin-top:2px;accent-color:var(--teal);flex-shrink:0}
+.ip-row .bd{flex:1;min-width:0}
+.ip-row .nm{font-weight:700;font-size:14px;word-break:break-word}
+.ip-row .sb{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
+.ip-chg{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.ip-chg span{font-size:11.5px;background:var(--blue-bg);color:var(--blue);border-radius:8px;padding:2px 8px}
+.ip-chg s{opacity:.65;margin-inline-end:4px}
+.ip-chg b{font-weight:700}
+.ip-why{display:inline-block;margin-top:5px;font-size:11.5px;font-weight:700;background:var(--warning-bg);color:var(--warning);border-radius:8px;padding:2px 9px}
+.ip-more{text-align:center;color:var(--muted);font-size:12.5px;padding:8px}
+.ip-bulk{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.ip-foot{position:fixed;inset-inline:0;bottom:calc(var(--nav-h) + var(--safe-b));z-index:30;background:var(--surface);box-shadow:0 -6px 24px rgba(15,43,82,.14);padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;max-width:760px;margin:0 auto;border-radius:16px 16px 0 0}
+.ip-foot .btn{flex:1 1 0;min-width:0}
+.ip-foot .sm{flex:1 0 100%;min-width:0;font-size:12.5px;line-height:1.5;color:var(--muted)}.ip-foot .sm b{color:var(--ink);font-size:14px}
+.ip-conf{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:4px 0}
+.ip-conf .rows{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%}
+.ip-conf .rows div{background:var(--surface-2);border-radius:12px;padding:9px;font-size:12px;color:var(--muted);font-weight:700}
+.ip-conf .rows b{display:block;font-size:19px;color:var(--ink)}
+/* ===== نقل الأسرة بين المخيمات ===== */
+.tf-steps{display:flex;gap:6px;margin-bottom:12px}
+.tf-steps i{flex:1;height:4px;border-radius:3px;background:var(--border);transition:background .3s}.tf-steps i.on{background:var(--teal)}
+.tf-camp{display:flex;align-items:center;gap:10px;width:100%;text-align:start;padding:11px 12px;border-radius:13px;background:var(--surface-2);margin-bottom:7px;border:1.5px solid transparent;min-height:56px}
+.tf-camp.on{border-color:var(--teal);background:var(--surface)}
+.tf-camp .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--navy);color:#fff;flex-shrink:0}
+.tf-camp .nm{font-weight:700;font-size:14px}.tf-camp .sb{font-size:12px;color:var(--muted)}
+.tf-camp .rd{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);margin-inline-start:auto;flex-shrink:0;display:grid;place-items:center}
+.tf-camp.on .rd{border-color:var(--teal);background:var(--teal)}.tf-camp.on .rd::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff}
+.tf-mem{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--border);font-size:13.5px}
+.tf-mem:last-child{border-bottom:0}.tf-mem em{font-style:normal;font-size:11.5px;color:var(--muted);margin-inline-start:auto}
+.tf-route{display:flex;align-items:center;justify-content:center;gap:10px;margin:8px 0 12px}
+.tf-route .nd{background:var(--surface-2);border-radius:12px;padding:8px 12px;font-size:13px;font-weight:700;text-align:center;flex:1;min-width:0}
+.tf-route .nd small{display:block;font-size:11px;color:var(--muted);font-weight:600}
+.tf-route .ar{color:var(--teal);font-size:18px}
+.tf-warn{background:var(--warning-bg);color:var(--ink);border-radius:12px;padding:9px 12px;font-size:12.5px;margin-bottom:8px;display:flex;gap:8px}
+.tf-warn i{color:var(--warning);margin-top:3px}
+.tf-block{background:var(--danger-bg);color:var(--danger);border-radius:12px;padding:9px 12px;font-size:12.5px;margin-bottom:8px;font-weight:700}
+.tf-log{background:var(--surface-2);border-radius:13px;padding:10px 12px;margin-bottom:8px}
+.tf-log .top{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+.tf-log .rt{font-weight:700;font-size:13.5px;margin:3px 0}
+.tf-log .ft{font-size:11.5px;color:var(--muted)}
+
 </style>
 </head>
 <body>
@@ -1570,7 +1727,7 @@ body.gs-open{overflow:hidden}
 </div>
 <script type="module">
 /* ===================== إعدادات عامة ===================== */
-const APP_VERSION = '3.5.0';
+const APP_VERSION = '3.6.0';
 const DB_NAME = 'grcs_db';
 const DB_VERSION = 8;
 const STORES = ['persons','families','camps','users','messages','changelog','syncQueue','savedExports'];
@@ -1892,12 +2049,14 @@ async function fsBatchWrite(writes){
       const r = await fsCommitRaw(chunk);
       chunk.forEach((_,j)=>{ out.ok[i+j] = true; out.results[i+j] = (r.writeResults||[])[j] || null; });
     }catch(e){
+      SyncDiag.http(e);
       if(![400,403,404].includes(e.status)) throw e;
       if(chunk.length === 1){ out.allOk = false; continue; }
       let denied = 0;
       for(let j=0;j<chunk.length;j++){
         try{ const r = await fsCommitRaw([chunk[j]]); out.ok[i+j] = true; out.results[i+j] = (r.writeResults||[])[0] || null; denied = 0; }
         catch(e2){
+          SyncDiag.http(e2);
           if(![400,403,404].includes(e2.status)) throw e2;
           out.allOk = false;
           if(++denied >= 4 && !out.ok.slice(i, i+j).some(Boolean)) throw e2; // رفض شامل (غالباً صلاحية) — لا داعي لمئات الطلبات
@@ -2643,6 +2802,88 @@ const DX = {
     return ix;
   }
 };
+/* ===================== v3.6 — استعلامات IndexedDB بدل الذاكرة (PQ) + أرقام نسخ لكل مخيم ===================== */
+/* إبطال دقيق: كتابة على أفراد مخيم لا تُبطل كاش مخيم آخر (الإحصاءات/الفهارس تُبنى فقط لما تغيّر) */
+const _campVer = {};
+let _campVerAll = 0;
+function _bumpPersons(campIds){
+  if(!campIds){ _campVerAll++; return; }
+  for(const c of campIds) _campVer[c] = (_campVer[c]||0) + 1;
+}
+function campVersion(campId){ return _campVerAll + (_campVer[campId]||0); }
+Object.assign(PersonStore, {
+  _camp: new Map(),
+  /* أفراد مخيم واحد عبر فهرس campId — مصفوفة ثابتة الهوية ما دام المخيم لم يتغيّر (تعتمد عليها statsOf/DX) */
+  async camp(campId){
+    if(!campId) return [];
+    const cv = campVersion(campId), c = this._camp.get(campId);
+    if(c && c.v === cv) return c.arr;
+    const warm = this._all && this._v === storeVersion('persons');
+    const arr = warm ? (DX.of(this._all).byCamp.get(campId) || []) : await dbIndexAll('persons', 'campId', campId);
+    if(campVersion(campId) === cv) this._camp.set(campId, {v: cv, arr});
+    return arr;
+  }
+});
+const PQ = {
+  /* عدّاد بلا تحميل السجلات */
+  async countCamp(campId){
+    const db = await dbOpen();
+    return new Promise((res, rej)=>{
+      const r = db.transaction('persons', 'readonly').objectStore('persons').index('campId').count(campId);
+      r.onsuccess = ()=>res(r.result); r.onerror = ()=>rej(r.error);
+    });
+  },
+  /* سجلات بانتظار الرفع مقسّمة حسب المخيم — مؤشر syncStatus */
+  async pendingByCamp(){
+    const db = await dbOpen(), out = {};
+    return new Promise((res, rej)=>{
+      const tx = db.transaction('persons', 'readonly'), req = tx.objectStore('persons').index('syncStatus').openCursor(IDBKeyRange.only('pending'));
+      req.onsuccess = e=>{ const c = e.target.result; if(!c) return; const k = c.value.campId || '—'; out[k] = (out[k]||0) + 1; c.continue(); };
+      tx.oncomplete = ()=>res(out); tx.onerror = ()=>rej(tx.error);
+    });
+  },
+  async byNid(nid){
+    const n = normNid(nid); if(!n) return [];
+    let r = await dbIndexAll('persons', 'nationalId', n);
+    if(!r.length && this._warmAll()) { const p = DX.of(PersonStore._all).byNid.get(n); if(p) r = [p]; }
+    return r;
+  },
+  _warmAll(){ return !!PersonStore._all && PersonStore._v === storeVersion('persons'); },
+  async family(familyId, campId){
+    if(!familyId) return [];
+    const r = await dbIndexAll('persons', 'familyId', familyId);
+    return campId ? r.filter(p=>p.campId === campId) : r;
+  },
+  /* مسح بمؤشر مع خروج مبكر — بلا تحميل كل المخزن بالذاكرة */
+  async scan(o){
+    o = o || {};
+    const db = await dbOpen(), limit = o.limit || 50, out = [];
+    return new Promise((res, rej)=>{
+      const tx = db.transaction('persons', 'readonly'), os = tx.objectStore('persons');
+      const src = o.campId ? os.index('campId') : os;
+      const req = o.campId ? src.openCursor(IDBKeyRange.only(o.campId)) : src.openCursor();
+      req.onsuccess = e=>{
+        const c = e.target.result; if(!c) return;
+        if(!o.pred || o.pred(c.value)){ out.push(c.value); if(out.length >= limit) return; }
+        c.continue();
+      };
+      tx.oncomplete = ()=>res(out); tx.onerror = ()=>rej(tx.error);
+    });
+  },
+  /* بحث نصي موحّد: ذاكرة دافئة ← فهرس مفاتيح جاهز، وإلا مؤشر IndexedDB بخروج مبكر عند بلوغ الحد */
+  async search(q, o){
+    o = o || {};
+    const limit = o.limit || 25;
+    if(!q) return [];
+    if(this._warmAll()){
+      const pool = o.campId ? await PersonStore.camp(o.campId) : PersonStore._all;
+      return SearchIdx.find(pool, q, limit);
+    }
+    const qk = nameKey(q), qn = normNid(q), qd = toLatinDigits(q);
+    return this.scan({campId: o.campId, limit, pred: p=>SearchIdx.test(p, q, qk, qn, qd)});
+  }
+};
+
 /* ===================== أداء: إحصاءات مخزّنة (P1) + بحث موحّد بفهرس محلي (P3) + عامل خلفي للمجموعات الكبيرة (P2) ===================== */
 /* إحصاءات المجموعة تُحسب مرة لكل (مصفوفة أفراد، يوم) — تغيّر أي سجل يُنتج مصفوفة جديدة فتُعاد، غير ذلك فورية */
 const _statsMemo = new WeakMap();
@@ -2721,6 +2962,7 @@ function reducedMotion(){ return window.matchMedia && matchMedia('(prefers-reduc
 const _countMem = new Map();
 function countUpIn(root){
   if(!root) return;
+  ringsIn(root);
   root.querySelectorAll('[data-count]').forEach(el=>{
     const to = +el.dataset.count;
     if(!Number.isFinite(to)) return;
@@ -2756,6 +2998,312 @@ const Theme = {
   }
 };
 
+/* ===================== v3.6 — الاستجابة الحسّية: اهتزاز خفيف + صوت نقرة اختياري ===================== */
+const FX = {
+  KEY:'grcs_fx', _p:null, _ctx:null, _last:0,
+  prefs(){
+    if(this._p) return this._p;
+    let o = {}; try{ o = JSON.parse(localStorage.getItem(this.KEY)||'{}'); }catch(e){}
+    return (this._p = {haptic: o.haptic !== false, sound: o.sound === true});
+  },
+  set(k, v){ const p = this.prefs(); p[k] = !!v; try{ localStorage.setItem(this.KEY, JSON.stringify(p)); }catch(e){} },
+  /* أنماط الاهتزاز: tap خفيف، ok نجاح، warn تحذير، err خطأ، sel اختيار */
+  PAT: {tap:7, sel:5, ok:[9,40,13], warn:[14,50,14], err:[28,40,28], big:[12,30,12,30,22]},
+  vibe(k){
+    if(!this.prefs().haptic || reducedMotion() || !navigator.vibrate) return;
+    const v = typeof k === 'number' ? k : (this.PAT[k] || this.PAT.tap);
+    try{ navigator.vibrate(v); }catch(e){}
+  },
+  ctx(){
+    if(this._ctx !== null) return this._ctx;
+    try{ const C = window.AudioContext || window.webkitAudioContext; this._ctx = C ? new C() : false; }catch(e){ this._ctx = false; }
+    return this._ctx;
+  },
+  /* نغمة قصيرة جداً بغلاف صوتي ناعم (بلا ملفات صوت) */
+  tone(freq, dur, vol, type, at){
+    const c = this.ctx(); if(!c) return;
+    try{
+      if(c.state === 'suspended') c.resume();
+      const t0 = c.currentTime + (at||0), o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+    }catch(e){}
+  },
+  snd(k){
+    if(!this.prefs().sound || reducedMotion()) return;
+    if(k === 'ok'){ this.tone(660, .07, .05, 'sine'); this.tone(990, .09, .05, 'sine', .07); }
+    else if(k === 'warn'){ this.tone(440, .09, .05, 'triangle'); }
+    else if(k === 'err'){ this.tone(200, .14, .06, 'triangle'); }
+    else this.tone(1500, .028, .035, 'triangle');
+  },
+  /* نقطة دخول واحدة: اهتزاز + صوت */
+  pulse(k){ if(k == null) k = 'tap'; this.vibe(k); this.snd(typeof k === 'string' ? k : 'tap'); },
+  notify(type){ this.pulse(type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'warn'); }
+};
+
+/* ===================== v3.6 — أدوات رسم مشتركة: حلقات تقدّم، دفعات رسم، هياكل تحميل ===================== */
+/* حلقة تقدّم SVG تتحرك من القيمة السابقة للجديدة (rk = مفتاح الذاكرة) */
+const _ringMem = new Map();
+function ringHtml(pct, o){
+  o = o || {};
+  const p = Math.max(0, Math.min(100, Math.round(+pct || 0))), size = o.size || 56, sw = o.stroke || 6;
+  const r = 20, c = 24;
+  const rk = o.rk ? ` data-rk="${esc(o.rk)}"` : '', from = o.rk && _ringMem.has(o.rk) ? _ringMem.get(o.rk) : 0;
+  return `<span class="pring ${o.cls||''}" style="--sz:${size}px;--rc:${o.color||'var(--teal)'}" data-ring="${p}"${rk} role="img" aria-label="${p}%">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="${c}" cy="${c}" r="${r}" class="pr-track" style="stroke-width:${sw}"/><circle cx="${c}" cy="${c}" r="${r}" class="pr-val" pathLength="100" style="stroke-width:${sw};stroke-dashoffset:${100 - from}"/></svg>${o.inner === false ? '' : `<b>${o.label != null ? o.label : p + '%'}</b>`}</span>`;
+}
+function ringsIn(root){
+  if(!root) return;
+  root.querySelectorAll('[data-ring]').forEach(el=>{
+    const to = +el.dataset.ring, v = el.querySelector('.pr-val'); if(!v) return;
+    const rk = el.dataset.rk; if(rk) _ringMem.set(rk, to);
+    if(reducedMotion()){ v.style.transition = 'none'; v.style.strokeDashoffset = 100 - to; return; }
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ v.style.strokeDashoffset = 100 - to; }));
+  });
+}
+/* رسم على دفعات: أول دفعة فورية ثم الباقي في أوقات الخمول — لا يجمّد الواجهة على قوائم طويلة */
+const _rbTok = new WeakMap();
+function renderBatched(el, items, fn, o){
+  o = o || {};
+  const first = o.first || 24, batch = o.batch || 60, tok = {};
+  _rbTok.set(el, tok);
+  el.innerHTML = '';
+  let i = 0;
+  const later = cb=>{ if('requestIdleCallback' in window) requestIdleCallback(cb, {timeout: 120}); else setTimeout(cb, 16); };
+  const step = ()=>{
+    if(_rbTok.get(el) !== tok || !el.isConnected) return;
+    const end = Math.min(items.length, i + (i === 0 ? first : batch));
+    let html = ''; for(; i < end; i++) html += fn(items[i], i);
+    el.insertAdjacentHTML('beforeend', html);
+    if(o.each) o.each(el);
+    if(i < items.length) later(step); else if(o.done) o.done(el);
+  };
+  step();
+  return tok;
+}
+/* هياكل التحميل — تحاكي شكل المحتوى الحقيقي (بطاقة فرد، صف، بطاقة إحصاء) */
+const Skel = {
+  html(kind, n){
+    n = n || 5; let one;
+    if(kind === 'person') one = `<div class="skel-person"><div class="skel sk-av"></div><div class="sk-lines"><div class="skel" style="height:13px;width:62%"></div><div class="skel" style="height:10px;width:38%"></div></div></div>`;
+    else if(kind === 'stat') one = `<div class="stat-card skel-card"><div class="skel" style="height:32px;border-radius:6px;margin:6px 0 4px"></div><div class="skel" style="height:14px;border-radius:4px;width:70%"></div></div>`;
+    else one = `<div class="skel-row"><div class="skel sk-ic"></div><div class="sk-lines"><div class="skel" style="height:13px;width:55%"></div><div class="skel" style="height:10px;width:30%"></div></div><div class="skel" style="height:22px;width:42px;border-radius:11px"></div></div>`;
+    return `<div class="skel-wrap" aria-hidden="true">${Array(n).fill(one).join('')}</div>`;
+  },
+  /* خانة كل شاشة: تُملأ بهيكل فقط حين تكون فارغة (أول زيارة) ويستبدلها أي رسم لاحق */
+  SLOTS: {
+    'screen-persons':        ['persons-scroll', 'person', 7],
+    'screen-camps-admin':    ['camps-list-body', 'row', 6],
+    'screen-accounts-admin': ['accounts-list-body', 'row', 7],
+    'screen-dash':           ['dash-stats', 'stat', 6],
+    'screen-category':       ['category-list', 'person', 6]
+  },
+  mount(screenId){
+    const s = this.SLOTS[screenId]; if(!s) return;
+    const el = document.getElementById(s[0]);
+    if(!el || el.firstChild) return;
+    el.innerHTML = this.html(s[1], s[2]);
+    clearTimeout(el._skT);
+    el._skT = setTimeout(()=>{ const w = el.firstElementChild; if(w && w.classList.contains('skel-wrap') && el.childElementCount === 1) el.innerHTML = ''; }, 6000);
+  }
+};
+
+/* ===================== v3.6 — حالات فارغة مرسومة بـSVG (بدل أيقونات الخط) ===================== */
+const EMPTY_ART = (()=>{
+  const g = '<ellipse class="ea-ground" cx="80" cy="108" rx="52" ry="6"/>';
+  const wrap = body => `<svg class="ea" viewBox="0 0 160 120" aria-hidden="true">${g}${body}</svg>`;
+  return {
+    tent: wrap(`<g class="ea-float"><path class="ea-fill" d="M30 100 L80 34 L130 100 Z"/><path class="ea-line" d="M30 100 L80 34 L130 100 Z"/><path class="ea-acc" d="M80 34 L80 100 M66 100 L80 70 L94 100"/><path class="ea-line" d="M80 34 V22"/><path class="ea-flag" d="M80 22 L98 27 L80 32 Z"/></g><circle class="ea-dot" cx="122" cy="30" r="4"/><circle class="ea-dot d2" cx="36" cy="46" r="3"/>`),
+    people: wrap(`<g class="ea-float"><circle class="ea-fill ea-line" cx="62" cy="48" r="13"/><path class="ea-fill ea-line" d="M38 98 q0 -28 24 -28 q24 0 24 28 Z"/><circle class="ea-fill ea-line ea-dash" cx="104" cy="56" r="10"/><path class="ea-fill ea-line ea-dash" d="M86 98 q0 -22 18 -22 q18 0 18 22 Z"/></g><path class="ea-acc" d="M116 30 h14 M123 23 v14"/>`),
+    search: wrap(`<g class="ea-float"><circle class="ea-fill ea-line" cx="72" cy="56" r="26"/><path class="ea-acc" d="M91 75 L116 100" stroke-width="7"/><path class="ea-line ea-dash" d="M60 52 h24 M60 62 h16"/></g><path class="ea-acc" d="M116 30 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 Z"/>`),
+    box: wrap(`<g class="ea-float"><path class="ea-fill ea-line" d="M36 56 L80 42 L124 56 L80 70 Z"/><path class="ea-fill ea-line" d="M36 56 V94 L80 108 V70 Z"/><path class="ea-fill ea-line" d="M124 56 V94 L80 108 V70 Z"/><path class="ea-acc" d="M80 70 V108"/><path class="ea-line" d="M56 42 L40 30 M104 42 L120 30"/></g><circle class="ea-dot" cx="80" cy="26" r="4"/>`),
+    chat: wrap(`<g class="ea-float"><path class="ea-fill ea-line" d="M32 36 h70 a8 8 0 0 1 8 8 v28 a8 8 0 0 1 -8 8 h-40 l-14 12 v-12 h-16 a8 8 0 0 1 -8 -8 v-28 a8 8 0 0 1 8 -8 Z"/><path class="ea-line ea-dash" d="M44 52 h46 M44 63 h30"/><path class="ea-fill ea-line" d="M118 64 h14 a8 8 0 0 1 8 8 v14 a8 8 0 0 1 -8 8 h-4 v10 l-12 -10 h-12 a8 8 0 0 1 -8 -8 v-3"/></g>`),
+    trash: wrap(`<g class="ea-float"><path class="ea-fill ea-line" d="M50 46 h60 l-5 54 a6 6 0 0 1 -6 5 h-38 a6 6 0 0 1 -6 -5 Z"/><path class="ea-line" d="M44 46 h72 M68 46 v-8 a4 4 0 0 1 4 -4 h16 a4 4 0 0 1 4 4 v8"/><path class="ea-acc" d="M64 62 v28 M80 62 v28 M96 62 v28"/></g>`),
+    history: wrap(`<g class="ea-float"><circle class="ea-fill ea-line" cx="80" cy="62" r="34"/><path class="ea-acc" d="M80 40 V62 L96 72"/><path class="ea-line" d="M46 62 a34 34 0 0 1 8 -22"/><path class="ea-line" d="M50 34 L54 42 L46 44"/></g>`),
+    clean: wrap(`<g class="ea-float"><path class="ea-fill ea-line" d="M80 28 L116 40 V66 C116 86 100 98 80 106 C60 98 44 86 44 66 V40 Z"/><path class="ea-acc" d="M63 66 L76 79 L98 55" stroke-width="6"/></g><circle class="ea-dot" cx="128" cy="30" r="3"/>`),
+    inbox: wrap(`<g class="ea-float"><path class="ea-fill ea-line" d="M34 70 L48 40 h64 L126 70 V96 a6 6 0 0 1 -6 6 H40 a6 6 0 0 1 -6 -6 Z"/><path class="ea-line" d="M34 70 h30 a16 16 0 0 0 32 0 h30"/><path class="ea-acc ea-dash" d="M62 54 h36"/></g>`),
+    alert: wrap(`<g class="ea-float"><path class="ea-fill ea-line" d="M80 28 L128 100 H32 Z" stroke-linejoin="round"/><path class="ea-acc" d="M80 54 V76" stroke-width="6"/><circle class="ea-dot" cx="80" cy="88" r="4"/></g>`),
+    archive: wrap(`<g class="ea-float"><rect class="ea-fill ea-line" x="36" y="34" width="88" height="22" rx="5"/><rect class="ea-fill ea-line" x="42" y="56" width="76" height="46" rx="5"/><path class="ea-acc" d="M68 72 h24"/></g>`),
+    family: wrap(`<g class="ea-float"><path class="ea-fill ea-line" d="M26 62 L80 22 L134 62"/><path class="ea-fill ea-line" d="M38 56 V100 H122 V56"/><circle class="ea-acc" cx="62" cy="76" r="7"/><circle class="ea-acc" cx="98" cy="76" r="7"/><circle class="ea-acc" cx="80" cy="82" r="5"/><path class="ea-line" d="M52 100 q0 -12 10 -12 q10 0 10 12 M88 100 q0 -12 10 -12 q10 0 10 12"/></g>`)
+  };
+})();
+const EMPTY_ICON_MAP = {
+  'fa-user-slash':'people', 'fa-users-slash':'people', 'fa-tent':'tent', 'fa-box-open':'box', 'fa-magnifying-glass':'search',
+  'fa-clock-rotate-left':'history', 'fa-comments':'chat', 'fa-comment-slash':'chat', 'fa-user-check':'clean', 'fa-trash-can':'trash',
+  'fa-box-archive':'archive', 'fa-triangle-exclamation':'alert', 'fa-people-roof':'family', 'fa-inbox':'inbox', 'fa-shield-halved':'clean'
+};
+
+/* ===================== v3.6 — تشخيص المزامنة: لكل مخيم آخر نجاح/خطأ + العمليات المعلّقة فعلياً + علاج العلامات العالقة ===================== */
+const SyncDiag = {
+  KEY:'grcs_syncdiag', _d:null,
+  d(){
+    if(!this._d){ try{ this._d = JSON.parse(localStorage.getItem(this.KEY)||'{}'); }catch(e){ this._d = {}; } }
+    if(!this._d.camps) this._d.camps = {};
+    return this._d;
+  },
+  _save(){ try{ localStorage.setItem(this.KEY, JSON.stringify(this._d)); }catch(e){} clearTimeout(this._bt); this._bt = setTimeout(()=>{ try{ renderPendingSyncBanner(); }catch(e){} }, 450); },
+  camp(id){ const d = this.d(); return d.camps[id] || (d.camps[id] = {}); },
+  errText(e){ if(!e) return ''; const s = String(e.message || e); return (e.status && !s.includes(String(e.status)) ? e.status + ' · ' : '') + s.slice(0, 200); },
+  /* kind: push | pull */
+  note(kind, campId, ok, err){
+    if(!campId) return;
+    const c = this.camp(campId), now = Date.now();
+    c[kind + 'Try'] = now;
+    if(ok){ c[kind + 'Ok'] = now; c[kind + 'Fails'] = 0; c[kind + 'Err'] = ''; }
+    else { c[kind + 'Fails'] = (c[kind + 'Fails'] || 0) + 1; c[kind + 'ErrAt'] = now; c[kind + 'Err'] = this.errText(err) || c[kind + 'Err'] || 'فشل غير محدد'; }
+    this._save();
+  },
+  OPS: {user_meta:'بيانات حساب مستخدم', cred:'بيانات دخول', camp_info:'معلومات مخيم', add_message:'رسالة', add_ben_message:'رسالة مستفيد', trash_put:'عنصر محذوف (سلة)'},
+  opLabel(o){ return this.OPS[o] || o || 'عملية'; },
+  http(e){ if(e && e.status){ const d = this.d(); d.http = {status: e.status, at: Date.now()}; this._save(); } },
+  queue(ok, err){ const d = this.d(); d.q = {at: Date.now(), ok: !!ok, err: ok ? '' : this.errText(err)}; this._save(); },
+  /* تلميح عربي بحسب نص الخطأ */
+  hint(t){
+    t = String(t || '');
+    if(/401/.test(t)) return 'انتهت جلسة الدخول — سجّل الخروج ثم ادخل من جديد.';
+    if(/403|permission|PERMISSION/.test(t)) return 'رفض الخادم الكتابة (صلاحيات) — تأكد أن قواعد Firestore محدّثة ثم أعد تسجيل الدخول.';
+    if(/429/.test(t)) return 'ضغط على الخادم — ستُعاد المحاولة تلقائياً بعد قليل.';
+    if(/مهلة|timeout|abort/i.test(t)) return 'الشبكة بطيئة أو متقطعة — أعد المحاولة عند اتصال أفضل.';
+    if(/Failed to fetch|NetworkError|Load failed|network/i.test(t)) return 'تعذّر الوصول للخادم (انقطاع أو حجب شبكة) — تحقق من الإنترنت.';
+    if(/\b400\b/.test(t)) return 'رفض الخادم بيانات سجل معيّن — انسخ تقرير التشخيص وأرسله للمطوّر.';
+    if(/\b5\d\d\b/.test(t)) return 'عطل مؤقت بالخادم — ستُعاد المحاولة.';
+    return '';
+  },
+  ago(ts){
+    if(!ts) return 'لم يحدث بعد';
+    const s = Math.max(0, (Date.now() - ts) / 1000);
+    if(s < 45) return 'الآن';
+    if(s < 3600) return 'منذ ' + Math.round(s / 60) + ' د';
+    if(s < 86400) return 'منذ ' + Math.round(s / 3600) + ' س';
+    return 'منذ ' + Math.round(s / 86400) + ' يوم';
+  },
+  /* لقطة كاملة لحالة المزامنة — مصدر واحد للبانر والشاشة */
+  async snapshot(){
+    const [queue, pend, camps] = await Promise.all([dbGetAll('syncQueue'), PQ.pendingByCamp(), dbGetAll('camps')]);
+    const u = State.user, admin = u && u.role === 'admin';
+    const names = {}; camps.forEach(c=>{ names[c.id] = c.name; });
+    const dirty = getDirtyCamps();
+    let ids = admin ? [...new Set([...Object.keys(pend), ...dirty, ...camps.filter(c=>c.id !== 'HQ').map(c=>c.id)])] : [u && u.campId].filter(Boolean);
+    ids = ids.filter(id=>id && id !== '—');
+    const rows = ids.map(id=>{
+      const c = this.camp(id), tombs = getTombstones(id).length;
+      const pending = pend[id] || 0, isDirty = dirty.includes(id);
+      return {id, name: names[id] || id, pending, tombs, dirty: isDirty, stale: isDirty && !pending && !tombs,
+        pushOk: c.pushOk || 0, pullOk: c.pullOk || 0, pushErr: c.pushFails ? c.pushErr : '', pushFails: c.pushFails || 0,
+        pullErr: c.pullFails ? c.pullErr : '', pullFails: c.pullFails || 0, pushErrAt: c.pushErrAt || 0};
+    }).filter(r=>admin ? (r.pending || r.tombs || r.dirty || r.pushErr || r.pullErr || r.pushOk || r.pullOk) : true);
+    const pendingTotal = rows.reduce((s, r)=>s + r.pending, 0), tombTotal = rows.reduce((s, r)=>s + r.tombs, 0);
+    const queueBad = queue.filter(q=>q.attempts || q.lastError);
+    const failing = rows.filter(r=>r.pushFails || r.pullFails).length + queueBad.length;
+    const waiting = pendingTotal + tombTotal + queue.length;
+    const stale = rows.filter(r=>r.stale);
+    let state = 'ok';
+    if(!State.online) state = waiting ? 'warn' : 'ok';
+    else if(failing) state = 'bad';
+    else if(waiting || rows.some(r=>r.dirty && !r.stale)) state = 'warn';
+    return {rows, queue, queueBad, pendingTotal, tombTotal, waiting, failing, stale, state, online: State.online, last: +localStorage.getItem('grcs_last_sync') || 0};
+  },
+  async report(){
+    const s = await this.snapshot(), L = [];
+    L.push('GRCS v' + APP_VERSION + ' — تقرير تشخيص المزامنة — ' + new Date().toISOString());
+    L.push('المستخدم: ' + (State.user ? State.user.role : '-') + ' | الاتصال: ' + (s.online ? 'متصل' : 'غير متصل') + ' | آخر مزامنة: ' + (s.last ? new Date(s.last).toISOString() : '-'));
+    L.push('سجلات معلّقة: ' + s.pendingTotal + ' | شواهد حذف: ' + s.tombTotal + ' | طابور: ' + s.queue.length);
+    s.rows.forEach(r=>L.push(`- ${r.name}: معلّق ${r.pending}, حذف ${r.tombs}, dirty=${r.dirty}${r.stale ? ' (عالقة)' : ''}, آخر رفع ${r.pushOk ? new Date(r.pushOk).toISOString() : '-'}, آخر سحب ${r.pullOk ? new Date(r.pullOk).toISOString() : '-'}${r.pushErr ? ', خطأ رفع: ' + r.pushErr : ''}${r.pullErr ? ', خطأ سحب: ' + r.pullErr : ''}`));
+    s.queue.forEach(q=>L.push(`- طابور ${q.operation} (${SyncDiag.opLabel(q.operation)}): محاولات ${q.attempts || 0}${q.lastError ? ', ' + q.lastError : ''}`));
+    const h = this.d().http; if(h) L.push('آخر رفض HTTP: ' + h.status + ' @ ' + new Date(h.at).toISOString());
+    return L.join('\n');
+  }
+};
+
+/* علامة dirty عالقة بلا أي سجل معلّق ولا حذف: تُمسح بأمان (لا يوجد ما يُرفع) */
+async function syncHealStale(){
+  const s = await SyncDiag.snapshot(); let n = 0;
+  for(const r of s.stale){ clearCampDirty(r.id); n++; }
+  return n;
+}
+/* إعادة مزامنة كاملة مع نتيجة دقيقة بدل رسالة عامة */
+async function syncRunAndReport(){
+  if(!State.online) return {ok: false, why: 'offline'};
+  const before = await SyncDiag.snapshot();
+  try{
+    await syncHealStale();
+    await processSyncQueue({silent: true});
+    const u = State.user;
+    if(u.role === 'admin'){ await pullCampsFromServer(); await Promise.all(before.rows.filter(r=>r.pending || r.dirty || r.tombs).map(r=>pullCampPersonsBlob(r.id))); }
+    else if(u.campId){ await pushDirtyCamps(); await pullCampPersonsBlob(u.campId); }
+  }catch(e){ SyncDiag.queue(false, e); }
+  const after = await SyncDiag.snapshot();
+  return {ok: after.state === 'ok', before, after};
+}
+async function openSyncDiag(){
+  if(!State.user || State.user.role === 'beneficiary') return;
+  const m = openModal(`<div class="modal-header"><h2>تشخيص المزامنة</h2><button class="icon-btn" style="color:var(--ink);background:var(--surface-2)" id="sd-close"><i class="fa-solid fa-xmark"></i></button></div><div id="sd-body">${Skel.html('row', 3)}</div>`);
+  m.querySelector('#sd-close').addEventListener('click', closeModal);
+  const body = m.querySelector('#sd-body');
+  const draw = async ()=>{
+    const s = await SyncDiag.snapshot();
+    if(!body.isConnected) return;
+    const hero = s.state === 'ok'
+      ? {c:'ok', t: 'كل شيء متزامن', d: s.last ? 'آخر مزامنة ' + SyncDiag.ago(s.last) : 'لا توجد عمليات بانتظار الرفع', pct: 100}
+      : s.state === 'bad'
+        ? {c:'bad', t: 'تعذّر إكمال المزامنة', d: s.failing + ' جهة فشلت — التفاصيل والسبب أدناه', pct: 35}
+        : !s.online
+          ? {c:'warn', t: 'غير متصل', d: 'العمل محفوظ محلياً وسيُرفع تلقائياً عند عودة الإنترنت', pct: 60}
+          : {c:'warn', t: 'قيد الرفع', d: 'توجد تعديلات ما زالت بانتظار الرفع للمركز', pct: 70};
+    const hot = s.rows.some(r=>r.pushErr || r.pullErr) ? 'hot' : '';
+    body.innerHTML = `
+      <div class="sd-hero ${hero.c}">${ringHtml(hero.pct, {size: 58, color: hero.c === 'ok' ? 'var(--success)' : hero.c === 'bad' ? 'var(--danger)' : 'var(--warning)', label: hero.c === 'ok' ? '✓' : hero.c === 'bad' ? '!' : '…', rk: 'sd'})}
+        <div><h3>${esc(hero.t)}</h3><p>${esc(hero.d)}</p></div></div>
+      <div class="sd-grid">
+        <div class="sd-box"><b data-count="${s.pendingTotal}">${s.pendingTotal}</b><span>سجل بانتظار الرفع</span></div>
+        <div class="sd-box"><b data-count="${s.tombTotal}">${s.tombTotal}</b><span>حذف بانتظار الرفع</span></div>
+        <div class="sd-box ${s.queueBad.length ? 'hot' : ''}"><b data-count="${s.queue.length}">${s.queue.length}</b><span>عملية بالطابور</span></div>
+      </div>
+      ${s.stale.length ? `<div class="sd-hint"><i class="fa-solid fa-broom"></i> ${s.stale.length} علامة «معلّق» عالقة بلا أي سجل خلفها — تُمسح تلقائياً عند «إعادة المزامنة».</div>` : ''}
+      <div class="sd-sec">حسب المخيم</div>
+      ${s.rows.length ? s.rows.map(r=>{
+        const bad = r.pushErr || r.pullErr, hint = SyncDiag.hint(r.pushErr || r.pullErr);
+        return `<div class="sd-camp"><div class="top"><span class="nm">${esc(r.name)}</span>
+          <span class="pill ${bad ? 'danger' : (r.pending || r.tombs) ? 'warning' : 'success'}">${bad ? 'خطأ' : (r.pending || r.tombs) ? (r.pending + r.tombs) + ' معلّق' : 'متزامن'}</span></div>
+          <div class="ln"><span>آخر رفع ناجح: <b>${esc(SyncDiag.ago(r.pushOk))}</b></span><span>·</span><span>آخر سحب ناجح: <b>${esc(SyncDiag.ago(r.pullOk))}</b></span></div>
+          ${r.pushErr ? `<div class="sd-err">رفع: ${esc(r.pushErr)}${r.pushFails > 1 ? ' (×' + r.pushFails + ')' : ''}</div>` : ''}
+          ${r.pullErr ? `<div class="sd-err">سحب: ${esc(r.pullErr)}</div>` : ''}
+          ${bad && hint ? `<div class="sd-hint">${esc(hint)}</div>` : ''}</div>`;
+      }).join('') : emptyStateHtml('fa-user-check', 'لا يوجد ما يُزامَن', 'لا مخيمات أو تعديلات معلّقة على هذا الجهاز')}
+      ${s.queue.length ? `<div class="sd-sec">طابور العمليات</div>${s.queue.slice(0, 12).map(q=>`<div class="sd-q"><span>${esc(SyncDiag.opLabel(q.operation))}</span><span>${q.attempts ? 'محاولات ' + q.attempts : 'بانتظار'}${q.lastError ? ' · ' + esc(String(q.lastError).slice(0, 60)) : ''}</span></div>`).join('')}` : ''}
+      <div class="sd-actions">
+        <button class="btn btn-primary" id="sd-run" ${State.online ? '' : 'disabled'}><i class="fa-solid fa-rotate"></i> إعادة المزامنة الآن</button>
+        <button class="btn btn-outline" id="sd-probe"><i class="fa-solid fa-satellite-dish"></i> فحص الاتصال</button>
+        <button class="btn btn-outline" id="sd-copy" style="grid-column:1/-1"><i class="fa-solid fa-copy"></i> نسخ تقرير التشخيص</button>
+      </div><div id="sd-probe-out" class="caption mt-8"></div>`;
+    countUpIn(body); ringsIn(body);
+    body.querySelector('#sd-run').addEventListener('click', async e=>{
+      const b = e.currentTarget; b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جارٍ المزامنة…';
+      const r = await syncRunAndReport();
+      if(r.ok){ toast('اكتملت المزامنة — لا شيء معلّق', 'ok'); }
+      else if(r.after) toast(`ما زال ${r.after.waiting} عنصر معلّق — راجع السبب أدناه`, 'warn');
+      await draw();
+    });
+    body.querySelector('#sd-probe').addEventListener('click', async ()=>{
+      const out = body.querySelector('#sd-probe-out'); out.textContent = 'جارٍ الفحص…';
+      const t0 = performance.now(); let fs = 'فشل', wk = 'فشل';
+      try{ const r = await _fetchOnce(`${fsBaseUrl()}/camps?${fsKeyParam()}&pageSize=1&mask.fieldPaths=name`, {cache:'no-store'}, 8000); fs = 'HTTP ' + r.status + ' · ' + Math.round(performance.now() - t0) + 'ms'; }catch(e){ fs = SyncDiag.errText(e); }
+      const t1 = performance.now();
+      try{ const r = await _fetchOnce(PUSH_CONFIG.workerUrl + '/', {cache:'no-store'}, 8000); wk = 'HTTP ' + r.status + ' · ' + Math.round(performance.now() - t1) + 'ms'; }catch(e){ wk = SyncDiag.errText(e); }
+      out.innerHTML = `المتصفح: <b>${navigator.onLine ? 'متصل' : 'غير متصل'}</b> · قاعدة البيانات: <b>${esc(fs)}</b> · خادم الدخول: <b>${esc(wk)}</b>`;
+    });
+    body.querySelector('#sd-copy').addEventListener('click', async ()=>{
+      const txt = await SyncDiag.report();
+      try{ await navigator.clipboard.writeText(txt); toast('نُسخ التقرير', 'ok'); }
+      catch(e){ const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast('نُسخ التقرير', 'ok'); }catch(_){ toast('تعذّر النسخ', 'err'); } ta.remove(); }
+    });
+  };
+  draw();
+}
+
 /* ===================== Toast ===================== */
 function toast(msg, type='ok'){
   const host = document.getElementById('toast-host');
@@ -2764,6 +3312,7 @@ function toast(msg, type='ok'){
   const icon = type==='ok'?'fa-circle-check':type==='err'?'fa-circle-exclamation':'fa-triangle-exclamation';
   el.innerHTML = `<i class="fa-solid ${icon}"></i><span>${esc(msg)}</span>`;
   host.appendChild(el);
+  try{ FX.notify(type); }catch(e){}
   setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 3000);
 }
 
@@ -2927,22 +3476,25 @@ async function dbIndexAll(store, index, value){
 }
 /* نقطة إبطال مركزية: أي كتابة على مخزن ترفع رقم نسخته فتُعاد بناء الفهارس المعتمدة عليه فقط */
 const _storeVer = {};
-function _bumpStore(store){ _storeVer[store] = (_storeVer[store]||0) + 1; }
+function _bumpStore(store, camps){ _storeVer[store] = (_storeVer[store]||0) + 1; if(store === 'persons') _bumpPersons(camps); }
+function _campsOf(items){ const s = new Set(); for(const x of items){ if(!x || !x.campId) return null; s.add(x.campId); } return [...s]; }
 function storeVersion(store){ return _storeVer[store]||0; }
 async function dbPut(store, val){
   const db = await dbOpen();
   return new Promise((res,rej)=>{
     const tx = db.transaction(store,'readwrite');
     tx.objectStore(store).put(val);
-    tx.oncomplete = ()=>{ _bumpStore(store); res(val); }; tx.onerror = ()=>rej(tx.error);
+    tx.oncomplete = ()=>{ _bumpStore(store, store === 'persons' && val && val.campId ? [val.campId] : null); res(val); }; tx.onerror = ()=>rej(tx.error);
   });
 }
 async function dbDelete(store, key){
   const db = await dbOpen();
   return new Promise((res,rej)=>{
-    const tx = db.transaction(store,'readwrite');
-    tx.objectStore(store).delete(key);
-    tx.oncomplete = ()=>{ _bumpStore(store); res(true); }; tx.onerror = ()=>rej(tx.error);
+    const tx = db.transaction(store,'readwrite'), os = tx.objectStore(store);
+    let camp = null;
+    if(store === 'persons'){ const g = os.get(key); g.onsuccess = ()=>{ camp = g.result && g.result.campId; os.delete(key); }; }
+    else os.delete(key);
+    tx.oncomplete = ()=>{ _bumpStore(store, camp ? [camp] : null); res(true); }; tx.onerror = ()=>rej(tx.error);
   });
 }
 async function dbCount(store){
@@ -2970,7 +3522,7 @@ async function dbBulkPut(store, items, batchSize=200, onProgress){
       const tx = db.transaction(store,'readwrite');
       const os = tx.objectStore(store);
       chunk.forEach(it=>os.put(it));
-      tx.oncomplete = ()=>{ _bumpStore(store); res(); }; tx.onerror = ()=>rej(tx.error);
+      tx.oncomplete = ()=>{ _bumpStore(store, store === 'persons' ? _campsOf(chunk) : null); res(); }; tx.onerror = ()=>rej(tx.error);
     });
     done += chunk.length;
     if(onProgress) onProgress(done, items.length);
@@ -3007,6 +3559,8 @@ function _navCore(screenId){
     if(typeof updateFabVisibility === 'function') updateFabVisibility();
     moveNavIndicator();
   }
+  if(screenId !== 'screen-dash') State._ringOf = 0;
+  if(State.user) Skel.mount(screenId);
   if(SCREEN_REFRESH[screenId]) SCREEN_REFRESH[screenId]();
 }
 /* ===================== جلسة الخادم (v3.2) — بصمة المستخدم الحالي لتجديد رمز الدخول دون إعادة كتابة كلمة المرور ===================== */
@@ -3545,18 +4099,21 @@ function relationLabel(p){
 }
 function currentCampId(){ return State.user.role === 'admin' ? State.adminViewingCampId : State.user.campId; }
 function getAge(p){ const a = calcAge(p.birthDate); return a != null ? a : (typeof p.calculatedAge === 'number' ? p.calculatedAge : null); }
+const RING_KEYS = new Set(['male','female','infant','orphan','child','elderly','pregnant','chronic','disability','preschool','school','youth','midAdult','widowed','divorced','nophone','noid']);
 function statCard(icon,color,val,label,sub,key){
   const clickAttr = key ? ` data-stat-key="${esc(key)}" style="cursor:pointer"` : '';
   const num = typeof val === 'number' && Number.isFinite(val);
   const ck = esc((State.user?.role==='admin' && !State.adminViewingCampId ? 'g:' : 'c:') + (key||label));
   return `<div class="stat-card c-${color}"${clickAttr}><div class="sc-top"><div class="sc-icon"><i class="fa-solid ${icon}"></i></div></div>
-    <div class="sc-val"${num?` data-count="${val}" data-ck="${ck}"`:''}>${num ? (_countMem.get(ck) ?? 0) : val}</div><div class="sc-label">${esc(label)}</div>${sub?`<div class="sc-sub">${esc(sub)}</div>`:''}</div>`;
+    <div class="sc-val"${num?` data-count="${val}" data-ck="${ck}"`:''}>${num ? (_countMem.get(ck) ?? 0) : val}</div><div class="sc-label">${esc(label)}</div>${sub?`<div class="sc-sub">${esc(sub)}</div>`:''}${num && State._ringOf > 0 && RING_KEYS.has(key) ? ringHtml(Math.round(val / State._ringOf * 100), {size: 34, cls: 'sm sc-ring', color: 'var(--teal)', rk: ck + '#r', inner: false}) : ''}</div>`;
 }
 function statCardCustom(icon,color,valHtml,label){
   return `<div class="stat-card c-${color}"><div class="sc-top"><div class="sc-icon"><i class="fa-solid ${icon}"></i></div></div>
     <div class="sc-val" style="font-size:14.5px;line-height:1.5">${valHtml}</div><div class="sc-label">${esc(label)}</div></div>`;
 }
-function emptyStateHtml(icon,title,desc){
+function emptyStateHtml(icon,title,desc,actionHtml){
+  const art = EMPTY_ART[EMPTY_ICON_MAP[icon]];
+  if(art) return `<div class="empty-state es-art">${art}<h3>${esc(title)}</h3><p>${esc(desc)}</p>${actionHtml ? `<div class="es-act">${actionHtml}</div>` : ''}</div>`;
   return `<div class="empty-state"><i class="fa-solid ${icon}"></i><h3>${esc(title)}</h3><p>${esc(desc)}</p></div>`;
 }
 function flashConnBadge(text){
@@ -3612,20 +4169,22 @@ function renderOfflineBanner(){
 async function renderPendingSyncBanner(){
   const slot = document.getElementById('offline-banner-slot'); if(!slot) return;
   if(!State.online) return; // بانر الأوفلاين يكفي بهذه الحالة
-  const pending = await dbCount('syncQueue');
-  const dirty = getDirtyCamps().length;
-  const total = pending + dirty;
+  const [pend, queue] = await Promise.all([PQ.pendingByCamp(), dbCount('syncQueue')]);
+  const recs = Object.values(pend).reduce((a, b)=>a + b, 0);
+  const tombs = getDirtyCamps().reduce((a, c)=>a + getTombstones(c).length, 0);
   if(!State.online) return;
-  setHTML(slot, total > 0 ? `<div class="offline-banner"><i class="fa-solid fa-triangle-exclamation"></i> ${total} عملية بانتظار المزامنة مع المركز — ستُرفع تلقائياً</div>` : '');
+  const parts = [recs ? recs + ' سجل' : '', tombs ? tombs + ' حذف' : '', queue ? queue + ' عملية' : ''].filter(Boolean).join(' و');
+  setHTML(slot, parts ? `<div class="offline-banner sd-banner-link" data-sd="1" role="button" tabindex="0"><i class="fa-solid fa-triangle-exclamation"></i> ${parts} بانتظار المزامنة — اضغط للتفاصيل</div>` : '');
 }
+document.addEventListener('click', e=>{ if(e.target.closest('[data-sd]')) openSyncDiag(); });
 
 /* ===================== تحميل بيانات المخيم ===================== */
 function familyCountOf(persons){ const s = new Set(); for(const p of persons) if(p.familyId) s.add(p.familyId); return s.size; }
 /* عدد الأسر من الأفراد مباشرة — نفس مصدر لوحة المؤشرات؛ مخزن families قد ينقصه أسر (ترحيل/سحب بلا سجل أسرة) */
-async function campFamilyCount(campId){ return familyCountOf(DX.of(await PersonStore.all()).byCamp.get(campId) || []); }
+async function campFamilyCount(campId){ return familyCountOf(await PersonStore.camp(campId)); }
 async function loadPersonsCache(campId){
-  const [all] = await Promise.all([PersonStore.all(), FamRecs.ensure()]);
-  State.personsCache = campId ? (DX.of(all).byCamp.get(campId) || []) : [];
+  const [arr] = await Promise.all([campId ? PersonStore.camp(campId) : [], FamRecs.ensure()]);
+  State.personsCache = arr;
   State.familiesCache = campId ? await dbIndexAll('families','campId',campId) : [];
 }
 function computeStats(persons){
@@ -4502,6 +5061,7 @@ function evenCards(cards){
   return list.join('');
 }
 function renderDashStats(stats, camp){
+  State._ringOf = stats.total;
   setHTML(document.getElementById('dash-stats'), evenCards([
     statCard('fa-users','navy', stats.total, 'إجمالي الأفراد', null, 'all'),
     statCard('fa-house-chimney','teal', stats.totalFamilies, 'إجمالي الأسر', null, 'headOfFamily'),
@@ -4590,7 +5150,7 @@ function handleStatCardClick(e){
   if(key === 'camps' || key === 'criticalCamps'){ nav('screen-camps-admin'); return; }
   const isGlobalAdminHome = State.user?.role === 'admin' && !State.adminViewingCampId;
   if(isGlobalAdminHome){ openCategoryList(key); }
-  else { State.personsFilter = key; State.personsSearch = ''; nav('screen-persons'); }
+  else { State.personsFilter = key; State.personsSearch = ''; navShared(card.querySelector('.sc-icon'), 'screen-persons', '#screen-persons .app-header .logo-mark'); }
 }
 document.getElementById('dash-stats').addEventListener('click', handleStatCardClick);
 document.getElementById('dash-stats-extra-wrap').addEventListener('click', handleStatCardClick);
@@ -4753,12 +5313,16 @@ function personCardHtml(p, absTop){
   </div>`;
 }
 function attachPersonCardEvents(container){
-  container.querySelectorAll('.person-card').forEach(card=>{
-    card.addEventListener('click', e=>{
-      if(e.target.closest('[data-action="edit"]')){ e.stopPropagation(); openPersonForm(card.dataset.id); return; }
-      openPersonDetail(card.dataset.id, card);
-    });
+  if(container._pcBound) return;
+  container._pcBound = true;
+  container.addEventListener('click', e=>{
+    const card = e.target.closest('.person-card');
+    if(!card || !container.contains(card) || e.target.closest('.pc-act')) return;
+    if(CardSwipe.open && CardSwipe.open.card === card){ CardSwipe.closeOpen(); return; }
+    if(e.target.closest('[data-action="edit"]')){ e.stopPropagation(); openPersonForm(card.dataset.id); return; }
+    openPersonDetail(card.dataset.id, card);
   });
+  CardSwipe.bind(container);
 }
 let _vlScrollHandler = null;
 function setupVirtualList(container, items, opts){
@@ -4769,12 +5333,15 @@ function setupVirtualList(container, items, opts){
   const BUFFER = 6;
   container.style.position = 'relative';
   container.style.height = (items.length * rowH) + 'px';
+  let lastS = -1, lastE = -1, raf = 0;
   const update = ()=>{
     if(State.screen !== screenId) return;
     const top = container.offsetTop;
     const st = Math.max(0, window.scrollY - top);
     const startIdx = Math.max(0, Math.floor(st/rowH) - BUFFER);
     const endIdx = Math.min(items.length, Math.ceil((st+window.innerHeight)/rowH) + BUFFER);
+    if(startIdx === lastS && endIdx === lastE) return; // نفس النافذة: لا إعادة رسم
+    lastS = startIdx; lastE = endIdx;
     let html = '';
     for(let i=startIdx;i<endIdx;i++) html += renderItem(items[i], i*rowH);
     container.innerHTML = html;
@@ -4782,8 +5349,8 @@ function setupVirtualList(container, items, opts){
   };
   update();
   if(_vlScrollHandler) window.removeEventListener('scroll', _vlScrollHandler);
-  _vlScrollHandler = update;
-  window.addEventListener('scroll', update, {passive:true});
+  _vlScrollHandler = ()=>{ if(raf) return; raf = requestAnimationFrame(()=>{ raf = 0; update(); }); };
+  window.addEventListener('scroll', _vlScrollHandler, {passive:true});
 }
 function renderPersonsList(){
   State._vix = DX.of(State.personsCache);
@@ -4808,7 +5375,12 @@ function renderPersonsList(){
     return;
   }
   if(filtered.length > 300){ container.classList.remove('cv-list'); setupVirtualList(container, filtered); }
-  else { container.classList.add('cv-list'); container.innerHTML = filtered.map(p=>personCardHtml(p)).join(''); attachPersonCardEvents(container); }
+  else {
+    container.classList.add('cv-list');
+    if(filtered.length > 60) renderBatched(container, filtered, p=>personCardHtml(p), {first: 30, batch: 70});
+    else container.innerHTML = filtered.map(p=>personCardHtml(p)).join('');
+    attachPersonCardEvents(container);
+  }
 }
 document.getElementById('persons-search').addEventListener('input', debounce(e=>{
   State.personsSearch = e.target.value; renderPersonsList();
@@ -4967,6 +5539,7 @@ async function openPersonDetail(id, fromEl){
     <div class="btn-block-row mt-16">
       ${canEdit?'<button class="btn btn-outline" id="pd-edit"><i class="fa-solid fa-pen"></i> تعديل</button>':''}
       ${canEdit?'<button class="btn btn-outline" id="pd-tags"><i class="fa-solid fa-tags"></i> التصنيفات</button>':''}
+      ${State.user.role === 'admin' ? '<button class="btn btn-outline" id="pd-move"><i class="fa-solid fa-right-left"></i> نقل الأسرة</button>' : ''}
       ${canDelete?'<button class="btn btn-danger" id="pd-delete"><i class="fa-solid fa-trash"></i> حذف</button>':''}
     </div>`;
   const m = await vtMorph(fromEl, ()=>openModal(html));
@@ -4979,6 +5552,7 @@ async function openPersonDetail(id, fromEl){
   if(getPersonConflict(p.id)) clearPersonConflict(p.id);
   m.querySelector('#pd-close').addEventListener('click', closeModal);
   m.querySelector('#pd-tags')?.addEventListener('click', ()=>{ closeModal(); openTagsEditor(p); });
+  m.querySelector('#pd-move')?.addEventListener('click', ()=>{ closeModal(); openFamilyTransfer(p.id); });
   m.querySelector('#pd-aid-add')?.addEventListener('click', ()=>{ closeModal(); aidAddDialog(p); });
   const editBtn = m.querySelector('#pd-edit'); if(editBtn) editBtn.addEventListener('click', ()=>{ closeModal(); openPersonForm(p.id); });
   const delBtn = m.querySelector('#pd-delete'); if(delBtn) delBtn.addEventListener('click', async ()=>{
@@ -5942,7 +6516,7 @@ function resolveGender(explicitCell, maritalRaw, fullName){
 }
 
 /* ===================== كشف التكرار عبر المخيمات (الفهرس الوطني) ===================== */
-async function dedupAgainstOtherCamps(candidateRecords, campId, preSeen){
+async function dedupAgainstOtherCamps(candidateRecords, campId, preSeen, onProgress){
   const accepted = [];
   const excluded = [];
   const seenInFile = new Set(preSeen||[]);
@@ -5964,6 +6538,7 @@ async function dedupAgainstOtherCamps(candidateRecords, campId, preSeen){
     const chunk = toCheck.slice(i,i+CONCURRENCY);
     const results = await Promise.all(chunk.map(r=>checkNationalIndex(r.nationalId)));
     chunk.forEach((r,j)=>{ if(results[j]) foundMap.set(r.nationalId, results[j]); });
+    if(onProgress) onProgress(Math.min(toCheck.length, i + CONCURRENCY), toCheck.length);
   }
   const excludedSet = new Set();
   toCheck.forEach(r=>{
@@ -6315,7 +6890,7 @@ async function runImportFamilySummary(){
   }
 
   ImportDiag.stop();
-  if(!(await importPreflight({campId, updates, newRecs, existing}))){ resetImportScreen(); return; }
+  if(!(await importPreflight({campId, updates, newRecs, existing, clashes}))){ resetImportScreen(); return; }
   document.getElementById('import-progress-text').textContent = 'جارٍ التحقق من التكرار عبر المخيمات...';
   const {accepted, excluded, checkedOnline} = await dedupAgainstOtherCamps(newRecs, campId, updates.map(u=>normNid(u.rec.nationalId)).filter(Boolean));
   excluded.push(...clashes);
@@ -6790,7 +7365,7 @@ async function runImportHorizontal(){
   }
 
   ImportDiag.stop();
-  if(!(await importPreflight({campId, updates, newRecs, existing}))){ resetImportScreen(); return; }
+  if(!(await importPreflight({campId, updates, newRecs, existing, clashes}))){ resetImportScreen(); return; }
   document.getElementById('import-progress-text').textContent = 'جارٍ التحقق من التكرار عبر المخيمات...';
   const {accepted, excluded, checkedOnline} = await dedupAgainstOtherCamps(newRecs, campId, updates.map(u=>normNid(u.rec.nationalId)).filter(Boolean));
   excluded.push(...clashes);
@@ -7161,60 +7736,6 @@ function recordChanges(rec, ex){
   return DIFF_FIELDS.filter(k=>k in rec && rec[k] !== undefined && _dv(rec[k]) !== _dv(ex[k]) && !(k==='nationalId' && normNid(rec[k]) === normNid(ex[k])))
     .map(k=>({k, from: ex[k], to: rec[k]}));
 }
-function importPreflight({campId, updates, newRecs, existing}){
-  return new Promise(resolve=>{
-    const changed = [], same = [];
-    updates.forEach(u=>{ const ch = recordChanges(u.rec, u.existingPerson); (ch.length ? changed : same).push({u, ch}); });
-    const touched = new Set(updates.map(u=>u.existingPerson.id));
-    const missing = existing.filter(p=>!touched.has(p.id));
-    const all = [...updates.map(u=>u.rec), ...newRecs];
-    const badIds = all.filter(r=>r.nationalId && nidStatus(r.nationalId) !== 'valid');
-    const seen = new Map(), dupIn = [];
-    all.forEach(r=>{ const n = normNid(r.nationalId); if(!n) return; if(seen.has(n)) dupIn.push(r); else seen.set(n, r); });
-    const exIx = DX.of(existing);
-    const suspects = [];
-    for(const r of newRecs){
-      if(normNid(r.nationalId)) continue;
-      const fam = r.familyId ? (exIx.byFam.get(campId + '|' + r.familyId) || []) : [];
-      const hit = fam.find(x=>dupScore(r, x) >= 0.9);
-      if(hit) suspects.push({r, hit});
-    }
-    const lab = k=>AUDIT_FIELD_LABELS[k] || FIELD_LABELS[k] || k;
-    const list = (items, fn)=>items.slice(0,40).map(fn).join('') + (items.length>40?`<div class="caption">و${items.length-40} آخرون…</div>`:'');
-    const box = document.getElementById('import-step-preflight');
-    const issuesN = badIds.length + dupIn.length + ImportDiag.badDates + suspects.length;
-    box.innerHTML = `
-      <div class="pf-head"><i class="fa-solid fa-clipboard-check"></i><div><b>مراجعة قبل الاعتماد</b><div class="caption">لم يُكتب أي شيء بعد — راجع ثم اعتمد</div></div></div>
-      <div class="pf-grid">
-        <div class="pf-stat add"><b data-count="${newRecs.length}">0</b><span>جديد</span></div>
-        <div class="pf-stat chg"><b data-count="${changed.length}">0</b><span>سيتحدّث</span></div>
-        <div class="pf-stat same"><b data-count="${same.length}">0</b><span>بلا تغيير</span></div>
-        <div class="pf-stat miss"><b data-count="${missing.length}">0</b><span>غير موجود بالملف</span></div>
-      </div>
-      ${issuesN ? `<div class="pf-issues">
-        ${badIds.length?`<details><summary><i class="fa-solid fa-id-card"></i> ${badIds.length} رقم هوية لا يجتاز خانة التحقق <em>تحذير فقط</em></summary>${list(badIds, r=>`<div class="pf-li">${esc(r.fullName)} — ${esc(r.nationalId)}</div>`)}</details>`:''}
-        ${ImportDiag.badDates?`<details><summary><i class="fa-solid fa-calendar-xmark"></i> ${ImportDiag.badDates} تاريخ تعذّرت قراءته (سيُترك فارغاً)</summary>${ImportDiag.badDateSamples.map(v=>`<div class="pf-li">${esc(v)}</div>`).join('')}</details>`:''}
-        ${dupIn.length?`<details><summary><i class="fa-solid fa-clone"></i> ${dupIn.length} هوية مكررة داخل الملف (يُستبعد التكرار)</summary>${list(dupIn, r=>`<div class="pf-li">${esc(r.fullName)} — ${esc(r.nationalId)}</div>`)}</details>`:''}
-        ${suspects.length?`<details><summary><i class="fa-solid fa-user-group"></i> ${suspects.length} اسم مشابه لفرد موجود بنفس الأسرة</summary>${list(suspects, s=>`<div class="pf-li">${esc(s.r.fullName)} ≈ ${esc(s.hit.fullName)}</div>`)}</details>`:''}
-      </div>` : `<div class="wiz-note ok"><i class="fa-solid fa-circle-check"></i> لا توجد مشاكل في البيانات</div>`}
-      <div class="pf-lists">
-        ${newRecs.length?`<details><summary>الجدد (${newRecs.length})</summary>${list(newRecs, r=>`<div class="pf-li">${esc(r.fullName)}${r.nationalId?' — '+esc(r.nationalId):''}</div>`)}</details>`:''}
-        ${changed.length?`<details><summary>التغييرات (${changed.length})</summary>${list(changed, c=>`<div class="pf-li"><b>${esc(c.u.existingPerson.fullName)}</b><div class="caption">${c.ch.map(x=>`${esc(lab(x.k))}: ${esc(auditValueText(x.k, x.from))} ← ${esc(auditValueText(x.k, x.to))}`).join(' | ')}</div></div>`)}</details>`:''}
-        ${missing.length?`<details><summary>موجودون بالنظام وغير موجودين بالملف (${missing.length}) — لن يُحذفوا</summary>${list(missing, p=>`<div class="pf-li">${esc(p.fullName)}${p.nationalId?' — '+esc(p.nationalId):''}</div>`)}</details>`:''}
-      </div>
-      <div class="btn-block-row mt-16">
-        <button class="btn btn-outline" id="pf-cancel">إلغاء</button>
-        <button class="btn btn-primary" id="pf-go"><i class="fa-solid fa-check"></i> اعتماد الاستيراد</button>
-      </div>`;
-    document.getElementById('import-step-progress').hidden = true;
-    box.hidden = false;
-    window.scrollTo(0,0);
-    countUpIn(box);
-    box.querySelector('#pf-cancel').addEventListener('click', ()=>{ box.hidden = true; resolve(false); });
-    box.querySelector('#pf-go').addEventListener('click', ()=>{ box.hidden = true; document.getElementById('import-step-progress').hidden = false; resolve(true); });
-  });
-}
-
 /* ===== دفعات الاستيراد: لقطة ما قبل الكتابة + ما أُنشئ ← تراجع كامل ومقارنة تاريخية ===== */
 function rowSig(r){
   const k = normNid(r.nationalId) || ((r.familyId||'') + '|' + nameKey(r.fullName));
@@ -9867,6 +10388,7 @@ async function removeNationalIndexEntry(nationalId){
   try{ await fsDocDelete(`nationalIds/${nationalId}`); }catch(e){ console.error('تعذّر حذف سجل من الفهرس الوطني:', nationalId, e); }
 }
 async function pushNationalIndexBatch(persons, campName, campPhone){
+  _nidMemo.clear();
   if(!State.online) return;
   const withId = persons.filter(p=>p.nationalId);
   if(!withId.length) return;
@@ -9879,7 +10401,9 @@ async function pushNationalIndexBatch(persons, campName, campPhone){
   try{ await fsBatchWrite(writes); }catch(e){ console.error('فشل تحديث الفهرس الوطني دفعة واحدة:', e); }
 }
 async function checkNationalIndex(nationalId){
-  try{ return await fsDocGet(`nationalIds/${nationalId}`); }catch(e){ return null; }
+  const m = _nidMemo.get(nationalId);
+  if(m && Date.now() - m.t < 180000) return m.v;
+  try{ const v = await fsDocGet(`nationalIds/${nationalId}`); _nidMemo.set(nationalId, {t: Date.now(), v}); return v; }catch(e){ return null; }
 }
 
 /* ===================== مزامنة بيانات الأفراد — مستند واحد مضغوط لكل مخيم ===================== */
@@ -9939,7 +10463,7 @@ async function dbPutPersonsGuarded(items, snapshot){
           os.put(p);
         };
       });
-      tx.oncomplete = ()=>{ _bumpStore('persons'); res(); };
+      tx.oncomplete = ()=>{ _bumpStore('persons', _campsOf(chunk)); res(); };
       tx.onerror = ()=>rej(tx.error);
     });
   }
@@ -10114,8 +10638,9 @@ const FamSync = {
           commit();
         }
         await this.applyClear(campId);
+        SyncDiag.note('pull', campId, true);
         return true;
-      }catch(e){ console.error('فشل سحب بيانات المخيم:', campId, e); return false; }
+      }catch(e){ console.error('فشل سحب بيانات المخيم:', campId, e); SyncDiag.note('pull', campId, false, e); return false; }
     });
   },
   dropTombs(campId, drop){
@@ -10229,6 +10754,17 @@ const FamSync = {
     return names.length;
   }
 };
+(function wrapFamPush(){
+  const _push = FamSync.push;
+  FamSync.push = async function(campId, opts){
+    if(opts && opts._inner) return _push.call(this, campId, opts);
+    try{
+      const r = await _push.call(this, campId, opts);
+      if(State.online && State.user && campId) SyncDiag.note('push', campId, r !== false, r === false ? 'لم تكتمل كل المستندات (رفض جزئي أو مهلة)' : null);
+      return r;
+    }catch(e){ SyncDiag.note('push', campId, false, e); throw e; }
+  };
+})();
 async function pushCampPersonsBlob(campId){ return FamSync.push(campId); }
 async function pullCampPersonsBlob(campId){ return FamSync.pull(campId); }
 /* ===================== تنبيه تعارض تعديل — شخص عُدِّل من جهازين بنفس الوقت تقريباً ===================== */
@@ -10641,7 +11177,7 @@ async function runGarbageCollector(force){
   if(!force && (Date.now() - (+localStorage.getItem(KEY)||0)) < DAY) return;
   try{
     const now = Date.now();
-    const a = await dbPruneByIndex('changelog','timestamp', now - 90*DAY);
+    const a = await dbPruneByIndex('changelog','timestamp', now - 90*DAY, e=>e.action === 'family_transfer');
     const b = await dbPruneByIndex('messages','timestamp', now - 60*DAY, m=>m.syncStatus==='pending');
     const exp = await dbGetAll('savedExports');
     let c = 0; for(const x of exp){ if((x.createdAt||0) < now - 30*DAY){ await dbDelete('savedExports', x.id); c++; } }
@@ -11507,7 +12043,7 @@ async function showForceUpdate(minV){
 }
 
 /* ===================== طبقة الإحساس (v3.1) — لمس، انتقالات، أوراق قابلة للسحب، سحب للتحديث، بحث شامل ===================== */
-function haptic(ms){ if(!reducedMotion() && navigator.vibrate){ try{ navigator.vibrate(ms||10); }catch(e){} } }
+function haptic(k){ FX.pulse(k == null ? 'tap' : k); }
 /* البطاقة تتمدد لتصبح نافذة التفاصيل (عنصر مشترك) */
 async function vtMorph(fromEl, fn){
   if(!VT_OK || reducedMotion() || !fromEl || !fromEl.isConnected) return fn();
@@ -11631,8 +12167,153 @@ GS_SCREENS.forEach(id=>{
   header.insertBefore(b, anchor || null);
   b.addEventListener('click', openGlobalSearch);
 });
+/* ===================== v3.6 — السحب لليمين على بطاقة الفرد: إجراءات سريعة ===================== */
+const CardSwipe = {
+  W: 62, open: null, _supp: false,
+  personOf(id){
+    const ix = State._vix || (State.personsCache && State.personsCache.length ? DX.of(State.personsCache) : null);
+    return (ix && ix.byId.get(id)) || (State._catIx && State._catIx.byId.get(id)) || null;
+  },
+  actions(p){
+    const a = [], role = State.user && State.user.role;
+    if(p && p.phone) a.push({k:'call', ic:'fa-phone', l:'اتصال', pri:true});
+    else if(p && p.nationalId) a.push({k:'copy', ic:'fa-copy', l:'نسخ الهوية'});
+    a.push({k:'edit', ic:'fa-pen', l:'تعديل'});
+    a.push({k:'open', ic:'fa-id-card', l:'تفاصيل', pri: !(p && p.phone)});
+    if(role === 'admin') a.push({k:'move', ic:'fa-right-left', l:'نقل'});
+    return a;
+  },
+  trayHtml(p){ return this.actions(p).map(a=>`<button type="button" class="pc-act${a.pri ? ' pri' : ''}" data-sw="${a.k}"><i class="fa-solid ${a.ic}"></i><span>${a.l}</span></button>`).join(''); },
+  closeOpen(animate){
+    const c = this.open; if(!c) return; this.open = null;
+    const card = c.card, tray = c.tray;
+    if(animate !== false && card.isConnected){ card.style.transition = 'transform .24s var(--silk)'; card.style.transform = ''; setTimeout(()=>{ card.style.transition = ''; card.classList.remove('sw-drag', 'sw-armed'); tray.remove(); }, 260); }
+    else { card.style.transform = ''; card.classList.remove('sw-drag', 'sw-armed'); tray.remove(); }
+  },
+  async run(k, id){
+    this.closeOpen();
+    const p = this.personOf(id) || await dbGet('persons', id);
+    if(!p) return;
+    FX.pulse('sel');
+    if(k === 'call'){ if(p.phone) location.href = 'tel:' + String(p.phone).replace(/[^\d+]/g, ''); }
+    else if(k === 'copy'){
+      try{ await navigator.clipboard.writeText(p.nationalId || ''); toast('نُسخ رقم الهوية', 'ok'); }catch(e){ toast(p.nationalId || '', 'warn'); }
+    }
+    else if(k === 'edit') openPersonForm(id);
+    else if(k === 'open') openPersonDetail(id);
+    else if(k === 'move' && typeof openFamilyTransfer === 'function') openFamilyTransfer(id);
+  },
+  bind(container){
+    if(!container || container._swBound) return;
+    container._swBound = true;
+    const self = this; let st = null;
+    const stopClick = e=>{ e.stopPropagation(); e.preventDefault(); };
+    container.addEventListener('pointerdown', e=>{
+      if(e.pointerType === 'mouse' && e.button !== 0) return;
+      const card = e.target.closest('.person-card');
+      if(!card || e.target.closest('.p-edit, .pc-tray')) return;
+      if(self.open && self.open.card !== card) self.closeOpen();
+      st = {card, id: card.dataset.id, x0: e.clientX, y0: e.clientY, pid: e.pointerId, x: 0, mode: null, base: (self.open && self.open.card === card) ? self.open.W : 0, tray: null, t0: performance.now()};
+    });
+    container.addEventListener('pointermove', e=>{
+      if(!st || e.pointerId !== st.pid) return;
+      const dx = e.clientX - st.x0, dy = e.clientY - st.y0;
+      if(!st.mode){
+        if(Math.abs(dx) < 9 && Math.abs(dy) < 9) return;
+        if(Math.abs(dy) > Math.abs(dx) * 0.8 || (dx < 0 && !st.base)){ st = null; return; }
+        st.mode = 'h';
+        try{ st.card.setPointerCapture(st.pid); }catch(_){}
+        const p = self.personOf(st.id);
+        const existing = self.open && self.open.card === st.card ? self.open.tray : null;
+        if(existing) st.tray = existing;
+        else {
+          st.tray = document.createElement('div'); st.tray.className = 'pc-tray'; st.tray.innerHTML = self.trayHtml(p);
+          st.card.appendChild(st.tray);
+        }
+        st.W = st.tray.children.length * self.W; st.tray.style.width = st.W + 'px';
+        st.card.classList.add('sw-drag');
+      }
+      let x = st.base + dx;
+      x = Math.max(0, x);
+      if(x > st.W) x = st.W + (x - st.W) * 0.4;
+      st.x = x;
+      st.card.style.transform = `translateX(${x}px)`;
+      const o = Math.min(1, x / (st.W * 0.9));
+      st.tray.style.setProperty('--o', o.toFixed(2)); st.tray.querySelectorAll('.pc-act').forEach(b=>b.style.setProperty('--o', o.toFixed(2)));
+      const armed = x > st.W + 46;
+      if(armed !== st.armed){ st.armed = armed; st.card.classList.toggle('sw-armed', armed); if(armed) FX.pulse('sel'); }
+    });
+    const end = e=>{
+      if(!st || e.pointerId !== st.pid) { return; }
+      const s = st; st = null;
+      if(s.mode !== 'h') return;
+      self._supp = true; container.addEventListener('click', stopClick, true);
+      setTimeout(()=>{ container.removeEventListener('click', stopClick, true); self._supp = false; }, 380);
+      const card = s.card;
+      card.style.transition = 'transform .26s var(--silk)';
+      if(s.x > s.W + 46){
+        const pri = s.tray.querySelector('.pri') || s.tray.firstElementChild;
+        card.style.transform = '';
+        self.open = {card, tray: s.tray, W: s.W};
+        setTimeout(()=>{ self.closeOpen(false); }, 240);
+        if(pri) self.run(pri.dataset.sw, s.id);
+      } else if(s.x > s.W * 0.45){
+        card.style.transform = `translateX(${s.W}px)`;
+        s.tray.querySelectorAll('.pc-act').forEach(b=>b.style.setProperty('--o', 1));
+        self.open = {card, tray: s.tray, W: s.W};
+        FX.pulse('tap');
+      } else {
+        card.style.transform = '';
+        setTimeout(()=>{ card.style.transition = ''; card.classList.remove('sw-drag', 'sw-armed'); s.tray.remove(); }, 270);
+        if(self.open && self.open.card === card) self.open = null;
+      }
+    };
+    container.addEventListener('pointerup', end);
+    container.addEventListener('pointercancel', end);
+    container.addEventListener('click', e=>{
+      const b = e.target.closest('.pc-act'); if(!b) return;
+      e.stopPropagation();
+      const card = b.closest('.person-card');
+      self.run(b.dataset.sw, card && card.dataset.id);
+    });
+    document.addEventListener('pointerdown', e=>{ if(self.open && !e.target.closest('.pc-tray') && !self.open.card.contains(e.target)) self.closeOpen(); }, true);
+    window.addEventListener('scroll', ()=>{ if(self.open) self.closeOpen(); }, {passive: true});
+  }
+};
+
+/* ===================== v3.6 — انتقال العنصر المشترك بين الشاشات ===================== */
+function navShared(fromEl, screenId, destSel){
+  if(!VT_OK || reducedMotion() || !fromEl || !fromEl.isConnected || document.hidden || !State.user || State.screen === screenId){ nav(screenId); return; }
+  const seq = ++_navReq; let dest = null;
+  fromEl.style.viewTransitionName = 'sh-el';
+  try{
+    const t = document.startViewTransition(()=>{
+      fromEl.style.viewTransitionName = '';
+      if(seq === _navReq) _navCore(screenId);
+      dest = destSel ? document.querySelector(destSel) : null;
+      if(dest) dest.style.viewTransitionName = 'sh-el';
+    });
+    t.finished.finally(()=>{ if(dest) dest.style.viewTransitionName = ''; fromEl.style.viewTransitionName = ''; });
+  }catch(e){ fromEl.style.viewTransitionName = ''; nav(screenId); }
+}
+
+/* ===================== v3.6 — لوحة الأوامر: بحث عام + إجراءات + تنقل بالكيبورد + الأخيرة ===================== */
+const CP_RECENT = 'grcs_cp_recent';
+function cpRecent(){ try{ return JSON.parse(localStorage.getItem(CP_RECENT) || '[]'); }catch(e){ return []; } }
+function cpRemember(it){
+  try{
+    const list = cpRecent().filter(x=>!(x.t === it.t && x.id === it.id));
+    list.unshift(it); localStorage.setItem(CP_RECENT, JSON.stringify(list.slice(0, 6)));
+  }catch(e){}
+}
+function cpHl(text, q){
+  const t = String(text == null ? '' : text); if(!q) return esc(t);
+  const i = t.indexOf(q);
+  if(i < 0) return esc(t);
+  return esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length));
+}
 function gsActions(){
-  const r = State.user?.role, inCamp = r !== 'admin' || !!State.adminViewingCampId;
+  const r = State.user?.role, inCamp = r !== 'admin' || !!State.adminViewingCampId, staff = r !== 'beneficiary';
   return [
     {l:'الأفراد', ic:'fa-users', ok: inCamp, go:()=>{ State.personsFilter='headOfFamily'; nav('screen-persons'); }},
     {l:'إدخال سريع', ic:'fa-bolt', ok: inCamp, go: openRapidEntry},
@@ -11644,67 +12325,134 @@ function gsActions(){
     {l:'تصدير تقرير', ic:'fa-file-export', ok: inCamp && r !== 'dataentry', go:()=>nav('screen-export')},
     {l:'المخيمات', ic:'fa-tents', ok: r === 'admin', go:()=>nav('screen-camps-admin')},
     {l:'الحسابات', ic:'fa-users-gear', ok: r === 'admin', go:()=>nav('screen-accounts-admin')},
+    {l:'سجل نقل الأسر', ic:'fa-right-left', ok: r === 'admin', go:()=>openTransferLog()},
     {l:'منشئ الاستعلامات', ic:'fa-filter', ok: r === 'admin', go:()=>nav('screen-query')},
     {l:'أوزان مؤشر الهشاشة', ic:'fa-sliders', ok: r === 'admin', go: openVulnWeightsEditor},
     {l:'الرسائل', ic:'fa-comments', ok: r !== 'dataentry', go:()=>nav('screen-messages-list')},
+    {l:'تشخيص المزامنة', ic:'fa-rotate', ok: staff, go: openSyncDiag},
+    {l:'تبديل الصوت عند النقر', ic:'fa-volume-high', ok: true, go:()=>{ FX.set('sound', !FX.prefs().sound); toast(FX.prefs().sound ? 'صوت النقر مفعّل' : 'صوت النقر متوقف', 'ok'); FX.pulse('ok'); }},
+    {l:'تبديل الاهتزاز', ic:'fa-mobile-screen', ok: true, go:()=>{ FX.set('haptic', !FX.prefs().haptic); toast(FX.prefs().haptic ? 'الاهتزاز مفعّل' : 'الاهتزاز متوقف', 'ok'); FX.pulse('ok'); }},
     {l:'الإعدادات', ic:'fa-gear', ok: true, go:()=>nav('screen-settings')}
   ].filter(a=>a.ok);
 }
 async function openGlobalSearch(){
   if(!State.user || State.user.role === 'beneficiary' || document.getElementById('gsearch')) return;
-  const role = State.user.role;
+  const role = State.user.role, admin = role === 'admin';
   const wrap = document.createElement('div');
   wrap.className = 'gsearch'; wrap.id = 'gsearch';
-  wrap.innerHTML = `<div class="gs-panel" role="dialog" aria-label="بحث شامل">
-      <div class="gs-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="gs-input" placeholder="اسم، هوية، هاتف، مخيم، أو إجراء…" autocomplete="off" enterkeyhint="search"><button type="button" class="gs-close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>
-      <div class="gs-results" id="gs-results"></div></div>`;
+  const MODES = [['all', 'الكل'], ['p', 'أفراد'], ['c', 'مخيمات'], ['a', 'إجراءات']].filter(m=>m[0] !== 'c' || admin);
+  wrap.innerHTML = `<div class="gs-panel cp" role="dialog" aria-label="لوحة الأوامر">
+      <div class="gs-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="gs-input" placeholder="اسم، هوية، هاتف، مخيم، أو أمر…  (>أمر  @مخيم)" autocomplete="off" enterkeyhint="search" role="combobox" aria-expanded="true" aria-controls="gs-results"><button type="button" class="gs-close" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="cp-chips" id="cp-chips">${MODES.map(m=>`<button type="button" class="cp-chip${m[0] === 'all' ? ' on' : ''}" data-m="${m[0]}">${m[1]}</button>`).join('')}</div>
+      <div class="gs-results" id="gs-results" role="listbox"></div>
+      <div class="cp-foot"><span><kbd>↑</kbd><kbd>↓</kbd> تنقّل</span><span><kbd>Enter</kbd> فتح</span><span><kbd>Esc</kbd> إغلاق</span></div></div>`;
   document.body.appendChild(wrap);
   document.body.classList.add('gs-open');
-  const close = ()=>{ wrap.classList.add('out'); document.body.classList.remove('gs-open'); setTimeout(()=>wrap.remove(), reducedMotion()?0:180); };
+  FX.pulse('tap');
+  const close = ()=>{ wrap.classList.add('out'); document.body.classList.remove('gs-open'); setTimeout(()=>wrap.remove(), reducedMotion() ? 0 : 180); };
   wrap.addEventListener('click', e=>{ if(e.target === wrap) close(); });
   wrap.querySelector('.gs-close').addEventListener('click', close);
-  wrap.addEventListener('keydown', e=>{ if(e.key === 'Escape') close(); });
   const input = wrap.querySelector('#gs-input'), out = wrap.querySelector('#gs-results');
-  const [all, camps] = await Promise.all([PersonStore.all(), dbGetAll('camps')]);
-  const scopeCamp = role === 'admin' ? State.adminViewingCampId : State.user.campId;
-  const pool = scopeCamp && role !== 'admin' ? (DX.of(all).byCamp.get(scopeCamp) || []) : all;
+  let mode = 'all', kb = -1, items = [];
+  const camps = await dbGetAll('camps');
+  const scopeCamp = admin ? State.adminViewingCampId : State.user.campId;
   const campMap = {}; camps.forEach(c=>campMap[c.id] = c);
   const actions = gsActions();
   let _rs = 0;
+  const personSub = p=>[p.nationalId, p.phone, admin && !scopeCamp ? (campMap[p.campId]?.name || '') : ''].filter(Boolean).join(' · ');
+  const itemHtml = (kind, d, i, q)=>{
+    if(kind === 'a') return `<button class="gs-item" role="option" data-i="${i}"><i class="fa-solid ${d.ic}"></i><span>${cpHl(d.l, q)}</span><em class="gs-k">أمر</em></button>`;
+    if(kind === 'c') return `<button class="gs-item" role="option" data-i="${i}"><i class="fa-solid fa-tent"></i><span>${cpHl(d.name, q)}</span><em>${esc(d.supervisor || '')}</em></button>`;
+    return `<button class="gs-item" role="option" data-i="${i}"><i class="fa-solid ${d.gender === 'female' ? 'fa-venus' : d.gender === 'male' ? 'fa-mars' : 'fa-user'}"></i><span>${cpHl(d.fullName, q)}</span><em>${esc(personSub(d))}</em></button>`;
+  };
+  const setKb = n=>{
+    const els = out.querySelectorAll('.gs-item'); if(!els.length) return;
+    kb = (n + els.length) % els.length;
+    els.forEach((e, i)=>e.classList.toggle('kb', i === kb));
+    els[kb].scrollIntoView({block: 'nearest'});
+  };
+  const choose = async it=>{
+    close();
+    if(it.kind === 'a') { FX.pulse('sel'); it.d.go(); return; }
+    if(it.kind === 'c'){ FX.pulse('sel'); cpRemember({t:'c', id: it.d.id, name: it.d.name, sub: it.d.supervisor || ''}); State.adminViewingCampId = it.d.id; nav('screen-dash'); return; }
+    const p = it.d; FX.pulse('sel');
+    cpRemember({t:'p', id: p.id, camp: p.campId, name: p.fullName, sub: personSub(p)});
+    if(admin && State.adminViewingCampId !== p.campId){ State.adminViewingCampId = p.campId; nav('screen-dash'); }
+    await loadPersonsCache(p.campId);
+    openPersonDetail(p.id);
+  };
+  const bindItems = ()=>{
+    out.querySelectorAll('.gs-item').forEach(b=>b.addEventListener('click', ()=>choose(items[+b.dataset.i])));
+    kb = -1;
+  };
   const render = async ()=>{
     const my = ++_rs;
-    const q = input.value.trim();
-    let people = null;
-    if(q){ people = await SearchIdx.find(pool, q, 25); if(my !== _rs || !wrap.isConnected) return; }
-    if(!q){
-      out.innerHTML = `<div class="gs-sec">إجراءات سريعة</div>` + actions.map((a,i)=>`<button class="gs-item" data-a="${i}"><i class="fa-solid ${a.ic}"></i><span>${esc(a.l)}</span></button>`).join('');
-    } else {
-      const qk = nameKey(q);
-      const cs = role === 'admin' ? camps.filter(c=>c.id !== 'HQ' && (nameKey(c.name).includes(qk) || (c.supervisor && nameKey(c.supervisor).includes(qk)))).slice(0,6) : [];
-      const acts = actions.filter(a=>nameKey(a.l).includes(qk));
-      out.innerHTML =
-        (acts.length ? `<div class="gs-sec">إجراءات</div>` + acts.map(a=>`<button class="gs-item" data-a="${actions.indexOf(a)}"><i class="fa-solid ${a.ic}"></i><span>${esc(a.l)}</span></button>`).join('') : '') +
-        (cs.length ? `<div class="gs-sec">مخيمات</div>` + cs.map(c=>`<button class="gs-item" data-c="${esc(c.id)}"><i class="fa-solid fa-tent"></i><span>${esc(c.name)}</span><em>${esc(c.supervisor||'')}</em></button>`).join('') : '') +
-        (people.length ? `<div class="gs-sec">أفراد</div>` + people.map(p=>`<button class="gs-item" data-p="${esc(p.id)}" data-pc="${esc(p.campId)}"><i class="fa-solid ${p.gender==='female'?'fa-venus':p.gender==='male'?'fa-mars':'fa-user'}"></i><span>${esc(p.fullName)}</span><em>${esc([p.nationalId, role==='admin'?(campMap[p.campId]||{}).name:''].filter(Boolean).join(' · '))}</em></button>`).join('') : '') +
-        (!acts.length && !cs.length && !people.length ? `<div class="gs-empty">لا نتائج لـ "${esc(q)}"</div>` : '');
+    let q = input.value.trim(), m = mode;
+    if(q[0] === '>'){ m = 'a'; q = q.slice(1).trim(); } else if(q[0] === '@' && admin){ m = 'c'; q = q.slice(1).trim(); }
+    items = [];
+    if(!q && m === 'all'){
+      const rec = cpRecent().filter(x=>x.t !== 'c' || admin);
+      let html = '', i = 0;
+      if(rec.length){
+        html += `<div class="gs-sec">الأخيرة</div>`;
+        for(const r of rec){
+          if(r.t === 'p'){ items.push({kind:'p', d:{id: r.id, campId: r.camp, fullName: r.name, nationalId: '', phone: '', _sub: r.sub}}); html += `<button class="gs-item" role="option" data-i="${i++}"><i class="fa-solid fa-clock-rotate-left"></i><span>${esc(r.name)}</span><em>${esc(r.sub || '')}</em></button>`; }
+          else { items.push({kind:'c', d:{id: r.id, name: r.name, supervisor: r.sub}}); html += `<button class="gs-item" role="option" data-i="${i++}"><i class="fa-solid fa-clock-rotate-left"></i><span>${esc(r.name)}</span><em>مخيم</em></button>`; }
+        }
+      }
+      html += `<div class="gs-sec">إجراءات سريعة</div>`;
+      actions.forEach(a=>{ items.push({kind:'a', d:a}); html += itemHtml('a', a, i++, ''); });
+      out.innerHTML = html; bindItems(); return;
     }
-    out.querySelectorAll('[data-a]').forEach(b=>b.addEventListener('click', ()=>{ close(); actions[+b.dataset.a].go(); }));
-    out.querySelectorAll('[data-c]').forEach(b=>b.addEventListener('click', ()=>{ close(); State.adminViewingCampId = b.dataset.c; nav('screen-dash'); }));
-    out.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click', async ()=>{
-      close();
-      if(role === 'admin' && State.adminViewingCampId !== b.dataset.pc){ State.adminViewingCampId = b.dataset.pc; nav('screen-dash'); }
-      await loadPersonsCache(b.dataset.pc);
-      openPersonDetail(b.dataset.p);
-    }));
+    const t0 = performance.now(), qk = nameKey(q);
+    const wantP = (m === 'all' || m === 'p') && q, wantC = admin && (m === 'all' || m === 'c'), wantA = m === 'all' || m === 'a';
+    let skelT = null;
+    if(wantP){ skelT = setTimeout(()=>{ if(my === _rs && !out.querySelector('.gs-item')) out.innerHTML = `<div class="gs-skel">${Skel.html('row', 3)}</div>`; }, 140); }
+    let people = [];
+    if(wantP){
+      const nid = normNid(q);
+      const exact = (nid && /^\d{9}$/.test(nid)) ? await PQ.byNid(nid) : [];
+      const found = await PQ.search(q, {campId: admin ? scopeCamp : State.user.campId, limit: 25});
+      const seen = new Set(exact.map(p=>p.id));
+      people = [...exact, ...found.filter(p=>!seen.has(p.id))].filter(p=>admin || p.campId === State.user.campId);
+    }
+    clearTimeout(skelT);
+    if(my !== _rs || !wrap.isConnected) return;
+    const cs = wantC ? camps.filter(c=>c.id !== 'HQ' && (!q || nameKey(c.name).includes(qk) || (c.supervisor && nameKey(c.supervisor).includes(qk)))).slice(0, 8) : [];
+    const acts = wantA ? actions.filter(a=>!q || nameKey(a.l).includes(qk)) : [];
+    let html = '', i = 0;
+    if(acts.length){ html += `<div class="gs-sec">إجراءات</div>`; acts.forEach(a=>{ items.push({kind:'a', d:a}); html += itemHtml('a', a, i++, q); }); }
+    if(cs.length){ html += `<div class="gs-sec">مخيمات</div>`; cs.forEach(c=>{ items.push({kind:'c', d:c}); html += itemHtml('c', c, i++, q); }); }
+    if(people.length){ html += `<div class="gs-sec">أفراد</div>`; people.forEach(p=>{ items.push({kind:'p', d:p}); html += itemHtml('p', p, i++, q); }); }
+    if(!items.length) html = `<div class="gs-empty es-art">${emptyStateHtml('fa-magnifying-glass', 'لا نتائج لـ "' + q + '"', 'جرّب جزءاً من الاسم أو رقم الهوية أو الهاتف')}</div>`;
+    else html += `<div class="gs-meta"><span>${items.length} نتيجة</span><span>${Math.max(1, Math.round(performance.now() - t0))}ms</span></div>`;
+    out.innerHTML = html; bindItems();
+    if(items.length && q) setKb(0);
   };
-  input.addEventListener('input', debounce(render, 90));
+  wrap.querySelectorAll('.cp-chip').forEach(c=>c.addEventListener('click', ()=>{
+    mode = c.dataset.m; FX.pulse('sel');
+    wrap.querySelectorAll('.cp-chip').forEach(x=>x.classList.toggle('on', x === c));
+    render(); input.focus();
+  }));
+  wrap.addEventListener('keydown', e=>{
+    if(e.key === 'Escape'){ close(); return; }
+    if(e.key === 'ArrowDown'){ e.preventDefault(); setKb(kb + 1); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); setKb(kb - 1); }
+    else if(e.key === 'Enter'){ const els = out.querySelectorAll('.gs-item'); const i = kb >= 0 ? kb : 0; if(els[i]){ e.preventDefault(); choose(items[+els[i].dataset.i]); } }
+  });
+  input.addEventListener('input', debounce(render, 70));
   render();
   setTimeout(()=>input.focus(), 60);
 }
+
 document.addEventListener('keydown', e=>{ if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); openGlobalSearch(); } });
 
 /* لمسة اهتزاز خفيفة على الأزرار الأساسية */
-document.addEventListener('click', e=>{ if(e.target.closest('.btn-primary, .fab, .chip, .nav-item')) haptic(6); }, true);
+document.addEventListener('click', e=>{
+  if(CardSwipe._supp) return;
+  const t = e.target.closest('.btn, .fab, .chip, .nav-item, .icon-btn, .seg-btn, .switch, .stat-card, .person-card, .camp-card, .pc-act');
+  if(t && !t.disabled) haptic(t.matches('.btn-primary, .fab, .btn-danger') ? 7 : 5);
+}, true);
 
 /* ===================== لوحة Admin الرئيسية ===================== */
 async function refreshAdminDashboard(){
@@ -11727,20 +12475,22 @@ async function refreshAdminDashboard(){
   renderConnBadge(); renderOfflineBanner(); renderPendingSyncBanner();
   await maybeAdminPull();
   const camps = (await dbGetAll('camps')).filter(c=>c.id!=='HQ');
-  const [allPersons] = await Promise.all([PersonStore.all(), FamRecs.ensure()]);
-  const allIx = DX.of(allPersons);
+  await FamRecs.ensure();
+  const campArrs = await Promise.all(camps.map(c=>PersonStore.camp(c.id)));
+  State._ringOf = 0;
   const totals = {total:0, totalFamilies:0, male:0, female:0, infant:0, child:0, adult:0, elderly:0, pregnant:0,
     chronic:0, disability:0, preschool:0, school:0, youth:0, midAdult:0, widowed:0, divorced:0, noId:0, familiesNoPhone:0, orphans:0};
   let totalCritical = 0;
   const campStatsList = [];
-  for(const c of camps){
-    const persons = allIx.byCamp.get(c.id) || [];
+  for(let ci = 0; ci < camps.length; ci++){
+    const c = camps[ci], persons = campArrs[ci];
     const st = statsOf(persons);
     Object.keys(totals).forEach(k=>{ totals[k] += st[k]||0; });
     const isCritical = st.infant>=50 || st.pregnant>=30 || st.chronic>=100;
     if(isCritical) totalCritical++;
     campStatsList.push({...c, ...st, criticalFlag: isCritical, critical: st.infant+st.pregnant+st.chronic});
   }
+  State._ringOf = campStatsList.reduce((a, c)=>a + c.total, 0);
   setHTML(document.getElementById('dash-stats'), evenCards([
     statCard('fa-tents','navy', camps.length, 'إجمالي المخيمات', null, 'camps'),
     statCard('fa-users','teal', totals.total, 'إجمالي الأفراد', null, 'all'),
@@ -11762,6 +12512,7 @@ async function refreshAdminDashboard(){
     statCard('fa-id-card-clip','danger', totals.noId, 'بلا رقم هوية', null, 'noid')
   ]));
   setHTML(document.getElementById('dash-stats-extra-wrap'), '');
+  const allPersons = await PersonStore.all(), allIx = DX.of(allPersons);
   campStatsList.sort((a,b)=>b.total-a.total);
   setHTML(document.getElementById('dash-charts'), `
     <div id="dash-tiers"></div>
@@ -11951,18 +12702,15 @@ document.getElementById('camps-export-btn').addEventListener('click', exportAllC
 async function refreshCampsAdminScreen(){
   if(!guardRole(['admin'])) return;
   const camps = (await dbGetAll('camps')).filter(c=>c.id!=='HQ');
-  const [allPersons] = await Promise.all([PersonStore.all(), FamRecs.ensure()]);
-  const allIx = DX.of(allPersons);
-  State._campsAdminAllPersons = allPersons; State._campsAdminAllCamps = camps;
+  await FamRecs.ensure();
+  const campArrs = new Map(await Promise.all(camps.map(async c=>[c.id, await PersonStore.camp(c.id)])));
+  State._campsAdminAllPersons = null; State._campsAdminAllCamps = camps;
   const body = document.getElementById('camps-list-body');
   body.classList.add('cv-list');
   if(!camps.length){ body.innerHTML = emptyStateHtml('fa-tent','لا توجد مخيمات بعد','أنشئ حساب مندوب مخيم من شاشة الحسابات'); return; }
   body.innerHTML = camps.map(c=>{
-    const persons = allIx.byCamp.get(c.id) || [];
-    const st = statsOf(persons);
-    const q = qualityReport(persons);
-    const cix = DX.of(persons);
-    let critFam = 0; for(const [,h] of cix.headOf){ if(h && h.isFamilyHead && Vuln.ofPerson(h, cix).tier === 'critical') critFam++; }
+    const persons = campArrs.get(c.id) || [];
+    const {st, q, critFam} = campMetrics(persons);
     const critical = st.infant>=50 || st.pregnant>=30 || st.chronic>=100;
     return `<div class="camp-card" data-cid="${esc(c.id)}">
       ${critical?'<div class="cc-alert" title="تنبيه حرج"><i class="fa-solid fa-exclamation"></i></div>':''}
@@ -11973,12 +12721,13 @@ async function refreshCampsAdminScreen(){
         <div class="cc-stat"><b>${fmtDate(c.lastUpdated).split(' ')[0]}</b>آخر تحديث</div>
         ${critFam?`<div class="cc-stat"><b style="color:var(--gold)">${critFam}</b>أسرة حرجة</div>`:''}
       </div>
-      <div class="cc-quality" title="اكتمال البيانات"><span>اكتمال البيانات</span><div class="cq-bar"><i style="--w:${q.pct}%" class="${q.pct<60?'low':q.pct<85?'mid':'ok'}"></i></div><b>${q.pct}%</b></div>
+      <div class="cc-quality" title="اكتمال البيانات"><span>اكتمال البيانات</span>${ringHtml(q.pct, {size: 46, cls: 'sm', color: q.pct < 60 ? 'var(--danger)' : q.pct < 85 ? 'var(--warning)' : 'var(--success)', rk: 'cq:' + c.id})}</div>
       <button class="btn btn-outline btn-sm w-full" data-action="open"><i class="fa-solid fa-arrow-left"></i> عرض التفاصيل</button>
       <button class="btn btn-outline btn-sm w-full mt-8" data-action="dl" data-cid="${esc(c.id)}"><i class="fa-solid fa-download"></i> تحميل كشف Excel</button>
       <button class="btn btn-danger btn-sm w-full mt-8" data-action="delcamp" data-cid="${esc(c.id)}" data-cname="${esc(c.name)}"><i class="fa-solid fa-trash"></i> حذف المخيم</button>
     </div>`;
   }).join('');
+  ringsIn(body);
   body.querySelectorAll('.camp-card').forEach(card=>{
     card.querySelector('[data-action="dl"]').addEventListener('click', e=>{
       e.stopPropagation();
@@ -11989,7 +12738,7 @@ async function refreshCampsAdminScreen(){
       const btn = e.currentTarget;
       deleteCampEntirely(btn.dataset.cid, btn.dataset.cname);
     });
-    card.addEventListener('click', ()=>{ State.adminViewingCampId = card.dataset.cid; nav('screen-dash'); });
+    card.addEventListener('click', ()=>{ State.adminViewingCampId = card.dataset.cid; navShared(card.querySelector('.cc-name'), 'screen-dash', '#dash-camp-name'); });
   });
 }
 async function deleteCampEntirely(campId, campName){
@@ -12038,11 +12787,10 @@ document.getElementById('camps-search').addEventListener('input', debounce(async
   const listBox = document.getElementById('camps-list-body');
   if(!q){ resBox.hidden = true; listBox.hidden = false; return; }
   resBox.hidden = false; listBox.hidden = true;
-  const allPersons = State._campsAdminAllPersons || (await dbGetAll('persons'));
   const camps = State._campsAdminAllCamps || (await dbGetAll('camps'));
   const campOf = id => camps.find(c=>c.id===id) || {};
   const qk = nameKey(q), qn = normNid(q);
-  const matches = allPersons.filter(p => (p.fullName||'').includes(q) || nameKey(p.fullName).includes(qk) || (qn && normNid(p.nationalId).includes(qn))).slice(0,60);
+  const matches = await PQ.search(q, {limit: 60});
   resBox.innerHTML = matches.length ? matches.map(p=>{
     const c = campOf(p.campId);
     return `<div class="person-card" data-id="${p.id}" data-camp="${esc(p.campId)}">
@@ -12697,6 +13445,15 @@ async function refreshSettingsScreen(){
       </div>`;
     }
   }
+  if(State.user.role !== 'beneficiary'){
+    html += `<div class="settings-section">
+      <h3><i class="fa-solid fa-hand-pointer"></i> الاستجابة والمزامنة</h3>
+      <div class="fx-row"><div>اهتزاز خفيف<small>عند الضغط والنجاح والتنبيه</small></div><div class="switch${FX.prefs().haptic ? ' on' : ''}" id="st-fx-haptic" role="switch" aria-checked="${FX.prefs().haptic}" tabindex="0"></div></div>
+      <div class="fx-row"><div>صوت نقرة<small>اختياري — يتوقف عند تفعيل «تقليل الحركة»</small></div><div class="switch${FX.prefs().sound ? ' on' : ''}" id="st-fx-sound" role="switch" aria-checked="${FX.prefs().sound}" tabindex="0"></div></div>
+      <button class="btn btn-outline mt-8" id="st-syncdiag"><i class="fa-solid fa-rotate"></i> تشخيص المزامنة</button>
+      ${State.user.role === 'admin' ? '<button class="btn btn-outline mt-8" id="st-tflog"><i class="fa-solid fa-right-left"></i> سجل نقل الأسر بين المخيمات</button>' : ''}
+    </div>`;
+  }
   html += `<div class="settings-section">
     <h3><i class="fa-solid fa-circle-half-stroke"></i> المظهر</h3>
     ${themeSegHtml('st-theme')}
@@ -12748,6 +13505,14 @@ async function refreshSettingsScreen(){
   const webPushBtn = document.getElementById('st-webpush-sub'); if(webPushBtn) webPushBtn.addEventListener('click', subscribeWebPush);
 
   bindThemeSeg('st-theme');
+  [['st-fx-haptic', 'haptic'], ['st-fx-sound', 'sound']].forEach(([id, k])=>{
+    const sw = document.getElementById(id); if(!sw) return;
+    const tog = ()=>{ const v = !FX.prefs()[k]; FX.set(k, v); sw.classList.toggle('on', v); sw.setAttribute('aria-checked', v); FX.pulse('ok'); };
+    sw.addEventListener('click', tog);
+    sw.addEventListener('keydown', e=>{ if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); tog(); } });
+  });
+  document.getElementById('st-syncdiag')?.addEventListener('click', openSyncDiag);
+  document.getElementById('st-tflog')?.addEventListener('click', openTransferLog);
   document.getElementById('st-vuln')?.addEventListener('click', openVulnWeightsEditor);
   document.getElementById('st-query')?.addEventListener('click', ()=>nav('screen-query'));
   document.getElementById('st-minver')?.addEventListener('click', setMinVersionToCurrent);
@@ -13749,6 +14514,395 @@ async function performInitialPull(){
 }
 
 /* ===================== الإقلاع ===================== */
+
+/* مقاييس بطاقة المخيم تُحسب مرة لكل (مصفوفة، إصدار الهشاشة، سجلات الأسر، اليوم) */
+const _cmMemo = new WeakMap();
+function campMetrics(persons){
+  const sig = Vuln.ver + '|' + FamRecs.v + '|' + todayStr(), c = _cmMemo.get(persons);
+  if(c && c.sig === sig) return c.v;
+  const st = statsOf(persons), q = qualityReport(persons), cix = DX.of(persons);
+  let critFam = 0; for(const [,h] of cix.headOf){ if(h && h.isFamilyHead && Vuln.ofPerson(h, cix).tier === 'critical') critFam++; }
+  const v = {st, q, critFam};
+  _cmMemo.set(persons, {sig, v});
+  return v;
+}
+
+/* ===================== v3.6 — نقل أسرة بين مخيمين (إدارة فقط): بلا تكرار هويات + سجل نقل دائم ===================== */
+ACTION_LABELS.family_transfer = 'نقل أسرة بين مخيمين';
+const Transfer = {
+  /* خطة النقل: لا تكتب شيئاً — تجمع الأفراد وتفحص التعارضات وتعيد الحجب/التحذيرات */
+  async plan(personId, destId){
+    const p = await dbGet('persons', personId);
+    if(!p) return {error: 'السجل غير موجود'};
+    const src = p.campId, famId = p.familyId;
+    const members = (famId ? await PQ.family(famId, src) : [p]).sort((a, b)=>(b.isFamilyHead ? 1 : 0) - (a.isFamilyHead ? 1 : 0) || (a.orderIndex || 0) - (b.orderIndex || 0));
+    const head = members.find(m=>m.isFamilyHead) || members[0];
+    const out = {src, famId, members, head, blocks: [], warns: [], users: [], ids: new Set(members.map(m=>m.id))};
+    if(!destId) return out;
+    out.dest = destId;
+    if(destId === src) out.blocks.push('المخيم الهدف هو نفسه المخيم الحالي');
+    if(!State.online) out.blocks.push('النقل يتطلب اتصالاً بالإنترنت لضمان عدم تكرار السجلات');
+    if(famId && (await PQ.family(famId, destId)).length) out.blocks.push('معرّف الأسرة موجود مسبقاً بالمخيم الهدف');
+    const seenNid = new Set();
+    for(const m of members){
+      const n = normNid(m.nationalId); if(!n) continue;
+      if(seenNid.has(n)) out.blocks.push(`هوية مكررة داخل الأسرة: ${n}`); seenNid.add(n);
+      for(const o of await PQ.byNid(n)){
+        if(out.ids.has(o.id)) continue;
+        const camp = await dbGet('camps', o.campId);
+        out.blocks.push(`الهوية ${n} (${m.fullName}) مسجّلة مسبقاً لـ «${o.fullName}» بمخيم ${camp?.name || o.campId}`);
+      }
+    }
+    const pendingN = members.filter(m=>m.syncStatus === 'pending').length;
+    if(pendingN) out.warns.push(`${pendingN} من السجلات لها تعديلات لم تُرفع بعد — ستُرفع قبل النقل تلقائياً`);
+    const aidN = members.reduce((s, m)=>s + (m.aid || []).filter(x=>!x.void).length, 0);
+    if(aidN) out.warns.push(`سجل المساعدات (${aidN} تسليم) سينتقل مع الأسرة`);
+    const reqN = members.reduce((s, m)=>s + (m.requests || []).filter(r=>r.status === 'pending').length, 0);
+    if(reqN) out.warns.push(`${reqN} طلب مفتوح للأسرة سينتقل لمندوب المخيم الجديد`);
+    const nidH = normUsername(head?.nationalId || '');
+    out.users = (await dbGetAll('users')).filter(u=>u.role === 'beneficiary' && (out.ids.has(u.personId) || (nidH && normUsername(u.username) === nidH && u.campId === src)));
+    if(out.users.length) out.warns.push('حساب المستفيد سيُنقل للمخيم الجديد (نفس كلمة المرور)');
+    out.warns.push('محادثات المستفيد السابقة تبقى بسجل المخيم القديم');
+    return out;
+  },
+  async execute(personId, destId, reason, onStep){
+    const step = t=>{ if(onStep) onStep(t); };
+    if(State.user.role !== 'admin') throw new Error('النقل بين المخيمات للإدارة فقط');
+    step('فحص التعارضات');
+    let plan = await this.plan(personId, destId);
+    if(plan.error) throw new Error(plan.error);
+    if(plan.blocks.length) throw new Error(plan.blocks[0]);
+    const src = plan.src, dest = destId;
+    step('مزامنة المخيمين قبل النقل');
+    try{ await pushCampPersonsBlob(src); await pullCampPersonsBlob(src); await pullCampPersonsBlob(dest); }catch(e){ console.error(e); }
+    plan = await this.plan(personId, destId);
+    if(plan.error) throw new Error(plan.error);
+    if(plan.blocks.length) throw new Error(plan.blocks[0]);
+    const [srcCamp, destCamp] = await Promise.all([dbGet('camps', src), dbGet('camps', dest)]);
+    if(!destCamp) throw new Error('المخيم الهدف غير موجود');
+    const transferId = uuid(), me = State.user;
+    step('نقل السجلات');
+    const oldDocs = [...new Set(plan.members.map(m=>personDocId(m)))];
+    markCampDirty(dest); markCampDirty(src);
+    for(const m of plan.members) addTombstone(src, m.id, '', personDocId(m));
+    const now = stampNow();
+    const moved = plan.members.map(m=>({...m, campId: dest, updatedAt: now, updatedBy: me.id, syncStatus: 'pending',
+      transfers: [...(m.transfers || []), {id: transferId, from: src, to: dest, at: now, by: me.id}]}));
+    await dbBulkPut('persons', moved, 200);
+    _bumpPersons([src, dest]);
+    if(plan.famId){
+      const fr = await dbGet('families', plan.famId);
+      if(fr) await dbPut('families', {...fr, campId: dest});
+      await ensureFamily(dest, plan.famId, {});
+    }
+    await this.recountFamilies(src);
+    for(const u of plan.users){
+      const nu = {...u, campId: dest, campName: destCamp.name || dest};
+      await dbPut('users', nu);
+      await syncUserNow(nu);
+      if(State.online){ try{ await fsDocPatch(`creds/${u.id}`, {campId: dest}); }catch(e){ if(e.status !== 404) console.error('تعذّر تحديث مخيم بيانات الدخول:', e); } }
+    }
+    step('رفع للمخيم الجديد');
+    pushNationalIndexBatch(moved, destCamp.name, destCamp.supervisorPhone).catch(()=>{});
+    let okDest = false, okSrc = false;
+    try{ okDest = await pushCampPersonsBlob(dest); }catch(e){ console.error('رفع المخيم الهدف:', e); }
+    step('إزالة من المخيم القديم');
+    try{ okSrc = okDest ? await pushCampPersonsBlob(src) : false; }catch(e){ console.error('رفع المخيم المصدر:', e); }
+    let verified = false;
+    if(okDest && okSrc){
+      step('التحقق من عدم التكرار');
+      try{
+        const got = await FamSync.fetchIds(src, oldDocs);
+        verified = ![...got.values()].some(d=>safeJson(d.j, []).some(x=>plan.ids.has(x.id)));
+      }catch(e){ verified = false; }
+    }
+    const info = {transferId, from: {id: src, name: srcCamp?.name || src}, to: {id: dest, name: destCamp.name || dest}, familyId: plan.famId || '',
+      headId: plan.head?.id || '', headName: plan.head?.fullName || '', count: moved.length, members: moved.map(m=>m.fullName).slice(0, 40),
+      users: plan.users.length, reason: (reason || '').trim().slice(0, 300), verified, synced: !!(okDest && okSrc)};
+    await this.log(info, me);
+    step('اكتمل');
+    return {info, moved};
+  },
+  async recountFamilies(campId){
+    const camp = await dbGet('camps', campId); if(!camp) return;
+    const fams = new Set((await PQ.scan({campId, limit: 1e9})).map(p=>p.familyId).filter(Boolean));
+    camp.totalFamilies = fams.size; camp.lastUpdated = Date.now();
+    await dbPut('camps', camp);
+  },
+  /* يُسجَّل بسجل المخيمين معاً (نشاط كل مخيم) — يبقى دائماً ولا يدخل التنظيف الدوري */
+  async log(info, user){
+    for(const cid of [info.from.id, info.to.id]){
+      const entry = {id: uuid(), action: 'family_transfer', userId: user.id, userName: user.fullName || user.username || '', campId: cid,
+        targetId: info.headId, targetName: info.headName, oldValue: null, newValue: JSON.stringify(info), timestamp: Date.now(), device: (navigator.userAgent || '').slice(0, 140)};
+      try{ await dbPut('changelog', entry); }catch(e){ console.error(e); }
+      if(State.online) fsDocSet(`camps/${cid}/activityLogs/${entry.id}`, entry).catch(e=>console.error('تعذّر رفع سجل النقل:', e));
+    }
+  },
+  async history(){
+    const all = (await dbGetAll('changelog')).filter(e=>e.action === 'family_transfer');
+    const byT = new Map();
+    for(const e of all){
+      const v = safeJson(e.newValue, null); if(!v || !v.transferId) continue;
+      if(!byT.has(v.transferId)) byT.set(v.transferId, {...v, at: e.timestamp, by: e.userName});
+    }
+    return [...byT.values()].sort((a, b)=>b.at - a.at);
+  }
+};
+
+async function openFamilyTransfer(personId, presetDest){
+  if(!State.user || State.user.role !== 'admin'){ toast('نقل الأسر بين المخيمات للإدارة فقط', 'err'); return; }
+  const base = await Transfer.plan(personId);
+  if(base.error){ toast(base.error, 'err'); return; }
+  const camps = (await dbGetAll('camps')).filter(c=>c.id !== 'HQ' && c.id !== base.src);
+  const srcCamp = await dbGet('camps', base.src);
+  let step = 1, dest = presetDest && camps.some(c=>c.id === presetDest) ? presetDest : null, plan = null, busy = false, result = null, reason = '';
+  const counts = {};
+  await Promise.all(camps.map(async c=>{ counts[c.id] = await PQ.countCamp(c.id); }));
+  const m = openModal('<div id="tf-root"></div>');
+  const root = m.querySelector('#tf-root') || m.querySelector('.modal-sheet');
+  const steps = n=>`<div class="tf-steps">${[1, 2, 3].map(i=>`<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div>`;
+  const head = (t, closable)=>`<div class="modal-header"><h2>${t}</h2>${closable === false ? '' : '<button class="icon-btn" style="color:var(--ink);background:var(--surface-2)" id="tf-x"><i class="fa-solid fa-xmark"></i></button>'}</div>`;
+  const memHtml = ms=>ms.map(x=>`<div class="tf-mem"><i class="fa-solid ${x.gender === 'female' ? 'fa-venus' : 'fa-mars'}" style="color:var(--muted)"></i><span>${esc(x.fullName)}</span><em>${esc(relationLabel(x))}</em></div>`).join('');
+  const draw = async ()=>{
+    if(!root.isConnected) return;
+    if(step === 1){
+      root.innerHTML = head('نقل الأسرة لمخيم آخر') + steps(1) +
+        `<p class="caption mb-8">أسرة «${esc(base.head?.fullName || '—')}» (${base.members.length} فرد) من مخيم «${esc(srcCamp?.name || base.src)}» — اختر المخيم الهدف:</p>` +
+        (camps.length ? camps.map(c=>`<button type="button" class="tf-camp${dest === c.id ? ' on' : ''}" data-c="${esc(c.id)}"><span class="ic"><i class="fa-solid fa-tent"></i></span><span><div class="nm">${esc(c.name || c.id)}</div><div class="sb">${esc(c.supervisor || '—')} · ${counts[c.id] || 0} فرد</div></span><span class="rd"></span></button>`).join('')
+          : emptyStateHtml('fa-tent', 'لا توجد مخيمات أخرى', 'أنشئ مخيماً آخر أولاً')) +
+        `<button class="btn btn-primary w-full mt-8" id="tf-next" ${dest ? '' : 'disabled'}>التالي — مراجعة النقل <i class="fa-solid fa-arrow-left"></i></button>`;
+      root.querySelector('#tf-x').addEventListener('click', closeModal);
+      root.querySelectorAll('[data-c]').forEach(b=>b.addEventListener('click', ()=>{ dest = b.dataset.c; FX.pulse('sel'); draw(); }));
+      root.querySelector('#tf-next').addEventListener('click', async ()=>{ plan = await Transfer.plan(personId, dest); step = 2; FX.pulse('tap'); draw(); });
+    } else if(step === 2){
+      const dc = camps.find(c=>c.id === dest);
+      root.innerHTML = head('مراجعة النقل') + steps(2) +
+        `<div class="tf-route"><div class="nd"><small>من</small>${esc(srcCamp?.name || base.src)}</div><i class="fa-solid fa-arrow-left ar"></i><div class="nd"><small>إلى</small>${esc(dc?.name || dest)}</div></div>` +
+        plan.blocks.map(b=>`<div class="tf-block"><i class="fa-solid fa-ban"></i> ${esc(b)}</div>`).join('') +
+        plan.warns.map(w=>`<div class="tf-warn"><i class="fa-solid fa-circle-info"></i><span>${esc(w)}</span></div>`).join('') +
+        `<div class="sd-sec">أفراد الأسرة (${plan.members.length})</div><div>${memHtml(plan.members)}</div>
+         <div class="field mt-8"><label>سبب النقل (اختياري — يُحفظ بسجل النقل)</label><input type="text" id="tf-reason" maxlength="300" placeholder="مثال: انتقلت الأسرة لخيمة بالمخيم الآخر" value="${esc(reason)}"></div>
+         <div class="btn-block-row mt-8"><button class="btn btn-outline" id="tf-back"><i class="fa-solid fa-arrow-right"></i> رجوع</button>
+         <button class="btn btn-primary" id="tf-go" ${plan.blocks.length ? 'disabled' : ''}><i class="fa-solid fa-right-left"></i> نقل الأسرة الآن</button></div>`;
+      root.querySelector('#tf-x').addEventListener('click', closeModal);
+      root.querySelector('#tf-reason').addEventListener('input', e=>{ reason = e.target.value; });
+      root.querySelector('#tf-back').addEventListener('click', ()=>{ step = 1; draw(); });
+      let armed = false, armT = null;
+      root.querySelector('#tf-go').addEventListener('click', async e=>{
+        if(busy) return;
+        const b = e.currentTarget;
+        if(!armed){
+          armed = true; FX.pulse('warn');
+          b.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> اضغط للتأكيد النهائي'; b.classList.add('btn-danger'); b.classList.remove('btn-primary');
+          armT = setTimeout(()=>{ armed = false; if(b.isConnected){ b.innerHTML = '<i class="fa-solid fa-right-left"></i> نقل الأسرة الآن'; b.classList.remove('btn-danger'); b.classList.add('btn-primary'); } }, 4000);
+          return;
+        }
+        clearTimeout(armT); busy = true; b.disabled = true;
+        step = 3; draw();
+        try{
+          result = await Transfer.execute(personId, dest, reason, t=>{ const el = root.querySelector('#tf-stage'); if(el) el.textContent = t + '…'; });
+          FX.pulse('big');
+          try{ if(SCREEN_REFRESH[State.screen]) SCREEN_REFRESH[State.screen](); }catch(e2){}
+        }catch(err){ result = {error: err.message || String(err)}; FX.pulse('err'); }
+        busy = false; draw();
+      });
+    } else {
+      if(!result){
+        root.innerHTML = head('جارٍ النقل', false) + steps(3) + `<div class="ip-conf"><div class="pring" style="--sz:64px"><svg viewBox="0 0 48 48" style="animation:spin 1s linear infinite"><circle cx="24" cy="24" r="20" class="pr-track" style="stroke-width:5"/><circle cx="24" cy="24" r="20" class="pr-val" pathLength="100" style="stroke-width:5;stroke-dashoffset:70;transition:none"/></svg></div><b id="tf-stage">جارٍ البدء…</b><p class="caption">لا تغلق التطبيق حتى يكتمل النقل</p></div>`;
+      } else if(result.error){
+        root.innerHTML = head('تعذّر النقل') + steps(3) + `<div class="tf-block">${esc(result.error)}</div><p class="caption mb-8">لم تُنقل أي بيانات إن ظهر هذا قبل خطوة النقل. إن تكرر راجع «تشخيص المزامنة».</p><button class="btn btn-outline w-full" id="tf-x2">إغلاق</button>`;
+        root.querySelector('#tf-x').addEventListener('click', closeModal); root.querySelector('#tf-x2').addEventListener('click', closeModal);
+      } else {
+        const i = result.info;
+        root.innerHTML = head('تم النقل') + steps(3) + `<div class="ip-conf">${ringHtml(100, {size: 76, color: 'var(--success)', label: '✓', rk: 'tf'})}
+          <b>${esc(i.headName)} — ${i.count} فرد</b><p class="caption">${esc(i.from.name)} ← ${esc(i.to.name)}</p>
+          <div class="rows"><div><b>${i.count}</b>سجل منقول</div><div><b>${i.users}</b>حساب مستفيد</div></div>
+          <div class="tf-warn" style="width:100%"><i class="fa-solid ${i.synced && i.verified ? 'fa-circle-check' : 'fa-clock'}" style="color:${i.synced && i.verified ? 'var(--success)' : 'var(--warning)'}"></i><span>${i.synced && i.verified ? 'تم التحقق: الأسرة غير موجودة بالمخيم القديم ولا تكرار للهويات' : 'تمت العملية محلياً وستكتمل المزامنة تلقائياً — تابعها من «تشخيص المزامنة»'}</span></div>
+          <button class="btn btn-primary w-full" id="tf-log"><i class="fa-solid fa-list"></i> عرض سجل النقل</button></div>`;
+        ringsIn(root);
+        root.querySelector('#tf-x').addEventListener('click', closeModal);
+        root.querySelector('#tf-log').addEventListener('click', ()=>openTransferLog());
+      }
+    }
+  };
+  draw();
+}
+async function openTransferLog(){
+  if(!State.user || State.user.role !== 'admin') return;
+  const list = await Transfer.history();
+  const m = openModal(`<div class="modal-header"><h2>سجل نقل الأسر</h2><button class="icon-btn" style="color:var(--ink);background:var(--surface-2)" id="tl-x"><i class="fa-solid fa-xmark"></i></button></div>
+    ${list.length ? list.map((t, i)=>`<div class="tf-log"><div class="top"><b>${esc(t.headName || '—')}</b><span class="caption">${fmtDate(t.at)}</span></div>
+      <div class="rt">${esc(t.from.name)} ← ${esc(t.to.name)}</div>
+      <div class="ft">${t.count} فرد${t.users ? ' · حساب مستفيد' : ''} · بواسطة ${esc(t.by || '—')}${t.reason ? ' · ' + esc(t.reason) : ''} · ${t.verified ? 'تم التحقق' : 'بانتظار التحقق'}</div>
+      ${t.headId ? `<button class="btn btn-ghost btn-sm mt-8" data-back="${i}"><i class="fa-solid fa-rotate-left"></i> إرجاع للمخيم السابق</button>` : ''}</div>`).join('')
+      : emptyStateHtml('fa-clock-rotate-left', 'لا توجد عمليات نقل', 'كل نقل أسرة بين المخيمات يُسجَّل هنا بشكل دائم')}`);
+  m.querySelector('#tl-x').addEventListener('click', closeModal);
+  m.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click', async ()=>{
+    const t = list[+b.dataset.back];
+    const head = await dbGet('persons', t.headId);
+    if(!head){ toast('لم يعد رب الأسرة موجوداً بهذا الجهاز — حدّث المزامنة أولاً', 'warn'); return; }
+    if(head.campId !== t.to.id){ toast('الأسرة ليست حالياً في المخيم الذي نُقلت إليه', 'warn'); return; }
+    closeModal(); openFamilyTransfer(t.headId, t.from.id);
+  }));
+}
+
+/* ===================== v3.6 — معاينة الاستيراد الفاخرة: جديد / سيتحدّث / بلا تغيير / مستبعد + اعتماد بتأكيد ===================== */
+/* ذاكرة قصيرة لنتائج الفهرس الوطني: المعاينة والتنفيذ لا يكرران نفس الطلبات */
+const _nidMemo = new Map();
+async function importPreflight({campId, updates, newRecs, existing, clashes}){
+  clashes = clashes || [];
+  const box = document.getElementById('import-step-preflight');
+  document.getElementById('import-step-progress').hidden = true;
+  box.hidden = false; window.scrollTo(0, 0);
+  box.innerHTML = `<div class="ip"><div class="ip-top"><div class="t"><h3>جارٍ تحليل الكشف…</h3><p id="ip-prog">مقارنة مع بيانات المخيم</p></div></div>${Skel.html('row', 4)}</div>`;
+  await new Promise(r=>requestAnimationFrame(()=>r()));
+
+  /* ——— تحليل ——— */
+  const items = [];                       // كل صف بالمعاينة
+  let seq = 0;
+  const changed = [], same = [];
+  updates.forEach(u=>{ const ch = recordChanges(u.rec, u.existingPerson).filter(x=>{ const v = x.to; return !(v === '' || v == null || v === 'unknown' || (v === false && u.existingPerson[x.k] === true)); });  /* يطابق mergeImportRec: القيم الفارغة لا تمسح الموجود */ (ch.length ? changed : same).push({u, ch}); });
+  changed.forEach(c=>items.push({id: ++seq, kind: 'upd', rec: c.u.rec, ex: c.u.existingPerson, ch: c.ch, u: c.u, off: false}));
+  same.forEach(c=>items.push({id: ++seq, kind: 'same', rec: c.u.rec, ex: c.u.existingPerson, u: c.u, off: false}));
+  /* استبعاد تلقائي: تكرار بملف + مسجّل بمخيم آخر (فحص الفهرس الوطني قبل الاعتماد) */
+  const preSeen = updates.map(u=>normNid(u.rec.nationalId)).filter(Boolean);
+  const prog = box.querySelector('#ip-prog');
+  const dd = await dedupAgainstOtherCamps(newRecs, campId, preSeen, (d, t)=>{ if(prog) prog.textContent = `فحص التكرار عبر المخيمات ${d} / ${t}`; });
+  const accepted = new Set(dd.accepted);
+  const exMap = new Map();
+  dd.excluded.forEach(e=>{ if(e.nationalId) exMap.set(e.nationalId + '|' + e.reason, e); });
+  const dupReason = new Map();            // هوية ← سبب (أول ظهور مقبول، البقية مكررة)
+  newRecs.forEach(r=>{
+    if(accepted.has(r)){ items.push({id: ++seq, kind: 'new', rec: r, off: false}); return; }
+    const hit = dd.excluded.find(e=>e.nationalId && e.nationalId === r.nationalId && !dupReason.has(r));
+    dupReason.set(r, hit);
+    items.push({id: ++seq, kind: 'auto', rec: r, why: hit ? hit.reason : 'مكرر', camp: hit && hit.existingCampName ? hit.existingCampName : ''});
+  });
+  clashes.forEach(c=>items.push({id: ++seq, kind: 'auto', rec: {fullName: c.fullName, nationalId: c.nationalId}, why: c.reason, camp: ''}));
+  const touched = new Set(updates.map(u=>u.existingPerson.id));
+  const missing = existing.filter(p=>!touched.has(p.id));
+  const allRecs = [...updates.map(u=>u.rec), ...newRecs];
+  const badIds = allRecs.filter(r=>r.nationalId && nidStatus(r.nationalId) !== 'valid');
+  const exIx = DX.of(existing);
+  const suspects = [];
+  for(const r of newRecs){
+    if(normNid(r.nationalId)) continue;
+    const fam = r.familyId ? (exIx.byFam.get(campId + '|' + r.familyId) || []) : [];
+    const hit = fam.find(x=>dupScore(r, x) >= 0.9);
+    if(hit) suspects.push({r, hit});
+  }
+  const lab = k=>AUDIT_FIELD_LABELS[k] || FIELD_LABELS[k] || k;
+  const warnN = badIds.length + (ImportDiag.badDates || 0) + suspects.length + missing.length + (dd.checkedOnline ? 0 : 1);
+  const isExc = it=>it.kind === 'auto' || it.off;
+  const tally = ()=>{
+    const t = {new: 0, upd: 0, same: 0, exc: 0};
+    items.forEach(it=>{ if(isExc(it)) t.exc++; else t[it.kind]++; });
+    return t;
+  };
+  let tab = 'new', q = '';
+  const tabs = [['new', 'جديد'], ['upd', 'سيتحدّث'], ['same', 'بلا تغيير'], ['exc', 'مستبعد'], ['warn', 'تنبيهات']];
+  const start = tabs.find(t=>t[0] !== 'warn' && tally()[t[0]] > 0);
+  if(start) tab = start[0];
+
+  const modeLbl = MODE_LABELS[State.importParsed?.mode] || '';
+  box.innerHTML = `<div class="ip">
+    <div class="ip-top"><div class="t"><h3>مراجعة قبل الاعتماد</h3><p>${esc(State.importParsed?.fileName || 'الكشف')}${modeLbl ? ' · ' + esc(modeLbl) : ''}<br>لم يُكتب أي شيء بعد — راجع ثم اعتمد</p></div>
+      <div class="ip-donut"><svg viewBox="0 0 100 100"><circle class="tr" cx="50" cy="50" r="40"/><circle class="c-new" cx="50" cy="50" r="40" pathLength="100"/><circle class="c-upd" cx="50" cy="50" r="40" pathLength="100"/><circle class="c-same" cx="50" cy="50" r="40" pathLength="100"/><circle class="c-exc" cx="50" cy="50" r="40" pathLength="100"/></svg><b><span id="ip-total" data-count="${items.length}">0</span></b></div></div>
+    <div class="ip-tabs" id="ip-tabs">${tabs.map(t=>`<button type="button" class="ip-tab" data-t="${t[0]}"><b data-n="${t[0]}">0</b><span>${t[1]}</span></button>`).join('')}</div>
+    <div class="ip-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="ip-q" placeholder="بحث بالاسم أو الهوية داخل هذا القسم…"></div>
+    <div class="ip-bulk" id="ip-bulk"></div>
+    <div class="ip-list" id="ip-list"></div>
+  </div>
+  <div class="ip-foot"><div class="sm" id="ip-sum"></div><button class="btn btn-outline" id="pf-cancel">إلغاء</button><button class="btn btn-primary" id="pf-go"><i class="fa-solid fa-check"></i> اعتماد</button></div>`;
+  const listEl = box.querySelector('#ip-list');
+
+  const paintTotals = ()=>{
+    const t = tally(), tot = Math.max(1, items.length);
+    box.querySelectorAll('[data-n]').forEach(b=>{ b.textContent = (b.dataset.n === 'warn' ? warnN : t[b.dataset.n]).toLocaleString('en-US'); });
+    let off = 0;
+    [['c-new', t.new], ['c-upd', t.upd], ['c-same', t.same], ['c-exc', t.exc]].forEach(([c, n])=>{
+      const el = box.querySelector('.ip-donut .' + c), len = n / tot * 100;
+      el.style.strokeDasharray = `${len} ${100 - len}`; el.style.strokeDashoffset = -off; off += len;
+    });
+    box.querySelector('#ip-sum').innerHTML = `<b>سيُضاف ${t.new} · سيُحدَّث ${t.upd + t.same}</b><br>مستبعد ${t.exc}${t.exc && items.some(i=>i.off) ? ' (منها ' + items.filter(i=>i.off).length + ' يدوياً)' : ''}`;
+    box.querySelector('#pf-go').disabled = t.new + t.upd + t.same === 0;
+  };
+  const rowHtml = it=>{
+    const r = it.rec, nid = r.nationalId ? ' · ' + esc(r.nationalId) : '';
+    const col = it.kind === 'new' ? 'var(--success)' : it.kind === 'upd' ? 'var(--blue)' : it.kind === 'same' ? 'var(--gray-alert)' : 'var(--warning)';
+    const ck = (it.kind === 'new' || it.kind === 'upd' || it.kind === 'same') ? `<input type="checkbox" class="ck" data-id="${it.id}" ${it.off ? '' : 'checked'} aria-label="تضمين">` : '<i class="fa-solid fa-ban" style="color:var(--warning);margin-top:4px"></i>';
+    let body = `<div class="nm">${esc(r.fullName || it.ex?.fullName || '—')}</div><div class="sb">${esc(it.ex ? 'موجود بالنظام' : (r.relation ? relationLabel(r) : (r.isFamilyHead ? 'رب أسرة' : 'فرد')))}${nid}${r.phone ? ' · ' + esc(r.phone) : ''}</div>`;
+    if(it.kind === 'upd') body += `<div class="ip-chg">${it.ch.slice(0, 6).map(x=>`<span><s>${esc(auditValueText(x.k, x.from) || '—')}</s><b>${esc(auditValueText(x.k, x.to) || '—')}</b> · ${esc(lab(x.k))}</span>`).join('')}${it.ch.length > 6 ? `<span>+${it.ch.length - 6}</span>` : ''}</div>`;
+    if(it.kind === 'auto') body += `<span class="ip-why">${esc(it.why)}${it.camp ? ' — ' + esc(it.camp) : ''}</span>`;
+    else if(it.off) body += `<span class="ip-why">استبعاد يدوي</span>`;
+    return `<div class="ip-row${it.off ? ' off' : ''}" style="--c:${col}">${ck}<div class="bd">${body}</div></div>`;
+  };
+  const warnHtml = ()=>{
+    const sec = (ic, title, n, rows)=>n ? `<details class="ip-w" style="background:var(--surface);border-radius:12px;padding:8px 12px;box-shadow:var(--shadow-card)"><summary style="cursor:pointer;font-weight:700;font-size:13.5px;min-height:34px;display:flex;align-items:center;gap:8px"><i class="fa-solid ${ic}" style="color:var(--warning)"></i> ${title} <b>${n}</b></summary>${rows.slice(0, 60).join('')}${n > 60 ? `<div class="caption">و${n - 60} آخرون…</div>` : ''}</details>` : '';
+    const li = t=>`<div class="pf-li">${t}</div>`;
+    const h = sec('fa-id-card', 'رقم هوية لا يجتاز خانة التحقق (تحذير فقط)', badIds.length, badIds.map(r=>li(esc(r.fullName) + ' — ' + esc(r.nationalId)))) +
+      sec('fa-calendar-xmark', 'تاريخ تعذّرت قراءته (سيُترك فارغاً)', ImportDiag.badDates || 0, (ImportDiag.badDateSamples || []).map(v=>li(esc(v)))) +
+      sec('fa-user-group', 'اسم مشابه لفرد موجود بنفس الأسرة', suspects.length, suspects.map(s=>li(esc(s.r.fullName) + ' ≈ ' + esc(s.hit.fullName)))) +
+      sec('fa-eye-slash', 'موجودون بالنظام وغير موجودين بالملف — لن يُحذفوا', missing.length, missing.map(p=>li(esc(p.fullName) + (p.nationalId ? ' — ' + esc(p.nationalId) : '')))) +
+      (dd.checkedOnline ? '' : `<div class="wiz-note"><i class="fa-solid fa-wifi-slash"></i> لم يُفحص التكرار عبر المخيمات الأخرى لعدم توفر الإنترنت — سيُعاد الفحص عند الاعتماد إن توفر.</div>`);
+    return h || `<div class="wiz-note ok"><i class="fa-solid fa-circle-check"></i> لا توجد تنبيهات على البيانات</div>`;
+  };
+  const view = ()=>{
+    box.querySelectorAll('.ip-tab').forEach(b=>b.classList.toggle('on', b.dataset.t === tab));
+    const bulk = box.querySelector('#ip-bulk');
+    if(tab === 'warn'){ bulk.innerHTML = ''; listEl.innerHTML = warnHtml(); return; }
+    let rows = items.filter(it=> tab === 'exc' ? isExc(it) : (!isExc(it) && it.kind === tab));
+    if(q){ const qk = nameKey(q), qn = normNid(q); rows = rows.filter(it=>nameKey(it.rec.fullName || it.ex?.fullName || '').includes(qk) || (qn && normNid(it.rec.nationalId).includes(qn))); }
+    const togg = rows.filter(it=>it.kind !== 'auto');
+    bulk.innerHTML = rows.length ? `<span>${rows.length.toLocaleString('en-US')} صف</span>${togg.length && tab !== 'warn' ? `<button type="button" class="btn btn-ghost btn-sm" id="ip-all">${tab === 'exc' ? 'إعادة تضمين المستبعد يدوياً' : 'استبعاد كل هذا القسم'}</button>` : ''}` : '';
+    if(!rows.length){ listEl.innerHTML = emptyStateHtml(tab === 'exc' ? 'fa-user-check' : 'fa-user-slash', q ? 'لا نتائج' : 'لا يوجد صفوف هنا', q ? 'جرّب كلمة أخرى' : (tab === 'exc' ? 'لا شيء مستبعد' : 'هذا القسم فارغ')); return; }
+    renderBatched(listEl, rows, rowHtml, {first: 30, batch: 80});
+    box.querySelector('#ip-all')?.addEventListener('click', ()=>{
+      const turnOff = tab !== 'exc';
+      togg.forEach(it=>{ it.off = turnOff; });
+      FX.pulse('sel'); paintTotals(); view();
+    });
+  };
+  listEl.addEventListener('change', e=>{
+    const c = e.target.closest('.ck'); if(!c) return;
+    const it = items.find(x=>x.id === +c.dataset.id); if(!it) return;
+    it.off = !c.checked; FX.pulse('sel'); paintTotals();
+    const row = c.closest('.ip-row'); row.classList.toggle('off', it.off);
+    setTimeout(view, 260);
+  });
+  box.querySelectorAll('.ip-tab').forEach(b=>b.addEventListener('click', ()=>{ tab = b.dataset.t; FX.pulse('sel'); view(); }));
+  box.querySelector('#ip-q').addEventListener('input', debounce(e=>{ q = e.target.value.trim(); view(); }, 120));
+  paintTotals(); view(); countUpIn(box);
+
+  /* ——— الاعتماد: ملخص نهائي بتأكيد ——— */
+  return new Promise(resolve=>{
+    const finish = ok=>{
+      if(ok){
+        const keepNew = items.filter(i=>i.kind === 'new' && !i.off).map(i=>i.rec);
+        const keepUpd = items.filter(i=>(i.kind === 'upd' || i.kind === 'same') && !i.off).map(i=>i.u);
+        newRecs.length = 0; newRecs.push(...keepNew);
+        updates.length = 0; updates.push(...keepUpd);
+      }
+      box.hidden = true; box.innerHTML = '';
+      if(ok) document.getElementById('import-step-progress').hidden = false;
+      resolve(ok);
+    };
+    box.querySelector('#pf-cancel').addEventListener('click', ()=>finish(false));
+    box.querySelector('#pf-go').addEventListener('click', ()=>{
+      const t = tally(), inc = t.new + t.upd + t.same, tot = Math.max(1, items.length);
+      const m = openModal(`<div class="ip-conf"><h3>تأكيد الاعتماد</h3>
+        ${ringHtml(Math.round(inc / tot * 100), {size: 78, color: 'var(--teal)', rk: 'ipc'})}
+        <div class="rows"><div><b data-count="${t.new}">0</b>سجل جديد</div><div><b data-count="${t.upd}">0</b>سيتحدّث</div><div><b data-count="${t.same}">0</b>بلا تغيير (يُثبَّت)</div><div><b data-count="${t.exc}">0</b>مستبعد</div></div>
+        <p class="caption">ستُحفظ التغييرات الآن وتُرفع للمركز. يمكنك التراجع عن آخر استيراد من «سجل الاستيراد» خلال 7 أيام.</p>
+        <div class="btn-block-row" style="width:100%"><button class="btn btn-outline" id="ipc-no">رجوع للمراجعة</button><button class="btn btn-primary" id="ipc-ok"><i class="fa-solid fa-check"></i> اعتماد وحفظ</button></div></div>`,
+        {onClose: ()=>{}});
+      countUpIn(m); ringsIn(m);
+      m.querySelector('#ipc-no').addEventListener('click', closeModal);
+      m.querySelector('#ipc-ok').addEventListener('click', ()=>{ FX.pulse('ok'); closeModal(); finish(true); });
+    });
+  });
+}
+
 /* ===================== اختبار ذاتي مخفي (#test) — منطق صرف بلا كتابة بالبيانات ===================== */
 const SelfTest = {
   async run(){
@@ -13853,6 +15007,34 @@ const SelfTest = {
       ok('idleRender: آخر طلب يفوز', !!el.querySelector('u') && !el.querySelector('i'));
       el.remove();
     }catch(e){ ok('idleRender (استثناء)', false, e && e.message); }
+    /* ——— v3.6 ——— */
+    t('v3.6: حلقات وهياكل وحالات فارغة', ()=>{
+      const r = ringHtml(130, {size: 40}), r0 = ringHtml(-5);
+      ok('ringHtml: يقصّ النسبة 0–100', /data-ring="100"/.test(r) && /data-ring="0"/.test(r0) && r.includes('pr-val'));
+      ok('Skel.html: عدد العناصر', (Skel.html('person', 3).match(/skel-person/g) || []).length === 3 && Skel.html('stat', 2).includes('skel-card'));
+      const e = emptyStateHtml('fa-tent', 'عنوان', 'وصف', '');
+      ok('emptyStateHtml: رسم SVG بدل أيقونة الخط', e.includes('class="ea') && !e.includes('fa-tent'), e.slice(0, 80));
+      ok('EMPTY_ART: كل الرسومات موجودة', ['tent','people','search','box','chat','trash','history','clean','inbox','alert','archive','family'].every(k=>EMPTY_ART[k] && EMPTY_ART[k].startsWith('<svg')));
+    });
+    t('v3.6: FX والتشخيص وإصدارات الكاش', ()=>{
+      const was = {...FX.prefs()};
+      FX.set('sound', true); FX.set('haptic', false);
+      ok('FX: التفضيلات تُحفظ', JSON.parse(localStorage.getItem('grcs_fx')).sound === true && FX.prefs().haptic === false);
+      FX.set('sound', was.sound); FX.set('haptic', was.haptic);
+      ok('SyncDiag.hint: 403 و500 وفارغ', /صلاحيات/.test(SyncDiag.hint('403')) && /عطل/.test(SyncDiag.hint('commit فشل: 500')) && SyncDiag.hint('شيء آخر') === '');
+      const a = campVersion('ZZ1'), b = campVersion('ZZ2');
+      _bumpPersons(['ZZ1']);
+      ok('campVersion: إبطال لمخيم واحد فقط', campVersion('ZZ1') === a + 1 && campVersion('ZZ2') === b);
+    });
+    try{
+      ok('PQ.countCamp: مخيم غير موجود = 0', (await PQ.countCamp('__none__')) === 0);
+      const host = document.createElement('div'); document.body.appendChild(host);
+      renderBatched(host, Array.from({length: 190}, (_, i)=>i), i=>`<i>${i}</i>`, {first: 20, batch: 50});
+      const first = host.children.length;
+      await new Promise(r=>setTimeout(r, 1500));
+      ok('renderBatched: أول دفعة ثم الباقي', first === 20 && host.children.length === 190, first + '/' + host.children.length);
+      host.remove();
+    }catch(e){ ok('v3.6 غير متزامن (استثناء)', false, e && e.message); }
     return R;
   },
   async ui(){
