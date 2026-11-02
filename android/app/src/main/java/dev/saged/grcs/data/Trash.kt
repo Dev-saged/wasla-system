@@ -99,6 +99,7 @@ class Trash(private val repo: DataRepo) {
             if (saved.optBoolean("isFamilyHead")) runCatching { repo.afterSave(st, camp, saved, false) }
         }
         repo.pushNow(st, camp)
+        Audit.log(st, camp, "restore_trash", it.tid, it.label)
         runCatching { purge(st, listOf(it)) }
         return n
     }

@@ -139,6 +139,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
 
     /** بعد حفظ/حذف فرد: يؤجّل الفهرس الوطني وحساب المستفيد ثم يحاول تنفيذهما فوراً. */
     fun afterSave(st: AuthState, camp: String, p: JSONObject, deleted: Boolean) {
+        Thread { Audit.log(st, camp, if (deleted) "delete_person" else "edit_person", p.optString("id"), p.optString("fullName")) }.start()
         if (deleted) accounts.enqueueDelete(camp, p) else accounts.enqueueSave(camp, p)
         val name = campList(st).firstOrNull { it.first == camp }?.second ?: camp
         runCatching { accounts.run(camp, name, st.idToken, secV) }
