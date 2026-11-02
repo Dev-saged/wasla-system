@@ -1,6 +1,7 @@
 package dev.saged.grcs.ui.camps
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,7 +39,7 @@ import dev.saged.grcs.ui.theme.LocalPalette
 
 /** المخيمات: ملخص كل مخيم من آخر نسخة محلية. */
 @Composable
-fun CampsScreen(auth: AuthState, data: DataRepo) {
+fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}) {
     val p = LocalPalette.current
     var camps by remember { mutableStateOf(data.cached(auth).sortedByDescending { it.stats.total }) }
     val admin = auth.user.role == "admin"
@@ -54,7 +55,7 @@ fun CampsScreen(auth: AuthState, data: DataRepo) {
         }
         if (camps.isEmpty()) Text("لا بيانات بعد — افتح الرئيسية للمزامنة", color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(top = 16.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
-            items(camps, key = { it.id }) { c -> Card(c, admin) { edit = c } }
+            items(camps, key = { it.id }) { c -> Card(c, admin, { onOpen(c.id) }) { edit = c } }
         }
     }
     if (creating || edit != null) {
@@ -79,9 +80,9 @@ fun CampsScreen(auth: AuthState, data: DataRepo) {
 }
 
 @Composable
-private fun Card(c: CampSummary, admin: Boolean, onEdit: () -> Unit) {
+private fun Card(c: CampSummary, admin: Boolean, onOpen: () -> Unit, onEdit: () -> Unit) {
     val p = LocalPalette.current
-    Column(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(18.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxWidth().clickable(onClick = onOpen).background(p.surface, RoundedCornerShape(18.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(c.name, color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
             if (admin) QChip("تعديل الاسم", false, onEdit)

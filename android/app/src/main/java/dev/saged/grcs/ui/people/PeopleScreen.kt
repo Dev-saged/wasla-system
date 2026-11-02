@@ -64,11 +64,11 @@ private fun group(list: List<JSONObject>): List<Fam> =
 
 /** الأسر والأفراد: قائمة، تفصيل أسرة، إضافة/تعديل/حذف. التعديل محلي فوري ويُرفع في الخلفية. */
 @Composable
-fun PeopleScreen(auth: AuthState, data: DataRepo) {
+fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, onExit: (() -> Unit)? = null) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
     val camps = remember { data.campList(auth) }
-    var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
+    var camp by remember { mutableStateOf(startCamp ?: camps.firstOrNull()?.first.orEmpty()) }
     var persons by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var q by remember { mutableStateOf("") }
     var open by remember { mutableStateOf<String?>(null) }

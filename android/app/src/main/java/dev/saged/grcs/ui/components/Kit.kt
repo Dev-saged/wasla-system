@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,6 +87,9 @@ fun IconTile(icon: ImageVector, color: Color, size: Dp = 32.dp, solid: Boolean =
 
 enum class Conn { On, Sync, Off }
 
+/** حالة الاتصال العامة تُحدَّثها المزامنة وتقرؤها كل ترويسة. */
+object ConnState { var state by androidx.compose.runtime.mutableStateOf(Conn.On) }
+
 /** شارة الاتصال في الترويسة: نقطة ملوّنة ونص داخل حبّة شفافة. */
 @Composable
 fun ConnBadge(state: Conn) {
@@ -102,7 +106,7 @@ fun ConnBadge(state: Conn) {
 
 /** ترويسة كحلية ثابتة: شعار متدرج، عنوانان، شارة اتصال، وأزرار اختيارية. */
 @Composable
-fun AppHeader(title: String, subtitle: String, conn: Conn? = null, onBack: (() -> Unit)? = null, actions: @Composable RowScope.() -> Unit = {}) {
+fun AppHeader(title: String, subtitle: String, conn: Conn? = ConnState.state, onBack: (() -> Unit)? = null, actions: @Composable RowScope.() -> Unit = {}) {
     val p = LocalPalette.current
     Row(
         Modifier.fillMaxWidth().shadow(4.dp).background(p.navy).statusBarsPadding()
