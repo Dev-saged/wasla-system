@@ -1,6 +1,6 @@
-# Handoff — native GRCS (branch feature/native-ui)
-State: v4.1.0 UI-fidelity phase U1–U6 coded; assembleDebug passes. Not tested on device (by request: no tests/screens).
-Done: web palette+Cairo, Kit components, role tabs, Home, Settings cards, People, Messages, Accounts (tabs/search), Camps, BenHome, Login, theme toggle.
-Decisions: every screen owns its AppHeader; status bar icons always light; Palette API unchanged (fields added).
-Open: sub-pages (vuln/quality/query/similar/rapid/trash/audit/import/export/aid) still QChip layout; no nav unread badge; beneficiary settings has no data tools.
-Next: user installs APK from CI artifact of this branch and reports on-device issues; then merge to main; then phases 4–5 (camp info, transfer log, sync diagnostics, camp delete/clear, import fingerprints, quota panel).
+# Handoff — native GRCS
+State: v4.2.0 on feature/native-ui merged to main via PR; UI-fidelity (U1-U6) + phases 4/5 coded; assembleDebug passes. Not tested on a device.
+Done: web-style UI everywhere incl. all tool sub-pages; camp info; transfer log; sync diagnostics; camp clear/delete (admin, forced backup+trash+typed name); import mapping + fingerprint templates; theme toggle.
+Decisions: template stored at importTemplates/{fp} field nmap (header names) with native fingerprint (not web-compatible); global quota panel needs Worker /usage (not deployed).
+Open: on-device verification by user; no unread badge on nav; Release not published (workflow_dispatch publish=true on main after his OK).
+Next: user feedback from device; fix issues; then publish Release.

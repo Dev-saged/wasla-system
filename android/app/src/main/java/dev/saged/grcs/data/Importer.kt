@@ -24,6 +24,19 @@ object Importer {
         "address" to listOf("العنوان", "السكن"),
     )
 
+    val fieldLabels = listOf("name" to "الاسم", "nid" to "رقم الهوية", "headNid" to "هوية رب الأسرة", "phone" to "الجوال", "dob" to "تاريخ الميلاد",
+        "gender" to "الجنس", "marital" to "الحالة الاجتماعية", "relation" to "صلة القرابة", "address" to "العنوان")
+
+    fun isFlat(h: List<String>) = childGroups(h).isEmpty()
+    fun auto(h: List<String>) = detect(h)
+
+    /** بصمة الرؤوس: FNV-1a على الرؤوس المطبّعة، لقالب المطابقة المحفوظ. */
+    fun fingerprint(h: List<String>): String {
+        var x = 0x811c9dc5.toInt()
+        for (c in h.joinToString("|") { norm(it) }) { x = x xor c.code; x *= 0x01000193 }
+        return "flat_" + (x.toLong() and 0xffffffffL).toString(16).padStart(8, '0')
+    }
+
     private fun detect(headers: List<String>): Map<String, Int> {
         val out = HashMap<String, Int>(); val used = HashSet<Int>()
         for ((f, keys) in fields) {
@@ -54,11 +67,11 @@ object Importer {
         return when { s.contains("زوجه") -> "wife"; s.contains("زوج") -> "husband"; s.contains("ابنه") || s.contains("بنت") -> "daughter"; s.contains("ابن") -> "son"; s.contains("يتيم") -> "orphan"; s.isEmpty() -> "other"; else -> "other" }
     }
 
-    fun preview(rows: List<List<String>>, camp: String, existing: List<JSONObject>, userId: String): ImportPreview {
+    fun preview(rows: List<List<String>>, camp: String, existing: List<JSONObject>, userId: String, map: Map<String, Int>? = null): ImportPreview {
         if (rows.size < 2) return ImportPreview(emptyList(), 0, 0, emptyList(), 0)
         val h = rows[0]
         if (childGroups(h).isNotEmpty()) return horizontal(rows, camp, existing, userId)
-        val m = detect(h)
+        val m = map ?: detect(h)
         val mapped = m.entries.sortedBy { it.value }.map { "${h[it.value]} ← ${it.key}" }
         val nameIdx = m["name"] ?: return ImportPreview(emptyList(), 0, rows.size - 1, mapped, 0)
         val have = existing.map { it.optString("nationalId") }.filter { it.isNotEmpty() }.toHashSet()

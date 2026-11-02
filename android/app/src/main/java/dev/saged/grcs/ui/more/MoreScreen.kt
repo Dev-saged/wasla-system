@@ -92,6 +92,10 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             "similar" -> SimilarPage(auth, data) { page = "main" }
             "rapid" -> RapidPage(auth, data) { page = "main" }
             "aidrep" -> AidReportPage(auth, data) { page = "main" }
+            "caminfo" -> CampInfoPage(auth, data) { page = "main" }
+            "tlog" -> TransferLogPage(auth, data) { page = "main" }
+            "diag" -> SyncDiagPage(auth, data) { page = "main" }
+            "danger" -> CampDangerPage(auth, data) { page = "main" }
             else -> Settings(auth, data, onLogout) { page = it }
         }
     }
@@ -121,6 +125,7 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
                         Text("تغييرات بانتظار الرفع", color = p.mute, fontSize = 12.5.sp)
                         Text(pending.toString(), color = if (pending > 0) p.warn else p.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                     }
+                    MenuRow(QIcons.Chart, "تشخيص المزامنة", "حالة كل مخيم والحصة اليومية", p.blue) { go("diag") }
                     Spacer(Modifier.height(8.dp))
                     Btn(if (syncing) "جارٍ المزامنة…" else "مزامنة مع المركز الآن", {
                         scope.launch {
@@ -161,8 +166,15 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
                     Hair()
                     MenuRow(QIcons.Report, "تقرير المساعدات", null, p.blue) { go("aidrep") }
                 }
+                if (adminDel) SettingCard("المخيم", QIcons.Camp) {
+                    MenuRow(QIcons.Info, "معلومات المخيم", "المسؤول ونائبه ومدخل البيانات") { go("caminfo") }
+                    Hair()
+                    MenuRow(QIcons.Transfer, "سجل نقل الأسر", "الأسر المنقولة بين المخيمات", p.purple) { go("tlog") }
+                }
                 if (role == "admin") SettingCard("الإدارة", QIcons.Key) {
                     MenuRow(QIcons.Key, "حسابات الطاقم", "مناديب ومدخلو بيانات") { go("staff") }
+                    Hair()
+                    MenuRow(QIcons.Alert, "إفراغ وحذف المخيمات", "نسخة إلزامية + سلة + تأكيد بالاسم", p.danger) { go("danger") }
                 }
                 SettingCard("المظهر", QIcons.Moon) {
                     SegTabs(listOf("تلقائي", "فاتح", "ليلي"), ThemePref.mode, { ThemePref.set(it) })

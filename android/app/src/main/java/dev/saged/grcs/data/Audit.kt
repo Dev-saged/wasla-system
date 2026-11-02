@@ -13,7 +13,7 @@ object Audit {
     val labels = mapOf(
         "login" to "تسجيل دخول", "import_excel" to "استيراد", "edit_person" to "تعديل فرد", "add_person" to "إضافة فرد", "delete_person" to "حذف فرد",
         "export" to "تصدير", "create_user" to "إنشاء حساب", "update_user" to "تعديل حساب", "camp_info" to "تحديث معلومات المخيم", "restore_backup" to "استعادة نسخة احتياطية",
-        "aid_give" to "تسليم مساعدة", "aid_undo" to "تراجع عن مساعدة", "restore_trash" to "استعادة من السلة", "purge_trash" to "حذف نهائي من السلة", "transfer_family" to "نقل أسرة",
+        "aid_give" to "تسليم مساعدة", "aid_undo" to "تراجع عن مساعدة", "restore_trash" to "استعادة من السلة", "purge_trash" to "حذف نهائي من السلة", "transfer_family" to "نقل أسرة", "family_transfer" to "نقل أسرة", "clear_camp" to "إفراغ بيانات المخيم", "delete_camp" to "حذف مخيم",
     )
 
     fun log(st: AuthState, camp: String, action: String, targetId: String, targetName: String, detail: String? = null) {

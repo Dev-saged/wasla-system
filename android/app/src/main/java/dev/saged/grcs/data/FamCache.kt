@@ -101,5 +101,12 @@ class FamCache(ctx: Context) : SQLiteOpenHelper(ctx, "grcs_cache.db", null, 2) {
         writableDatabase.execSQL("DELETE FROM fam"); writableDatabase.execSQL("DELETE FROM meta")
     }
 
+    /** يمحو كل ما محليّاً لمخيم (أسر ومعلّق وشواهد ومؤشرات). */
+    fun wipeCamp(camp: String) {
+        val db = writableDatabase
+        db.delete("fam", "camp=?", arrayOf(camp)); db.delete("pend", "camp=?", arrayOf(camp)); db.delete("tomb", "camp=?", arrayOf(camp))
+        db.delete("meta", "k IN (?,?)", arrayOf("since_$camp", "cleared_$camp"))
+    }
+
     fun hasPending() = campsWithPending().isNotEmpty()
 }

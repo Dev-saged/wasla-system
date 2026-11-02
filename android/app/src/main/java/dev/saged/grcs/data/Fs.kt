@@ -149,6 +149,7 @@ object Fs {
         is Boolean -> JSONObject().put("booleanValue", v)
         is Int, is Long -> JSONObject().put("integerValue", v.toString())
         is Double -> JSONObject().put("doubleValue", v)
+        is List<*> -> JSONObject().put("arrayValue", JSONObject().put("values", JSONArray(v.map { enc(it) })))
         else -> JSONObject().put("stringValue", v.toString())
     }
 
@@ -215,6 +216,26 @@ object Fs {
             o.put("timestamp", intField(f, "timestamp"))
             out += o
         }
+        return out
+    }
+
+    /** حذف مجموعة مسارات دفعات (حتى 400 في الطلب). */
+    fun deleteMany(paths: List<String>, token: String) {
+        paths.chunked(400).forEach { chunk -> commitRaw(JSONArray(chunk.map { JSONObject().put("delete", fullName(it)) }), token) }
+    }
+
+    /** معرّفات مستندات مجموعة فرعية (صفحات 300) دون جلب الحقول. */
+    fun listIds(parent: String, coll: String, token: String): List<String> {
+        val out = ArrayList<String>(); var page = ""
+        do {
+            val r = Http.get("${Backend.FIRESTORE}/$parent/$coll?pageSize=300&mask.fieldPaths=id" + if (page.isNotEmpty()) "&pageToken=" + java.net.URLEncoder.encode(page, "UTF-8") else "", token)
+            if (r.code == 404) break
+            if (r.code !in 200..299) throw FsException(r.code)
+            val docs = r.json?.optJSONArray("documents")
+            Usage.read(maxOf(1, docs?.length() ?: 0))
+            if (docs != null) for (i in 0 until docs.length()) out += docs.getJSONObject(i).getString("name").substringAfterLast('/')
+            page = r.json?.optString("nextPageToken").orEmpty()
+        } while (page.isNotEmpty())
         return out
     }
 
