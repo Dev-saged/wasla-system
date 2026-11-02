@@ -11,11 +11,29 @@ class FsException(val status: Int, val reason: String = "") : Exception("firesto
 class FamDoc(val id: String, val name: String, val j: String, val d: String, val f: String, val fid: String, val u: String, val updateTime: String = "")
 
 /** قراءة Firestore عبر REST برمز الدخول؛ القواعد على الخادم هي التي تفرض الصلاحيات. */
+/** عدّاد استهلاك Firestore على هذا الجهاز لليوم الحالي (قراءات/كتابات)؛ الحد المجاني 50,000 قراءة و20,000 كتابة يومياً للمشروع كله. */
+object Usage {
+    private var prefs: android.content.SharedPreferences? = null
+    fun init(ctx: android.content.Context) { prefs = ctx.getSharedPreferences("grcs_usage", android.content.Context.MODE_PRIVATE) }
+    private fun day() = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US).format(java.util.Date())
+    @Synchronized private fun add(k: String, n: Int) {
+        val p = prefs ?: return
+        val d = day()
+        if (p.getString("day", "") != d) p.edit().clear().putString("day", d).apply()
+        p.edit().putLong(k, p.getLong(k, 0) + n).apply()
+    }
+    fun read(n: Int) = add("r", n)
+    fun write(n: Int) = add("w", n)
+    fun reads() = if (prefs?.getString("day", "") == day()) prefs?.getLong("r", 0) ?: 0 else 0
+    fun writes() = if (prefs?.getString("day", "") == day()) prefs?.getLong("w", 0) ?: 0 else 0
+}
+
 object Fs {
     private fun str(f: JSONObject, k: String) = f.optJSONObject(k)?.optString("stringValue").orEmpty()
 
     fun get(path: String, token: String): JSONObject? {
         val r = Http.get("${Backend.FIRESTORE}/$path", token)
+        Usage.read(1)
         if (r.code == 404) return null
         if (r.code !in 200..299) throw FsException(r.code)
         return r.json?.optJSONObject("fields")
@@ -35,6 +53,7 @@ object Fs {
             val r = Http.get(url, token)
             if (r.code !in 200..299) throw FsException(r.code)
             val docs = r.json?.optJSONArray("documents") ?: JSONArray()
+            Usage.read(maxOf(1, docs.length()))
             for (i in 0 until docs.length()) {
                 val d = docs.getJSONObject(i)
                 val id = d.getString("name").substringAfterLast('/')
@@ -65,6 +84,7 @@ object Fs {
         val arr = r.array ?: return emptyList()
         arr.optJSONObject(0)?.optString("readTime")?.takeIf { it.isNotEmpty() }?.let { Clock.sample(it, t0, System.currentTimeMillis()) }
         val out = ArrayList<FamDoc>()
+        Usage.read(maxOf(1, arr.length()))
         for (i in 0 until arr.length()) {
             val doc = arr.getJSONObject(i).optJSONObject("document") ?: continue
             val f = doc.optJSONObject("fields") ?: JSONObject()
@@ -85,6 +105,7 @@ object Fs {
         if (r.code !in 200..299) throw FsException(r.code)
         val out = HashMap<String, FamDoc>()
         val arr = r.array ?: return out
+        Usage.read(maxOf(1, arr.length()))
         for (i in 0 until arr.length()) {
             val doc = arr.getJSONObject(i).optJSONObject("found") ?: continue
             val f = doc.optJSONObject("fields") ?: JSONObject()
@@ -111,6 +132,7 @@ object Fs {
                 .put("updateTransforms", JSONArray().put(JSONObject().put("fieldPath", "u").put("setToServerValue", "REQUEST_TIME")))
                 .put("currentDocument", if (p.prevUpdateTime != null) JSONObject().put("updateTime", p.prevUpdateTime) else JSONObject().put("exists", false)))
         }
+        Usage.write(puts.size)
         val r = Http.postJson("${Backend.FIRESTORE}:commit", JSONObject().put("writes", writes), token, 60_000)
         if (r.code !in 200..299) throw FsException(r.code, r.json?.optJSONObject("error")?.optString("status").orEmpty())
         val res = r.json?.optJSONArray("writeResults") ?: JSONArray()
@@ -131,6 +153,7 @@ object Fs {
     }
 
     private fun commitRaw(writes: JSONArray, token: String) {
+        Usage.write(writes.length())
         val r = Http.postJson("${Backend.FIRESTORE}:commit", JSONObject().put("writes", writes), token, 30_000)
         if (r.code !in 200..299) throw FsException(r.code, r.json?.optJSONObject("error")?.optString("status").orEmpty())
     }
@@ -171,6 +194,7 @@ object Fs {
         if (r.code !in 200..299) throw FsException(r.code)
         val out = ArrayList<JSONObject>()
         val arr = r.array ?: return out
+        Usage.read(maxOf(1, arr.length()))
         for (i in 0 until arr.length()) {
             val doc = arr.getJSONObject(i).optJSONObject("document") ?: continue
             val f = doc.optJSONObject("fields") ?: continue

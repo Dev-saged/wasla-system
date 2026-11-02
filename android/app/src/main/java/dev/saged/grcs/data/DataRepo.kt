@@ -16,7 +16,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     val backups = Backups(ctx)
     private var secV = 2L
 
-    init { Clock.init(ctx) }
+    init { Clock.init(ctx); Usage.init(ctx) }
 
     private fun campsOf(st: AuthState, token: String): List<Pair<String, String>> = when (st.user.role) {
         "admin" -> Fs.listCamps(token)
