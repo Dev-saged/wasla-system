@@ -53,6 +53,7 @@ fun MessagesScreen(auth: AuthState, data: DataRepo) {
     val ben = auth.user.role == "beneficiary"
     val camps = remember { data.campList(auth) }
     var thread by remember { mutableStateOf<String?>(if (ben) "ben" else null) }
+    val repo = remember { Messages() }
     BackHandler(thread != null && !ben) { thread = null }
     Box(Modifier.fillMaxSize().statusBarsPadding()) {
         val t = thread
@@ -60,8 +61,27 @@ fun MessagesScreen(auth: AuthState, data: DataRepo) {
             Text("الرسائل", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
             Spacer(Modifier.height(4.dp))
             ThreadRow("رسائل عامة لكل المخيمات") { thread = "global" }
-            camps.forEach { (id, n) -> ThreadRow(n) { thread = id } }
-        } else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) thread = null }
+            camps.forEach { (id, n) -> ThreadRow(n) { thread = id }; ThreadRow("مستفيدو $n") { thread = "bl:$id" } }
+        } else if (t.startsWith("bl:")) BenList(auth, repo, t.removePrefix("bl:"), camps.firstOrNull { it.first == t.removePrefix("bl:") }?.second.orEmpty(), { thread = null }) { tid -> thread = "bt:${t.removePrefix("bl:")}:$tid" }
+        else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) thread = if (t.startsWith("bt:")) "bl:" + t.removePrefix("bt:").substringBefore(":") else null }
+    }
+}
+
+@Composable
+private fun BenList(auth: AuthState, repo: Messages, camp: String, campName: String, onBack: () -> Unit, onOpen: (String) -> Unit) {
+    val p = LocalPalette.current
+    var rows by remember { mutableStateOf<List<Triple<String, String, String>>?>(null) }
+    LaunchedEffect(camp) { rows = withContext(Dispatchers.IO) { runCatching { repo.benThreads(auth, camp) }.getOrDefault(emptyList()) } }
+    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack))
+        Text("مستفيدو $campName", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 22.sp)
+        if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp) else if (rows!!.isEmpty()) Text("لا محادثات بعد", color = p.mute, fontSize = 13.sp)
+        rows?.forEach { (tid, name, last) ->
+            Column(Modifier.fillMaxWidth().heightIn(min = 60.dp).background(p.surface, RoundedCornerShape(16.dp)).clickable { onOpen(tid) }.padding(14.dp)) {
+                Text(name, color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(last, color = p.mute, fontSize = 12.sp, maxLines = 1)
+            }
+        }
     }
 }
 
