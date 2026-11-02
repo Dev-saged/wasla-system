@@ -31,3 +31,6 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 
 ## Open issues
 - (none)
+
+- android auth: `auth/{Pbkdf2,Http,SessionStore,AuthRepo}.kt` login via existing Worker + Keystore-encrypted session; `config/Backend.kt` public Firebase client config; `ui/login/LoginScreen.kt`.
+- MainActivity flow: Opening -> (restore session) -> Login -> AppShell.
