@@ -72,6 +72,7 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             "import" -> ImportPage(auth, data) { page = "main" }
             "vuln" -> VulnPage(auth, data) { page = "main" }
             "quality" -> QualityPage(auth, data) { page = "main" }
+            "staff" -> StaffPage(auth) { page = "main" }
             "aidrep" -> AidReportPage(auth, data) { page = "main" }
             else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("المزيد", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
@@ -83,6 +84,7 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
                 if (auth.user.role != "beneficiary") Item("جودة البيانات") { page = "quality" }
                 if (auth.user.role != "beneficiary") Item("تقرير المساعدات") { page = "aidrep" }
                 if (auth.user.role != "beneficiary") Item("النسخ الاحتياطي والاستعادة") { page = "backup" }
+                if (auth.user.role == "admin") Item("حسابات الطاقم") { page = "staff" }
                 Item("التحديثات") { page = "update" }
                 Item("تسجيل الخروج", danger = true) { onLogout() }
                 Spacer(Modifier.height(24.dp))

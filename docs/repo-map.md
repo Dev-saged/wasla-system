@@ -52,3 +52,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - native: AidReportPage (Aid.report) in More; docs/releases/v4.0.0.md written.
 - native: Messages.broadcast (per-camp, all beneficiaries, Fs.setMany batch) + button in BenList.
 - native import: horizontal family-tree sheets (Importer.horizontal; head+wife+numbered children, add-only, skips existing nids); auto-detected by repeating child columns.
+- native admin: data/Staff.kt + ui/more/StaffPage.kt (list delegates/dataentry/admins, enable/disable, reset password -> users salt/verifier + creds); admin-only item in More.
