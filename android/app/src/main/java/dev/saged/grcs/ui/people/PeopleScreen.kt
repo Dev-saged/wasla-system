@@ -361,7 +361,7 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
     var preg by remember { mutableStateOf(src.optBoolean("isPregnant")) }
     var chronic by remember { mutableStateOf(src.optBoolean("hasChronicDisease")) }
     var dis by remember { mutableStateOf(src.optBoolean("hasDisability")) }
-    var phone2 by remember { mutableStateOf(src.optString("phone2")) }
+    var phone2 by remember { mutableStateOf(dev.saged.grcs.data.PFields.phone2(src)) }
     var shelter by remember { mutableStateOf(src.optString("shelterType")) }
     var bf by remember { mutableStateOf(src.optBoolean("isBreastfeeding")) }
     var urgent by remember { mutableStateOf(src.optBoolean("urgentNeed")) }
@@ -502,10 +502,11 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
                         .put("birthDate", if (d.isEmpty()) JSONObject.NULL else d)
                         .put("calculatedAge", dobAge(d) ?: JSONObject.NULL)
                         .put("isPregnant", gender == "female" && preg).put("hasChronicDisease", chronic).put("hasDisability", dis)
-                        .put("notes", notes.trim()).put("phone2", normDigits(phone2).trim())
+                        .put("notes", notes.trim())
                         .put("isBreastfeeding", gender == "female" && bf).put("urgentNeed", urgent)
                         .put("chronicConditions", org.json.JSONArray(if (chronic) conds.toList() else emptyList<String>()))
                         .put("diseaseDetails", if (chronic) diseaseDetails.trim() else "").put("disabilityDetails", if (dis) disDetails.trim() else "")
+                    dev.saged.grcs.data.PFields.setPhone2(o, normDigits(phone2).trim())
                     if (head) {
                         o.put("shelterType", shelter).put("address", address.trim()).put("maritalStatus", marital).put("isFamilyHead", true).put("relation", "head")
                         if (o.optString("familyId").isEmpty()) o.put("familyId", n.ifEmpty { java.util.UUID.randomUUID().toString() })

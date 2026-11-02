@@ -67,9 +67,9 @@ fun MessagesScreen(auth: AuthState, data: DataRepo, start: String? = null, onExi
     val ben = auth.user.role == "beneficiary"
     val camps = remember { data.campList(auth) }
     var thread by remember { mutableStateOf<String?>(if (ben) "ben" else start) }
-    val back = { if (start != null && onExit != null) onExit() else thread = null }
+    val back = { if ((start != null || ben) && onExit != null) onExit() else thread = null }
     val repo = remember { Messages() }
-    BackHandler(thread != null && !ben) { back() }
+    BackHandler(thread != null && (!ben || onExit != null)) { back() }
     Box(Modifier.fillMaxSize()) {
         val t = thread
         if (t == null) Column(Modifier.fillMaxSize()) {
@@ -104,7 +104,7 @@ fun MessagesScreen(auth: AuthState, data: DataRepo, start: String? = null, onExi
             if (!(auth.user.role == "delegate" && camps.size == 1)) camps.forEach { (id, n) -> ThreadRow(n, "محادثة المندوبين والإدارة", QIcons.Camp, p.pri) { thread = id }; ThreadRow("مستفيدو $n", "محادثات الأسر", QIcons.People, p.purple) { thread = "bl:$id" } }
           }
         } else if (t.startsWith("bl:")) BenList(auth, repo, t.removePrefix("bl:"), camps.firstOrNull { it.first == t.removePrefix("bl:") }?.second.orEmpty(), { back() }) { tid -> thread = "bt:${t.removePrefix("bl:")}:$tid" }
-        else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) { if (t.startsWith("bt:")) thread = "bl:" + t.removePrefix("bt:").substringBefore(":") else back() } }
+        else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) { if (t.startsWith("bt:")) thread = "bl:" + t.removePrefix("bt:").substringBefore(":") else back() } else back() }
     }
 }
 
@@ -162,7 +162,7 @@ private fun ThreadRow(title: String, sub: String, icon: androidx.compose.ui.grap
 }
 
 @Composable
-private fun Chat(auth: AuthState, thread: String, title: String, onBack: () -> Unit) {
+private fun Chat(auth: AuthState, thread: String, title: String, hasBack: Boolean = true, onBack: () -> Unit) {
     val p = LocalPalette.current
     val repo = remember { Messages() }
     val scope = rememberCoroutineScope()
@@ -189,7 +189,7 @@ private fun Chat(auth: AuthState, thread: String, title: String, onBack: () -> U
     }
 
     Column(Modifier.fillMaxSize().imePadding()) {
-        AppHeader(title, "", conn = null, onBack = if (ben) null else onBack)
+        AppHeader(title, "", conn = null, onBack = if (ben && !hasBack) null else onBack)
         LazyColumn(Modifier.weight(1f).padding(horizontal = 12.dp), state = listState, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (msgs.isEmpty()) item { Text("لا توجد رسائل بعد", color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(24.dp)) }
             items(msgs, key = { it.getString("id") }) { m ->

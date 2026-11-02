@@ -49,6 +49,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.unit.sp
 import dev.saged.grcs.auth.AuthException
 import dev.saged.grcs.auth.AuthRepo
@@ -93,56 +99,44 @@ fun LoginScreen(repo: AuthRepo, onDone: (AuthState) -> Unit) {
         }
     }
 
-    Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(p.navyL, p.navy)))) {
-        Canvas(Modifier.fillMaxSize()) {
-            val c = Offset(size.width * .5f, size.height * .1f)
-            tatreezStar(c, size.width * .9f).let { drawPath(it, androidx.compose.ui.graphics.Color.White.copy(alpha = .05f)) }
-            tatreezStar(c, size.width * .55f).let { drawPath(it, p.acc.copy(alpha = .08f)) }
-        }
+    val W = androidx.compose.ui.graphics.Color.White
+    Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.navy, Color(0xFF0A1D38), Color(0xFF0C5A73)), start = Offset(0f, 0f), end = Offset(1200f, 2400f))), contentAlignment = Alignment.Center) {
         Column(
-            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()
-                .verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)
+            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 24.dp)
                 .graphicsLayer { alpha = enter.value; translationY = (1f - enter.value) * 40f },
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
         ) {
-            Spacer(Modifier.height(72.dp))
-            Box(
-                Modifier.size(96.dp).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.pri)), RoundedCornerShape(26.dp)),
-                contentAlignment = Alignment.Center,
-            ) { androidx.compose.material3.Icon(dev.saged.grcs.ui.icons.QIcons.Camp, null, Modifier.size(48.dp), tint = androidx.compose.ui.graphics.Color.White) }
-            Spacer(Modifier.height(20.dp))
-            Text(
-                BrandConfig.NAME_LINES.joinToString("\n"), color = androidx.compose.ui.graphics.Color.White, fontFamily = GrcsFonts.display,
-                fontSize = 32.sp, lineHeight = 40.sp, textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(BrandConfig.TAGLINE, color = androidx.compose.ui.graphics.Color(0xFFBFD8E8), fontSize = 14.sp, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(40.dp))
-
-            Field("اسم المستخدم", user, { user = it; error = null }, KeyboardType.Text, ImeAction.Next, false, null) {}
-            Spacer(Modifier.height(12.dp))
-            Field(
-                "كلمة المرور", pass, { pass = it; error = null }, KeyboardType.Password, ImeAction.Go, !show,
-                if (show) "إخفاء" else "إظهار", { show = !show },
-            ) { submit() }
-
-            Box(Modifier.fillMaxWidth().padding(top = 12.dp).height(22.dp)) {
-                error?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFFCA5A5), fontSize = 13.sp, fontWeight = FontWeight.Medium) }
-            }
-            Spacer(Modifier.height(12.dp))
-            Box(
-                Modifier.fillMaxWidth().height(56.dp).background(if (busy) p.tealL.copy(alpha = .6f) else p.tealL, RoundedCornerShape(16.dp))
-                    .clickable(enabled = !busy) { submit() },
-                contentAlignment = Alignment.Center,
+            Column(
+                Modifier.widthIn(max = 380.dp).fillMaxWidth().background(W.copy(alpha = .06f), RoundedCornerShape(20.dp)).border(1.dp, W.copy(alpha = .12f), RoundedCornerShape(20.dp)).padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (busy) CircularProgressIndicator(Modifier.size(24.dp), color = androidx.compose.ui.graphics.Color.White, strokeWidth = 2.5.dp)
-                else Text("دخول", color = androidx.compose.ui.graphics.Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                Box(Modifier.size(60.dp).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, Color(0xFF0C5A73))), RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.Icon(dev.saged.grcs.ui.icons.QIcons.Shield, null, Modifier.size(30.dp), tint = W)
+                }
+                Spacer(Modifier.height(14.dp))
+                Text("منظومة مخيمات النزوح", color = W, fontSize = 19.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(4.dp))
+                Text("تسجيل الدخول للمتابعة", color = Color(0xFFBFD8E8), fontSize = 13.sp, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(22.dp))
+                error?.let {
+                    Row(Modifier.fillMaxWidth().padding(bottom = 12.dp).background(Color(0x29DC2626), RoundedCornerShape(10.dp)).border(1.dp, Color(0x66DC2626), RoundedCornerShape(10.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(it, color = Color(0xFFFCA5A5), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+                Field("اسم المستخدم", user, { user = it; error = null }, KeyboardType.Text, ImeAction.Next, false, null, {}) {}
+                Spacer(Modifier.height(14.dp))
+                Field("كلمة المرور", pass, { pass = it; error = null }, KeyboardType.Password, ImeAction.Go, !show, if (show) "إخفاء" else "إظهار", { show = !show }) { submit() }
+                Spacer(Modifier.height(14.dp))
+                Box(
+                    Modifier.fillMaxWidth().height(52.dp).background(if (busy) p.tealL.copy(alpha = .6f) else p.tealL, RoundedCornerShape(12.dp)).clickable(enabled = !busy) { submit() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (busy) CircularProgressIndicator(Modifier.size(24.dp), color = W, strokeWidth = 2.5.dp)
+                    else Text("دخول", color = W, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(22.dp))
+                Text("منظومة مخيمات النزوح — v${dev.saged.grcs.BuildConfig.VERSION_NAME}\nتطوير: المهندس ساجد العبادلة", color = Color(0xFF8FB4CC), fontSize = 11.5.sp, lineHeight = 20.sp, textAlign = TextAlign.Center)
             }
-            Spacer(Modifier.height(48.dp))
-            Text(
-                "تطوير ${BrandConfig.Dev.NAME}", color = androidx.compose.ui.graphics.Color(0xFFBFD8E8), fontSize = 10.sp,
-                modifier = Modifier.padding(bottom = 16.dp),
-            )
         }
     }
 }
@@ -150,39 +144,26 @@ fun LoginScreen(repo: AuthRepo, onDone: (AuthState) -> Unit) {
 @Composable
 private fun Field(
     label: String, value: String, onChange: (String) -> Unit, type: KeyboardType, ime: ImeAction,
-    hidden: Boolean, toggle: String?, onToggle: () -> Unit = {}, onGo: () -> Unit,
+    hidden: Boolean, toggle: String?, onToggle: () -> Unit, onGo: () -> Unit,
 ) {
     val p = LocalPalette.current
     var focused by remember { mutableStateOf(false) }
-    Box(
-        Modifier.fillMaxWidth().height(60.dp).background(p.surface, RoundedCornerShape(16.dp))
-            .border(if (focused) 2.dp else 1.dp, if (focused) p.pri else p.line, RoundedCornerShape(16.dp))
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Column(verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth(if (toggle != null) .8f else 1f)) {
-            if (value.isNotEmpty() || focused) Text(label, color = if (focused) p.pri else p.mute, fontSize = 11.sp)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, color = Color(0xFFDCEAF3), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Row(
+            Modifier.fillMaxWidth().height(52.dp).background(Color.White.copy(alpha = .94f), RoundedCornerShape(10.dp))
+                .border(1.5.dp, if (focused) p.tealL else Color.Transparent, RoundedCornerShape(10.dp)).padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             BasicTextField(
-                value, onChange, singleLine = true,
-                textStyle = TextStyle(color = p.ink, fontSize = 16.sp, fontFamily = GrcsFonts.body),
-                cursorBrush = SolidColor(p.pri),
+                value, onChange, singleLine = true, modifier = Modifier.weight(1f).onFocusChanged { focused = it.isFocused },
+                textStyle = TextStyle(color = Color(0xFF1E293B), fontSize = 16.sp, fontFamily = GrcsFonts.body),
+                cursorBrush = SolidColor(p.tealL),
                 visualTransformation = if (hidden) PasswordVisualTransformation() else VisualTransformation.None,
                 keyboardOptions = KeyboardOptions(keyboardType = type, imeAction = ime, autoCorrectEnabled = false),
-                keyboardActions = KeyboardActions(onGo = { onGo() }),
-                modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
-                decorationBox = { inner ->
-                    Box {
-                        if (value.isEmpty() && !focused) Text(label, color = p.mute, fontSize = 16.sp)
-                        inner()
-                    }
-                },
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onGo = { onGo() }),
             )
-        }
-        if (toggle != null) {
-            Text(
-                toggle, color = p.pri, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.align(Alignment.CenterEnd).clickable { onToggle() }.padding(8.dp),
-            )
+            if (toggle != null) Text(toggle, color = Color(0xFF0F2B52), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 44.dp).clickable(onClick = onToggle).padding(start = 8.dp).wrapContentHeight(Alignment.CenterVertically))
         }
     }
 }

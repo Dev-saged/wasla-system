@@ -79,3 +79,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - web-fidelity R2 (v5.1.0): EditScreen FormCard sections; AidScreen web summary; ExportPage custom report; StaffPage ben tab restyle; PeopleScreen download-category button.
 - web-fidelity R3 (v5.2.0): Quality rules/page per web (+EditScreen fix), Import cards, QField label-above, Rapid layout, CampInfo, Query result bar, Similar empty state, delegate messages list.
 - web-fidelity R4 (v5.3.0): role matrix per web code (settings gating, dataentry home), Quality.rules(12)+PFilter q:/tier:, CampSections (tiers clickable, quality tasks, donut, age bars), FAB add/import, admin camp msg buttons, persons cats button.
+- web-fidelity R5 (v5.4.0): BenHome rebuilt per screen-beneficiary (no bottom nav), PFields (phone2 in customFields, livingSituation), Login per web card.

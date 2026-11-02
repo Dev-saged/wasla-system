@@ -121,7 +121,7 @@ class Export(private val ctx: Context) {
             .mapNotNull { (_, ms) ->
                 val h = ms.firstOrNull { it.optBoolean("isFamilyHead") } ?: return@mapNotNull null
                 val spouse = ms.firstOrNull { it.optString("relation") in listOf("wife", "husband", "spouse") }
-                listOf(h.optString("fullName"), h.optString("nationalId"), h.optString("phone"), h.optString("phone2"), h.optString("address"), h.optString("maritalStatus"),
+                listOf(h.optString("fullName"), h.optString("nationalId"), h.optString("phone"), PFields.phone2(h), h.optString("address"), h.optString("maritalStatus"),
                     shelters[h.optString("shelterType")].orEmpty(), ms.size.toString(), spouse?.optString("fullName").orEmpty(),
                     ms.filter { it !== h && it !== spouse }.joinToString("، ") { it.optString("fullName") })
             }.sortedBy { it[0] }
@@ -149,7 +149,7 @@ class Export(private val ctx: Context) {
         Col("dob", "تاريخ الميلاد") { it.optString("birthDate").takeIf { v -> v != "null" }.orEmpty() }, Col("age", "العمر") { Stats.ageOf(it)?.toString().orEmpty() },
         Col("gender", "الجنس") { when (it.optString("gender")) { "male" -> "ذكر"; "female" -> "أنثى"; else -> "" } },
         Col("rel", "الصلة") { rels[it.optString("relation")] ?: it.optString("relation") },
-        Col("phone", "الجوال") { it.optString("phone") }, Col("phone2", "جوال إضافي") { it.optString("phone2") },
+        Col("phone", "الجوال") { it.optString("phone") }, Col("phone2", "جوال إضافي") { PFields.phone2(it) },
         Col("addr", "العنوان") { it.optString("address") }, Col("marital", "الحالة الاجتماعية") { it.optString("maritalStatus") },
         Col("shelter", "المأوى") { shelters[it.optString("shelterType")].orEmpty() },
         Col("preg", "حامل") { yn(it.optBoolean("isPregnant")) }, Col("bf", "مرضعة") { yn(it.optBoolean("isBreastfeeding")) },

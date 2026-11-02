@@ -122,7 +122,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             label = "dest",
         ) { t ->
             when (t) {
-                Tab.Home -> if (ben) BenHome(auth, data) else if (homeFilter != null) PeopleScreen(auth, data, startFilter = homeFilter, newTrigger = newTrig) { homeFilter = null } else HomeScreen(auth, data, onLogout, { homeFilter = it }, { sel = tabs.indexOf(Tab.Camps).coerceAtLeast(0) })
+                Tab.Home -> if (ben) BenHome(auth, data, onLogout) else if (homeFilter != null) PeopleScreen(auth, data, startFilter = homeFilter, newTrigger = newTrig) { homeFilter = null } else HomeScreen(auth, data, onLogout, { homeFilter = it }, { sel = tabs.indexOf(Tab.Camps).coerceAtLeast(0) })
                 Tab.Camps -> if (openCamp != null) PeopleScreen(auth, data, openCamp, startFamily = openFam, newTrigger = newTrig) { openCamp = null; openFam = null } else CampsScreen(auth, data, { openCamp = it }) { c, f -> openFam = f; openCamp = c }
                 Tab.People -> PeopleScreen(auth, data, newTrigger = newTrig)
                 Tab.Chat -> MessagesScreen(auth, data)
@@ -137,7 +137,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             Box(Modifier.size(56.dp).shadow(8.dp, CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.pri)), CircleShape).clickable { if (tab == Tab.Home) { homeFilter = null; sel = tabs.indexOf(Tab.People).coerceAtLeast(0) }; newTrig++ }, contentAlignment = Alignment.Center) { Icon(QIcons.Plus, "إضافة فرد", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(26.dp)) }
         }
         }
-        NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null }
+        if (!ben) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null }
     }
 }
 
