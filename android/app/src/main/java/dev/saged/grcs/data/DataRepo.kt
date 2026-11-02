@@ -3,6 +3,7 @@ package dev.saged.grcs.data
 import android.content.Context
 import dev.saged.grcs.auth.AuthRepo
 import dev.saged.grcs.auth.AuthState
+import org.json.JSONObject
 
 class CampSummary(val id: String, val name: String, val stats: CampStats)
 
@@ -11,6 +12,8 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     private val cache = FamCache(ctx)
     val people = People(cache)
     private val writer = FamWriter(cache)
+    private val accounts = Accounts(cache)
+    private var secV = 2L
 
     init { Clock.init(ctx) }
 
@@ -43,8 +46,10 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
             st = auth.restore() ?: throw e
             f(st.idToken)
         }
+        runCatching { withToken { Fs.get("config/app", it) } }.getOrNull()?.let { secV = Fs.intField(it, "secV") }
         for (c in cache.campsWithPending()) runCatching { withToken { t -> writer.push(c, t, st.user.id) } }
         val camps = withToken { campsOf(st, it) }
+        for ((cid, cname) in camps) runCatching { withToken { t -> accounts.run(cid, cname, t, secV) } }
         cache.setMeta("camps", org.json.JSONObject().apply { camps.forEach { put(it.first, it.second) } }.toString())
         var n = 0
         for ((id, _) in camps) {
@@ -70,6 +75,15 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     }
 
     fun clear() { if (!cache.hasPending()) cache.clear() }
+
+    fun checkNid(st: AuthState, nid: String, camp: String): String? = accounts.checkNid(nid, camp, st.idToken)
+
+    /** بعد حفظ/حذف فرد: يؤجّل الفهرس الوطني وحساب المستفيد ثم يحاول تنفيذهما فوراً. */
+    fun afterSave(st: AuthState, camp: String, p: JSONObject, deleted: Boolean) {
+        if (deleted) accounts.enqueueDelete(camp, p) else accounts.enqueueSave(camp, p)
+        val name = campList(st).firstOrNull { it.first == camp }?.second ?: camp
+        runCatching { accounts.run(camp, name, st.idToken, secV) }
+    }
 
     /** رفع فوري لمخيم بعد تعديل (يعيد false إن تعذّر وبقي معلّقاً). */
     fun pushNow(st: AuthState, camp: String): Boolean = runCatching { writer.push(camp, st.idToken, st.user.id) }.getOrDefault(false)

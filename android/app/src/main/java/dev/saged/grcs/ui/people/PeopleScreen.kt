@@ -71,6 +71,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
     var open by remember { mutableStateOf<String?>(null) }
     var edit by remember { mutableStateOf<JSONObject?>(null) }
     var pending by remember { mutableIntStateOf(0) }
+    var nidErr by remember { mutableStateOf<String?>(null) }
     var rev by remember { mutableIntStateOf(0) }
     val canWrite = auth.user.role != "beneficiary"
 
@@ -84,7 +85,14 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
         scope.launch {
             o.put("updatedBy", auth.user.id)
             if (o.optString("createdBy").isEmpty()) o.put("createdBy", auth.user.id)
-            withContext(Dispatchers.IO) { data.people.save(camp, o) }
+            val n = o.optString("nationalId")
+            if (n.isNotEmpty()) {
+                val bad = withContext(Dispatchers.IO) { data.checkNid(auth, n, camp) }
+                if (bad != null) { nidErr = bad; return@launch }
+            }
+            nidErr = null
+            val saved = withContext(Dispatchers.IO) { data.people.save(camp, o) }
+            withContext(Dispatchers.IO) { data.afterSave(auth, camp, saved, false) }
             rev++; edit = null
             open = famKey ?: open
             withContext(Dispatchers.IO) { data.pushNow(auth, camp) }
@@ -94,7 +102,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
 
     fun remove(o: JSONObject) {
         scope.launch {
-            withContext(Dispatchers.IO) { data.people.delete(camp, o) }
+            withContext(Dispatchers.IO) { data.people.delete(camp, o); data.afterSave(auth, camp, o, true) }
             rev++
             withContext(Dispatchers.IO) { data.pushNow(auth, camp) }
             rev++
@@ -108,7 +116,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
         val ed = edit
         val fk = open
         when {
-            ed != null -> EditScreen(ed, persons, { edit = null }) { o -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }) }
+            ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }) }
             fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, { open = null }, { edit = it }, { remove(it) })
             else -> Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 Spacer(Modifier.height(12.dp))
@@ -218,7 +226,7 @@ private fun FamilyScreen(f: Fam?, canWrite: Boolean, onBack: () -> Unit, onEdit:
 }
 
 @Composable
-private fun EditScreen(src: JSONObject, all: List<JSONObject>, onBack: () -> Unit, onSave: (JSONObject) -> Unit) {
+private fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: String?, onBack: () -> Unit, onSave: (JSONObject) -> Unit) {
     val p = LocalPalette.current
     val isNew = src.optString("id").isEmpty()
     val head = src.optBoolean("isFamilyHead")
@@ -270,7 +278,7 @@ private fun EditScreen(src: JSONObject, all: List<JSONObject>, onBack: () -> Uni
                 QChip("إعاقة", dis) { dis = !dis }
             }
             QField("ملاحظات", notes, { notes = it }, multiline = true)
-            err?.let { Text(it, color = p.danger, fontSize = 13.sp) }
+            (err ?: serverErr)?.let { Text(it, color = p.danger, fontSize = 13.sp) }
             Spacer(Modifier.height(8.dp))
         }
         Box(

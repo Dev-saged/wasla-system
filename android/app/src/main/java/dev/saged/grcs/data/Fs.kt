@@ -118,4 +118,56 @@ object Fs {
         puts.forEachIndexed { i, p -> out[p.docId] = res.optJSONObject(i)?.optString("updateTime").orEmpty() }
         return out
     }
+
+    private fun fullName(path: String) = "projects/${Backend.PROJECT_ID}/databases/(default)/documents/$path"
+
+    fun enc(v: Any?): JSONObject = when (v) {
+        null -> JSONObject().put("nullValue", JSONObject.NULL)
+        is String -> JSONObject().put("stringValue", v)
+        is Boolean -> JSONObject().put("booleanValue", v)
+        is Int, is Long -> JSONObject().put("integerValue", v.toString())
+        is Double -> JSONObject().put("doubleValue", v)
+        else -> JSONObject().put("stringValue", v.toString())
+    }
+
+    private fun commitRaw(writes: JSONArray, token: String) {
+        val r = Http.postJson("${Backend.FIRESTORE}:commit", JSONObject().put("writes", writes), token, 30_000)
+        if (r.code !in 200..299) throw FsException(r.code, r.json?.optJSONObject("error")?.optString("status").orEmpty())
+    }
+
+    /** كتابة مستند كاملاً (إنشاء أو استبدال) كما يفعل fsDocSet في الويب. */
+    fun set(path: String, fields: Map<String, Any?>, token: String) {
+        val f = JSONObject(); fields.forEach { (k, v) -> f.put(k, enc(v)) }
+        commitRaw(JSONArray().put(JSONObject().put("update", JSONObject().put("name", fullName(path)).put("fields", f))), token)
+    }
+
+    /** تحديث حقول محددة فقط (updateMask) دون المساس بباقي المستند. */
+    fun patch(path: String, fields: Map<String, Any?>, token: String) {
+        val f = JSONObject(); fields.forEach { (k, v) -> f.put(k, enc(v)) }
+        commitRaw(JSONArray().put(JSONObject().put("update", JSONObject().put("name", fullName(path)).put("fields", f))
+            .put("updateMask", JSONObject().put("fieldPaths", JSONArray(fields.keys.toList())))), token)
+    }
+
+    fun delete(path: String, token: String) {
+        commitRaw(JSONArray().put(JSONObject().put("delete", fullName(path))), token)
+    }
+
+    /** استعلام تساوي على مجموعة جذرية؛ يعيد حقول المستندات كنصوص/قيم مبسّطة. */
+    fun queryEq(collection: String, eq: List<Pair<String, String>>, token: String): List<JSONObject> {
+        val filters = JSONArray(eq.map { (k, v) -> JSONObject().put("fieldFilter", JSONObject().put("field", JSONObject().put("fieldPath", k)).put("op", "EQUAL").put("value", enc(v))) })
+        val sq = JSONObject().put("from", JSONArray().put(JSONObject().put("collectionId", collection))).put("limit", 5)
+        sq.put("where", if (filters.length() == 1) filters.getJSONObject(0) else JSONObject().put("compositeFilter", JSONObject().put("op", "AND").put("filters", filters)))
+        val r = Http.postJson("${Backend.FIRESTORE}:runQuery", JSONObject().put("structuredQuery", sq), token, 30_000)
+        if (r.code !in 200..299) throw FsException(r.code)
+        val out = ArrayList<JSONObject>()
+        val arr = r.array ?: return out
+        for (i in 0 until arr.length()) {
+            val doc = arr.getJSONObject(i).optJSONObject("document") ?: continue
+            val f = doc.optJSONObject("fields") ?: JSONObject()
+            val o = JSONObject().put("id", doc.getString("name").substringAfterLast('/'))
+            f.keys().forEach { k -> f.getJSONObject(k).let { v -> o.put(k, v.opt("stringValue") ?: v.opt("booleanValue") ?: v.opt("integerValue")) } }
+            out += o
+        }
+        return out
+    }
 }
