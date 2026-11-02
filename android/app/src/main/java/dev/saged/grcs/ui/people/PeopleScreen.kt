@@ -117,7 +117,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
         val fk = open
         when {
             ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }) }
-            fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, { open = null }, { edit = it }, { remove(it) })
+            fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, { open = null }, { edit = it }, { remove(it) }) { h -> data.credentials(auth, h.optString("nationalId"), camp) }
             else -> Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -176,7 +176,9 @@ private fun TopBar(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun FamilyScreen(f: Fam?, canWrite: Boolean, onBack: () -> Unit, onEdit: (JSONObject) -> Unit, onDelete: (JSONObject) -> Unit) {
+private fun FamilyScreen(f: Fam?, canWrite: Boolean, onBack: () -> Unit, onEdit: (JSONObject) -> Unit, onDelete: (JSONObject) -> Unit, loadCreds: (JSONObject) -> Pair<String, String>?) {
+    val scope = rememberCoroutineScope()
+    var creds by remember { mutableStateOf<String?>(null) }
     val p = LocalPalette.current
     var confirm by remember { mutableStateOf<JSONObject?>(null) }
     Column(Modifier.fillMaxSize()) {
@@ -196,6 +198,10 @@ private fun FamilyScreen(f: Fam?, canWrite: Boolean, onBack: () -> Unit, onEdit:
                     }
                     Text(tags.joinToString(" · "), color = p.mute, fontSize = 12.sp)
                     if (canWrite) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (m.optBoolean("isFamilyHead") && m.optString("nationalId").isNotEmpty()) Text("بيانات الدخول", color = p.pri, fontSize = 13.sp,
+                            modifier = Modifier.heightIn(min = 44.dp).clickable {
+                                scope.launch { creds = withContext(Dispatchers.IO) { loadCreds(m) }?.let { "اسم المستخدم: ${it.first}\nكلمة المرور: ${it.second}" } ?: "لا تتوفر بيانات دخول لهذه الأسرة" }
+                            }.padding(vertical = 12.dp, horizontal = 8.dp))
                         Text("تعديل", color = p.pri, fontSize = 13.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { onEdit(m) }.padding(vertical = 12.dp, horizontal = 8.dp))
                         Text("حذف", color = p.danger, fontSize = 13.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { confirm = m }.padding(vertical = 12.dp, horizontal = 8.dp))
                     }
@@ -210,6 +216,16 @@ private fun FamilyScreen(f: Fam?, canWrite: Boolean, onBack: () -> Unit, onEdit:
             },
             contentAlignment = Alignment.Center,
         ) { Text("إضافة فرد", color = p.onPri, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+    }
+    creds?.let { t ->
+        Box(Modifier.fillMaxSize().background(p.ink.copy(alpha = .5f)).clickable { creds = null }, contentAlignment = Alignment.Center) {
+            Column(Modifier.padding(32.dp).background(p.surface, RoundedCornerShape(20.dp)).padding(20.dp)) {
+                Text("بيانات الدخول", color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(10.dp))
+                Text(t, color = p.ink, fontSize = 15.sp)
+                Text("إغلاق", color = p.pri, modifier = Modifier.heightIn(min = 44.dp).clickable { creds = null }.padding(top = 14.dp))
+            }
+        }
     }
     confirm?.let { m ->
         Box(Modifier.fillMaxSize().background(p.ink.copy(alpha = .5f)).clickable { confirm = null }, contentAlignment = Alignment.Center) {

@@ -81,6 +81,8 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
 
     fun clear() { if (!cache.hasPending()) cache.clear() }
 
+    fun credentials(st: AuthState, nid: String, camp: String) = accounts.credentials(nid, camp, st.idToken)
+
     fun checkNid(st: AuthState, nid: String, camp: String): String? = accounts.checkNid(nid, camp, st.idToken)
 
     /** بعد حفظ/حذف فرد: يؤجّل الفهرس الوطني وحساب المستفيد ثم يحاول تنفيذهما فوراً. */

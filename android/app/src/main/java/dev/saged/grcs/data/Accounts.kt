@@ -17,6 +17,14 @@ class Accounts(private val cache: FamCache) {
         if (f != null && other.isNotEmpty() && other != camp) "الهوية مسجّلة في مخيم آخر: ${Fs.stringField(f, "campName").ifEmpty { other }}" else null
     } catch (e: Exception) { null }
 
+    /** بيانات دخول رب الأسرة: (اسم المستخدم، كلمة المرور) أو null إن لم توجد/لا صلاحية. */
+    fun credentials(nid: String, camp: String, token: String): Pair<String, String>? = try {
+        val u = Fs.queryEq("users", listOf("campId" to camp, "username" to nid), token).firstOrNull()
+        val c = u?.let { Fs.get("creds/${it.getString("id")}", token) }
+        val pw = Fs.stringField(c, "pw")
+        if (pw.isEmpty()) null else nid to pw
+    } catch (e: Exception) { null }
+
     private fun sha256(s: String) = MessageDigest.getInstance("SHA-256").digest(s.toByteArray()).joinToString("") { "%02x".format(it) }
 
     private fun todo(camp: String): JSONArray = runCatching { JSONArray(cache.meta("todo_$camp") ?: "[]") }.getOrDefault(JSONArray())
