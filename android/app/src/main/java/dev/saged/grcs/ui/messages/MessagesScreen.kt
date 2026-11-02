@@ -72,9 +72,12 @@ fun MessagesScreen(auth: AuthState, data: DataRepo) {
     Box(Modifier.fillMaxSize()) {
         val t = thread
         if (t == null) Column(Modifier.fillMaxSize()) {
-          AppHeader("الرسائل", auth.user.fullName)
+          AppHeader("الرسائل", if (auth.user.role == "delegate") "" else auth.user.fullName)
           Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            ThreadRow("رسائل عامة لكل المخيمات", "إعلانات الإدارة لكل المخيمات", QIcons.Broadcast, p.acc) { thread = "global" }
+            if (auth.user.role == "delegate" && camps.size == 1) {
+                ThreadRow("المركز الرئيسي (الإدارة العامة)", "محادثة المندوب والإدارة", QIcons.Broadcast, p.navy) { thread = camps[0].first }
+                ThreadRow("رسائل المستفيدين", "محادثات الأسر", QIcons.People, p.navy) { thread = "bl:${camps[0].first}" }
+            } else ThreadRow("رسائل عامة لكل المخيمات", "إعلانات الإدارة لكل المخيمات", QIcons.Broadcast, p.acc) { thread = "global" }
             if (auth.user.role == "admin") {
                 var open by remember { mutableStateOf(false) }
                 var txt by remember { mutableStateOf("") }
@@ -97,7 +100,7 @@ fun MessagesScreen(auth: AuthState, data: DataRepo) {
                 }
                 if (res.isNotEmpty()) Text(res, color = p.mute, fontSize = 12.sp)
             }
-            camps.forEach { (id, n) -> ThreadRow(n, "محادثة المندوبين والإدارة", QIcons.Camp, p.pri) { thread = id }; ThreadRow("مستفيدو $n", "محادثات الأسر", QIcons.People, p.purple) { thread = "bl:$id" } }
+            if (!(auth.user.role == "delegate" && camps.size == 1)) camps.forEach { (id, n) -> ThreadRow(n, "محادثة المندوبين والإدارة", QIcons.Camp, p.pri) { thread = id }; ThreadRow("مستفيدو $n", "محادثات الأسر", QIcons.People, p.purple) { thread = "bl:$id" } }
           }
         } else if (t.startsWith("bl:")) BenList(auth, repo, t.removePrefix("bl:"), camps.firstOrNull { it.first == t.removePrefix("bl:") }?.second.orEmpty(), { thread = null }) { tid -> thread = "bt:${t.removePrefix("bl:")}:$tid" }
         else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) thread = if (t.startsWith("bt:")) "bl:" + t.removePrefix("bt:").substringBefore(":") else null }

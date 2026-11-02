@@ -3,6 +3,8 @@ package dev.saged.grcs.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,22 +31,24 @@ import dev.saged.grcs.ui.theme.LocalPalette
 
 /** حقل نص موحّد: تسمية صغيرة أعلى القيمة، إطار يتلوّن عند التركيز، ارتفاع لمس لا يقل عن 56dp. */
 @Composable
-fun QField(label: String, value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier, type: KeyboardType = KeyboardType.Text, multiline: Boolean = false) {
+fun QField(label: String, value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier, type: KeyboardType = KeyboardType.Text, multiline: Boolean = false, enabled: Boolean = true) {
     val p = LocalPalette.current
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(14.dp)
-    Column(
-        modifier.fillMaxWidth().heightIn(min = 56.dp).background(p.surface, shape)
-            .border(if (focused) 2.dp else 1.dp, if (focused) p.pri else p.line, shape).padding(horizontal = 14.dp, vertical = 8.dp),
-    ) {
-        Text(label, color = if (focused) p.pri else p.mute, fontSize = 11.sp)
-        BasicTextField(
-            value, onChange, singleLine = !multiline,
-            textStyle = TextStyle(color = p.ink, fontSize = 16.sp, fontFamily = GrcsFonts.body),
-            cursorBrush = SolidColor(p.pri),
-            keyboardOptions = KeyboardOptions(keyboardType = type),
-            modifier = Modifier.fillMaxWidth().padding(top = 2.dp).onFocusChanged { focused = it.isFocused },
-        )
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (label.isNotEmpty()) Text(label, color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Box(
+            Modifier.fillMaxWidth().heightIn(min = if (multiline) 96.dp else 52.dp).background(if (enabled) p.surface else p.bg, shape)
+                .border(if (focused) 2.dp else 1.dp, if (focused) p.pri else p.line, shape).padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            BasicTextField(
+                value, onChange, singleLine = !multiline, enabled = enabled,
+                textStyle = TextStyle(color = p.ink, fontSize = 16.sp, fontFamily = GrcsFonts.body),
+                cursorBrush = SolidColor(p.pri),
+                keyboardOptions = KeyboardOptions(keyboardType = type),
+                modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
+            )
+        }
     }
 }
 

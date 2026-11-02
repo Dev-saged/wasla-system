@@ -36,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -104,8 +105,20 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         AppHeader("استيراد كشف", "", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
-            Text("صف لكل شخص. أعمدة معروفة: الاسم، رقم الهوية، الجوال، تاريخ الميلاد، الجنس، الحالة الاجتماعية، هوية رب الأسرة (للأفراد التابعين).", color = p.mute, fontSize = 12.sp)
-            Btn(if (busy) "جارٍ القراءة…" else "اختيار ملف", { pick.launch(arrayOf("*/*")) }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Import)
+            val tplSave = {
+                scope.launch { val h = Importer.fieldLabels.map { it.second }; val r = withContext(Dispatchers.IO) { data.export.save("قالب-الاستيراد.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(emptyList(), "قالب", h), 0) }; msg = if (r.ok) "حُفظ القالب في المستندات: ${r.name}" else "تعذّر الحفظ" }
+                Unit
+            }
+            Column(Modifier.fillMaxWidth().dashed(p.tealL, 16).background(p.tealL.copy(alpha = .07f), RoundedCornerShape(16.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("الفورمة الموحّدة — الأسرع والأدق", color = p.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text("حمّل الفورمة وعبّئها ثم ارفعها: يفهمها النظام بلا تخمين، ويرتّب كل فرد بمكانه، ويصنّفه تلقائياً من تاريخ ميلاده، ويخبرك بأي خطأ بأرقام الصفوف قبل أن يكتب شيئاً.", color = p.mute, fontSize = 13.sp)
+                Btn("تحميل الفورمة", { tplSave() }, Modifier.fillMaxWidth(), BtnKind.Primary, QIcons.Export)
+            }
+            Column(Modifier.fillMaxWidth().dashed(p.line, 16).background(p.surface, RoundedCornerShape(16.dp)).clickable { pick.launch(arrayOf("*/*")) }.padding(vertical = 34.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (busy) "جارٍ القراءة…" else "اختر ملف Excel من الجهاز", color = p.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text("يدعم: xlsx, xls, csv — أي نموذج كشف، والنماذج الجديدة تُحفظ تلقائياً", color = p.mute, fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            }
+            Btn("رفع كشف تصنيفي (حوامل، أيتام، أطفال، أرامل…)", { pick.launch(arrayOf("*/*")) }, Modifier.fillMaxWidth(), BtnKind.Outline)
             if (flat && map != null) {
                 Text(if (tplBy != null) "نموذج معروف — طُبّقت المطابقة المحفوظة ($tplBy)" else "راجع مطابقة الأعمدة؛ ستُحفظ كقالب لهذا النموذج", color = if (tplBy != null) p.ok else p.mute, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 Column(Modifier.fillMaxWidth().qcard().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -127,7 +140,6 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Btn("تحميل قالب", { scope.launch { val h = Importer.fieldLabels.map { it.second }; val r = withContext(Dispatchers.IO) { data.export.save("قالب-الاستيراد.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(emptyList(), "قالب", h), 0) }; msg = if (r.ok) "حُفظ القالب في المستندات: ${r.name}" else "تعذّر الحفظ" } }, kind = BtnKind.Outline, small = true, icon = QIcons.Export)
                 if (lastIds.isNotEmpty()) Btn("تراجع عن آخر استيراد (${lastIds.size})", {
                     scope.launch {
                         busy = true
@@ -167,4 +179,8 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             msg?.let { Text(it, color = p.ok, fontSize = 13.sp) }
         }
     }
+}
+
+private fun Modifier.dashed(c: androidx.compose.ui.graphics.Color, r: Int): Modifier = drawBehind {
+    drawRoundRect(c, cornerRadius = androidx.compose.ui.geometry.CornerRadius(r.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(1.5.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(14f, 10f))))
 }

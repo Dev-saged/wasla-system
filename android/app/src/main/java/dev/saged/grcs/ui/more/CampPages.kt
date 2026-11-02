@@ -90,31 +90,34 @@ fun CampInfoPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             CampChips(camps, camp) { camp = it; msg = null }
             QCard {
                 QField("اسم المخيم الرسمي", name, { name = it }); Spacer(Modifier.height(8.dp))
-                QField("المنطقة / الحي", region, { region = it })
+                QField("رقم المخيم", camp, { }, enabled = false); Spacer(Modifier.height(8.dp))
+                QField("المنطقة/الحي", region, { region = it })
             }
             QCard {
-                Text("مسؤول المخيم", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
+                Text("مسؤول المخيم", color = p.navy, fontSize = 16.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
                 QField("الاسم", sup, { sup = it }); Spacer(Modifier.height(8.dp)); QField("الهاتف", supP, { supP = it }, type = KeyboardType.Phone)
             }
             QCard {
-                Text("نائب المسؤول", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
+                Text("نائب المسؤول", color = p.navy, fontSize = 16.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
                 QField("الاسم", dep, { dep = it }); Spacer(Modifier.height(8.dp)); QField("الهاتف", depP, { depP = it }, type = KeyboardType.Phone)
             }
             QCard {
-                Text("مدخل البيانات", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
+                Text("مدخل البيانات", color = p.navy, fontSize = 16.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
                 QField("الاسم", de, { de = it }); Spacer(Modifier.height(8.dp)); QField("الهاتف", deP, { deP = it }, type = KeyboardType.Phone)
             }
             QCard {
-                QField("ملاحظات", notes, { notes = it }, multiline = true)
-                Spacer(Modifier.height(10.dp))
-                listOf("المعرّف" to camp, "تاريخ الإنشاء" to d(info?.createdAt ?: 0), "آخر تحديث" to d(info?.lastUpdated ?: 0), "عدد الأسر المسجلة" to fa(fams)).forEach { (k, v) ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(k, color = p.mute, fontSize = 12.5.sp); Text(v, color = p.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f, false))
+                listOf("تاريخ الإنشاء" to d(info?.createdAt ?: 0), "آخر تحديث" to d(info?.lastUpdated ?: 0), "عدد الأسر المسجلة" to fa(fams)).forEach { (k, v) ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(k, color = p.mute, fontSize = 13.sp); Text(v, color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f, false))
                     }
                 }
             }
+            QCard {
+                Text("ملاحظات عامة", color = p.navy, fontSize = 16.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
+                QField("", notes, { notes = it }, multiline = true)
+            }
             msg?.let { Text(it, color = if (it.startsWith("تم")) p.ok else p.danger, fontSize = 13.sp) }
-            Btn(if (busy) "جارٍ الحفظ…" else "حفظ معلومات المخيم", {
+            Btn(if (busy) "جارٍ الحفظ…" else "حفظ المعلومات", {
                 if (camp.isNotEmpty() && !busy) scope.launch {
                     busy = true
                     val ok = withContext(Dispatchers.IO) { data.saveCampInfo(auth, CampInfo(camp, name.trim(), region.trim(), sup.trim(), supP.trim(), dep.trim(), depP.trim(), de.trim(), deP.trim(), notes.trim(), info?.createdAt ?: 0, 0)) }

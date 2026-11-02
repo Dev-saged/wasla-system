@@ -68,13 +68,16 @@ fun SimilarPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         }
     }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("الأسماء المتشابهة", "", conn = null, onBack = onBack)
+        AppHeader("أسماء متشابهة", "${camps.firstOrNull { it.first == camp }?.second ?: camp} — ${pairs?.size ?: 0} زوج", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
-            if (note.isNotEmpty()) Text(note, color = p.mute, fontSize = 12.sp)
+            Text("سجلات داخل نفس الأسرة يُرجَّح أنها لنفس الشخص (اختلاف همزة أو تشكيل أو حرف). الدمج يُبقي السجل المختار ويكمل حقوله الفارغة من الآخر.", color = p.mute, fontSize = 13.sp)
+            if (note.isNotEmpty()) Text(note, color = p.ok, fontSize = 12.sp)
             if (pairs == null) Text("جارٍ الفحص…", color = p.mute, fontSize = 13.sp)
-            else if (pairs!!.isEmpty()) Text("لا توجد أسماء متشابهة داخل الأسر", color = p.mute, fontSize = 13.sp)
-            else Text("${pairs!!.size} زوج محتمل — راجع كل زوج قبل الحذف", color = p.pri, fontSize = 13.sp)
+            else if (pairs!!.isEmpty()) Column(Modifier.fillMaxWidth().padding(vertical = 56.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("لا توجد أسماء متشابهة", color = p.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text("البيانات نظيفة من التكرار المحتمل داخل الأسر", color = p.mute, fontSize = 14.sp)
+            }
             pairs?.take(80)?.forEach { pr ->
                 val keepA = Similar.keepFirst(pr)
                 Column(Modifier.fillMaxWidth().qcard().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

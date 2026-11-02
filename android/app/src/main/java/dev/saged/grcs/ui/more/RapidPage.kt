@@ -24,6 +24,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import dev.saged.grcs.ui.components.qcard
+import dev.saged.grcs.ui.components.Btn
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,41 +104,61 @@ fun RapidPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         }
     }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("إدخال سريع — $count", "", conn = null, onBack = onBack)
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        AppHeader("إدخال سريع", camps.firstOrNull { it.first == camp }?.second.orEmpty(), conn = null, onBack = onBack) {
+            androidx.compose.foundation.layout.Box(Modifier.size(44.dp).background(p.tealL, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) { Text("$count", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) }
+        }
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id; famId = ""; famName = "" } } }
-            if (famName.isNotEmpty()) Text("الأسرة الحالية: $famName", color = p.pri, fontSize = 13.sp)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.fillMaxWidth().qcard().padding(16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(if (famName.isEmpty()) "أسرة جديدة" else "أسرة $famName", color = p.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(if (famName.isEmpty()) "ابدأ برب الأسرة، ثم الزوجة والأبناء بالتتابع" else "أضف الزوجة والأبناء بالتتابع", color = p.mute, fontSize = 13.sp)
+            }
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("head" to "رب أسرة", "wife" to "زوجة", "son" to "ابن", "daughter" to "ابنة", "other" to "فرد آخر").forEach { (k, l) -> QChip(l, rel == k) { rel = k } }
             }
-            QField("رقم الهوية", nid, { nid = it }, type = KeyboardType.Number)
-            if (!noId && nid.isNotEmpty()) {
-                val d = digits(nid)
-                Text(if (d.length < 9) "${d.length}/9 أرقام" else if (d in known) "الهوية مسجّلة مسبقاً" else "الهوية متاحة", color = if (d.length >= 9 && d in known) p.danger else if (d.length >= 9) p.success else p.mute, fontSize = 12.sp)
-            }
-            QChip(if (noId) "بلا هوية ✓" else "بلا هوية (مولود لم تصدر هويته)", noId) { noId = !noId }
-            QField("الاسم الكامل", name, { name = it })
-            if (rel != "head" && famName.isNotEmpty() && name.isNotBlank() && name.trim().split(" ").size < 3) {
-                val sur = famName.trim().split(" ").drop(1).joinToString(" ")
-                if (sur.isNotEmpty()) QChip("إضافة «$sur»", false) { name = name.trim() + " " + sur }
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { QChip("ذكر", gender == "male") { gender = if (gender == "male") "" else "male" }; QChip("أنثى", gender == "female") { gender = if (gender == "female") "" else "female" } }
-            QField("تاريخ الميلاد (1990-05-21)", dob, { dob = it }, type = KeyboardType.Number)
-            QField("الجوال", phone, { phone = it }, type = KeyboardType.Phone)
-            if (msg.isNotEmpty()) Text(msg, color = p.mute, fontSize = 12.sp)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QAct(if (busy) "جارٍ الحفظ…" else "حفظ والتالي", true) { if (!busy) save() }
-                if (last != null) QAct("تراجع عن الأخير", false) {
-                    val l = last!!; last = null
-                    scope.launch { withContext(Dispatchers.IO) { data.people.delete(camp, l); data.afterSave(auth, camp, l, true); data.pushNow(auth, camp) }; count = maxOf(0, count - 1); msg = "تم التراجع"
-                        if (l.optBoolean("isFamilyHead")) { famId = ""; famName = ""; rel = "head" } }
+            Column(Modifier.fillMaxWidth().qcard().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                QField("رقم الهوية *", nid, { nid = it }, type = KeyboardType.Number)
+                if (!noId && nid.isNotEmpty()) {
+                    val d = digits(nid)
+                    Text(if (d.length < 9) "${d.length}/9 أرقام" else if (d in known) "الهوية مسجّلة مسبقاً" else "الهوية متاحة", color = if (d.length >= 9 && d in known) p.danger else if (d.length >= 9) p.success else p.mute, fontSize = 12.sp)
                 }
-                if (famId.isNotEmpty()) QAct("أسرة جديدة", false) { famId = ""; famName = ""; rel = "head"; reset() }
+                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable { noId = !noId }, verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Checkbox(noId, { noId = it })
+                    Text("لا يوجد رقم هوية بعد (مولود لم تصدر هويته)", color = p.mute, fontSize = 13.sp)
+                }
+                QField("الاسم الأول / الكامل", name, { name = it })
+                if (rel != "head" && famName.isNotEmpty() && name.isNotBlank() && name.trim().split(" ").size < 3) {
+                    val sur = famName.trim().split(" ").drop(1).joinToString(" ")
+                    if (sur.isNotEmpty()) QChip("إضافة «$sur»", false) { name = name.trim() + " " + sur }
+                }
+                Text("الجنس", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    listOf("male" to "ذكر", "female" to "أنثى").forEach { (k, l) ->
+                        Box(Modifier.weight(1f).heightIn(min = 52.dp).background(if (gender == k) p.navy else p.surface, RoundedCornerShape(14.dp)).border(1.dp, if (gender == k) p.navy else p.line, RoundedCornerShape(14.dp)).clickable { gender = if (gender == k) "" else k }, contentAlignment = Alignment.Center) {
+                            Text(l, color = if (gender == k) androidx.compose.ui.graphics.Color.White else p.mute, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                    }
+                }
+                QField("تاريخ الميلاد", dob, { dob = it }, type = KeyboardType.Number)
+                Text("أدخل تاريخ الميلاد (1990-05-21) ليُصنَّف تلقائياً", color = p.mute, fontSize = 12.sp)
+                QField("رقم الهاتف", phone, { phone = it }, type = KeyboardType.Phone)
+                if (msg.isNotEmpty()) Text(msg, color = p.mute, fontSize = 12.sp)
+                if (last != null || famId.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (last != null) QAct("تراجع عن الأخير", false) {
+                        val l = last!!; last = null
+                        scope.launch { withContext(Dispatchers.IO) { data.people.delete(camp, l); data.afterSave(auth, camp, l, true); data.pushNow(auth, camp) }; count = maxOf(0, count - 1); msg = "تم التراجع"
+                            if (l.optBoolean("isFamilyHead")) { famId = ""; famName = ""; rel = "head" } }
+                    }
+                    if (famId.isNotEmpty()) QAct("أسرة جديدة", false) { famId = ""; famName = ""; rel = "head"; reset() }
+                }
             }
             if (log.isNotEmpty()) {
                 Text("آخر ما حُفظ", color = p.mute, fontSize = 12.sp)
                 log.take(8).forEach { Text("• $it", color = p.ink, fontSize = 13.sp) }
             }
+        }
+        Box(Modifier.fillMaxWidth().background(p.surface).padding(12.dp)) {
+            Btn(if (busy) "جارٍ الحفظ…" else "حفظ والتالي", { if (!busy) save() }, Modifier.fillMaxWidth(), enabled = !busy)
         }
     }
 }

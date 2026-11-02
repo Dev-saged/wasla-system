@@ -25,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,7 +67,7 @@ fun QueryPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     fun run(g: List<List<Cond>>, t: String) { groups = g; title = t; result = null; scope.launch { result = withContext(Dispatchers.Default) { Query.run(persons, g) } } }
     fun addCond(c: Cond, newGroup: Boolean) { run(if (newGroup || groups.isEmpty()) groups + listOf(listOf(c)) else groups.dropLast(1) + listOf(groups.last() + c), "استعلام مخصص"); fieldK = null; vMin = ""; vMax = "" }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("الفئات والاستعلامات", "", conn = null, onBack = onBack)
+        AppHeader("منشئ الاستعلامات", camps.firstOrNull { it.first == camp }?.second ?: "كل المخيمات", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id; groups = emptyList(); result = null } } }
             Text("الفئات", color = p.mute, fontSize = 12.sp)
@@ -103,26 +105,32 @@ fun QueryPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     QField("اسم للحفظ", saveName, { saveName = it }, Modifier.weight(1f))
-                    QAct("حفظ", true) { if (saveName.isNotBlank()) { saved = saved.filter { it.name != saveName.trim() } + Saved(saveName.trim(), groups.filter { it.isNotEmpty() }); data.saveQueries(saved); title = saveName.trim(); saveName = ""; note = "تم حفظ الاستعلام" } }
                 }
                 if (note.isNotEmpty()) Text(note, color = p.mute, fontSize = 12.sp)
             }
             val r = result
             if (groups.isNotEmpty() && r == null) Text("جارٍ الحساب…", color = p.mute, fontSize = 13.sp)
             if (r != null) {
-                Text("${r.persons.size} فرد · ${r.families} أسرة", color = p.pri, fontFamily = GrcsFonts.display, fontSize = 22.sp)
-                if (r.persons.isNotEmpty()) {
-                    var msg by remember(r) { mutableStateOf("") }
-                    QAct("تصدير النتيجة (Excel)", false) {
+                var msg by remember(r) { mutableStateOf("") }
+                Row(Modifier.fillMaxWidth().background(p.navy, RoundedCornerShape(16.dp)).padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${r.persons.size}", color = androidx.compose.ui.graphics.Color.White, fontFamily = GrcsFonts.display, fontSize = 30.sp)
+                    Text("فرد مطابق · ${r.families} أسرة", color = androidx.compose.ui.graphics.Color.White.copy(alpha = .8f), fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    if (r.persons.isNotEmpty()) QAct("تصدير", true) {
                         scope.launch { val e = withContext(Dispatchers.IO) { data.export.run("xlsx", camp, (title.ifEmpty { "استعلام" }) + "-" + (camps.firstOrNull { it.first == camp }?.second ?: camp), r.persons, false) }
                             msg = if (e.ok) "حُفظ: ${e.name}" else "تعذّر الحفظ" }
                     }
-                    if (msg.isNotEmpty()) Text(msg, color = p.mute, fontSize = 12.sp)
+                    if (groups.isNotEmpty()) QAct("حفظ", false) { if (saveName.isNotBlank()) { saved = saved.filter { it.name != saveName.trim() } + Saved(saveName.trim(), groups.filter { it.isNotEmpty() }); data.saveQueries(saved); title = saveName.trim(); saveName = ""; note = "تم حفظ الاستعلام" } else note = "اكتب اسماً للحفظ أولاً" }
                 }
+                if (msg.isNotEmpty()) Text(msg, color = p.mute, fontSize = 12.sp)
                 r.persons.take(100).forEach { x ->
-                    Column(Modifier.fillMaxWidth().qcard().padding(12.dp)) {
-                        Text(x.optString("fullName"), color = p.ink, fontSize = 14.sp)
-                        Text(listOfNotNull(dev.saged.grcs.data.Stats.ageOf(x)?.let { "$it سنة" }, x.optString("nationalId").takeIf { it.isNotEmpty() }, x.optString("phone").takeIf { it.isNotEmpty() }).joinToString(" · "), color = p.mute, fontSize = 11.sp)
+                    val fem = x.optString("gender") == "female"
+                    Row(Modifier.fillMaxWidth().qcard().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(Modifier.size(44.dp).background(if (fem) p.pregnant else p.navy, RoundedCornerShape(12.dp)))
+                        Column(Modifier.weight(1f)) {
+                            Text(x.optString("fullName"), color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(listOf(x.optString("nationalId").ifEmpty { "بلا هوية" }, x.optString("phone").ifEmpty { "بلا هاتف" }).joinToString(" · "), color = p.mute, fontSize = 12.sp)
+                            Text((camps.firstOrNull { it.first == camp }?.second ?: camp) + " · " + (dev.saged.grcs.data.Stats.ageOf(x)?.let { "$it سنة" } ?: "—"), color = p.mute, fontSize = 12.sp)
+                        }
                     }
                 }
                 if (r.persons.size > 100) Text("يُعرض أول 100 — صدّر النتيجة للقائمة الكاملة", color = p.mute, fontSize = 11.sp)
