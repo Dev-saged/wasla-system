@@ -43,3 +43,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - android aid/requests: `data/Aid.kt` (aid[]/requests[] inside person, merged by id; undo = void), `ui/people/AidDialog.kt`, request review in family detail; `ui/ben/BenHome.kt` beneficiary view (reads own fam docs by claims.fams); `data/Quality.kt` + `ui/more/QualityPage.kt`; FamWriter now maintains family record `f` (memberCount/headName/hasPhone).
 - android import/usage: `data/{Xlsx,Importer}.kt` + `ui/more/ImportPage.kt` (flat sheet, preview then add-only, skips duplicate nid); `Usage` per-device Firestore read/write counter shown in More.
 - versionCode base raised to 1000 so the native build always installs over the old WebToApp APK (a lower code would be refused as a downgrade).
+- android vulnerability: `data/Vuln.kt` (same rules/weights/cuts as web VULN_RULES; admin weights read from config/vulnWeights; shelter uses shelterType only, no free-text inference) + `ui/more/VulnPage.kt`.

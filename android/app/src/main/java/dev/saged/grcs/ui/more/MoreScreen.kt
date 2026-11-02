@@ -70,6 +70,7 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             "backup" -> BackupPage(auth, data) { page = "main" }
             "update" -> UpdatePage { page = "main" }
             "import" -> ImportPage(auth, data) { page = "main" }
+            "vuln" -> VulnPage(auth, data) { page = "main" }
             "quality" -> QualityPage(auth, data) { page = "main" }
             else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("المزيد", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
@@ -77,6 +78,7 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
                 Text("استهلاك هذا الجهاز اليوم: ${Usage.reads()} قراءة · ${Usage.writes()} كتابة (الحد المجاني للمشروع كله: 50,000 / 20,000)", color = p.mute, fontSize = 11.sp)
                 Spacer(Modifier.height(8.dp))
                 if (auth.user.role != "beneficiary") Item("استيراد كشف Excel") { page = "import" }
+                if (auth.user.role != "beneficiary") Item("مؤشر الهشاشة") { page = "vuln" }
                 if (auth.user.role != "beneficiary") Item("جودة البيانات") { page = "quality" }
                 if (auth.user.role != "beneficiary") Item("النسخ الاحتياطي والاستعادة") { page = "backup" }
                 Item("التحديثات") { page = "update" }
