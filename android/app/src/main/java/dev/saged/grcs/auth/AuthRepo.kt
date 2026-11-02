@@ -77,6 +77,24 @@ class AuthRepo(private val store: SessionStore) {
         }
     }
 
+    /** تغيير كلمة مرور الحساب الحالي: يتحقق من القديمة عبر الخادم ثم يحدّث salt وverifier ويجدّد الجلسة المحفوظة. يعيد null عند النجاح أو رسالة الخطأ. */
+    fun changePassword(st: AuthState, old: String, new: String): String? {
+        if (new.length < 6) return "كلمة المرور الجديدة 6 أحرف على الأقل"
+        if (st.offline || st.idToken.isEmpty()) return "يلزم اتصال بالإنترنت"
+        return try {
+            val uname = st.user.username
+            val s = post("/auth/salt", JSONObject().put("username", uname))
+            val chk = post("/auth/login", JSONObject().put("username", uname).put("hash", Pbkdf2.hash(old, s.optString("salt"))))
+            if (chk.optString("error").isNotEmpty()) return "كلمة المرور الحالية غير صحيحة"
+            val salt = Base64.encodeToString(ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }, Base64.NO_WRAP)
+            val hash = Pbkdf2.hash(new, salt)
+            val ver = java.security.MessageDigest.getInstance("SHA-256").digest("grcs:v1:$hash".toByteArray()).joinToString("") { "%02x".format(it) }
+            dev.saged.grcs.data.Fs.patch("users/${st.user.id}", mapOf("salt" to salt, "verifier" to ver, "pwUpdatedAt" to dev.saged.grcs.data.Clock.now(), "mustChangePassword" to false), st.idToken)
+            store.save(Session(uname, hash, st.user.json.toString()))
+            null
+        } catch (e: Exception) { "تعذّر تغيير كلمة المرور — تحقق من الاتصال" }
+    }
+
     fun logout() = store.clear()
 
     private fun offline(s: Session) = AuthState(AuthUser(JSONObject(s.userJson)), "", 0L, true)

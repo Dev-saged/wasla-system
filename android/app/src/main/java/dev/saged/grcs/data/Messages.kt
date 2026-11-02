@@ -38,6 +38,17 @@ class Messages {
         return (own + glob).distinctBy { it.getString("id") }.sortedBy { it.getLong("timestamp") }
     }
 
+    /** عدد الرسائل غير المقروءة للشارة: المستفيد يعدّ محادثته، والطاقم يعدّ رسائل مخيماته (حد صغير لتوفير القراءات). */
+    fun unreadTotal(st: AuthState, camps: List<String>): Int = runCatching {
+        if (st.user.role == "beneficiary") {
+            val seen = Seen.get(st.user.id, "ben_" + st.user.id)
+            loadBenRaw(st).count { it.optString("senderId") != st.user.id && it.optLong("timestamp") > seen }
+        } else camps.sumOf { c ->
+            val seen = Seen.get(st.user.id, c)
+            Fs.recentMessages("camps/$c", "messages", st.idToken, 30).count { it.optString("senderId") != st.user.id && it.optLong("timestamp") > seen }
+        }
+    }.getOrDefault(0)
+
     fun loadBen(st: AuthState): List<JSONObject> {
         runCatching { flush(st) }
         return loadBenRaw(st)

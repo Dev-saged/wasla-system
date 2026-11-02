@@ -49,19 +49,36 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
     var kind by remember { mutableStateOf("xlsx") }
     var heads by remember { mutableStateOf(false) }
+    var custom by remember { mutableStateOf(false) }
+    var filter by remember { mutableStateOf("all") }
+    var byFam by remember { mutableStateOf(false) }
+    val cols = remember { androidx.compose.runtime.mutableStateListOf<String>().also { it.addAll(data.export.defaultCols) } }
     var busy by remember { mutableStateOf(false) }
     var res by remember { mutableStateOf<ExportResult?>(null) }
     Column(Modifier.fillMaxSize()) {
         AppHeader("تصدير البيانات", "", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id; res = null } } }
+            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { QChip("كل المخيمات", camp == "*") { camp = "*"; res = null }; camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id; res = null } } }
             Text("الصيغة", color = p.mute, fontSize = 12.sp)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("xlsx" to "Excel", "csv" to "CSV", "pdf" to "PDF").forEach { (k, l) -> QChip(l, kind == k) { kind = k; res = null } } }
-            Text("المحتوى", color = p.mute, fontSize = 12.sp)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { QChip("كل الأفراد", !heads) { heads = false; res = null }; QChip("أرباب الأسر فقط", heads) { heads = true; res = null } }
+            Text("النوع", color = p.mute, fontSize = 12.sp)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { QChip("تصدير سريع", !custom) { custom = false; res = null }; QChip("تقرير مخصص", custom) { custom = true; res = null } }
+            if (!custom) {
+                Text("المحتوى", color = p.mute, fontSize = 12.sp)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { QChip("كل الأفراد", !heads) { heads = false; res = null }; QChip("أرباب الأسر فقط", heads) { heads = true; res = null } }
+            } else {
+                Text("الفئة", color = p.mute, fontSize = 12.sp)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { dev.saged.grcs.data.PFilter.chips.filter { it.first != "head" }.forEach { (k, l) -> QChip(l, filter == k) { filter = k; res = null } } }
+                Text("وحدة التقرير", color = p.mute, fontSize = 12.sp)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { QChip("أفراد", !byFam) { byFam = false; res = null }; QChip("أسر (رب الأسرة)", byFam) { byFam = true; res = null } }
+                Text("الأعمدة", color = p.mute, fontSize = 12.sp)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { data.export.columns.forEach { c -> QChip(c.label, c.k in cols) { if (c.k in cols) cols.remove(c.k) else cols.add(c.k); res = null } } }
+            }
             QAct(if (busy) "جارٍ التصدير…" else "تصدير", true) {
                 if (!busy && camp.isNotEmpty()) { busy = true; scope.launch {
-                    res = withContext(Dispatchers.IO) { data.export.run(kind, camp, camps.firstOrNull { it.first == camp }?.second ?: camp, data.people.persons(camp), heads) }
+                    val cn = if (camp == "*") "كل المخيمات" else camps.firstOrNull { it.first == camp }?.second ?: camp
+                    val ps = withContext(Dispatchers.IO) { if (camp == "*") camps.flatMap { data.people.persons(it.first) } else data.people.persons(camp) }
+                    res = withContext(Dispatchers.IO) { if (custom) data.export.custom(kind, cn, ps, filter, byFam, cols.toList()) else data.export.run(kind, camp, cn, ps, heads) }
                     busy = false
                 } }
             }

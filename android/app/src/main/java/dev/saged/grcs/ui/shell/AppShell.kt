@@ -57,7 +57,11 @@ import dev.saged.grcs.ui.messages.MessagesScreen
 import dev.saged.grcs.ui.more.ExportPage
 import dev.saged.grcs.ui.more.MoreScreen
 import dev.saged.grcs.ui.more.StaffPage
+import androidx.compose.foundation.layout.padding
 import dev.saged.grcs.ui.people.PeopleScreen
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import androidx.compose.runtime.LaunchedEffect
 import dev.saged.grcs.ui.theme.LocalPalette
 import dev.saged.grcs.ui.theme.rememberReduceMotion
 
@@ -85,6 +89,15 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     val tabs = remember(auth.user.role) { tabsFor(auth.user.role) }
     var sel by rememberSaveable { mutableStateOf(0) }
     var openCamp by remember { mutableStateOf<String?>(null) }
+    var homeFilter by remember { mutableStateOf<String?>(null) }
+    var unread by remember { mutableStateOf(0) }
+    LaunchedEffect(sel) {
+        while (true) {
+            unread = withContext(Dispatchers.IO) { dev.saged.grcs.data.Messages().unreadTotal(auth, data.campList(auth).map { it.first }) }
+            kotlinx.coroutines.delay(180_000)
+        }
+    }
+    var openFam by remember { mutableStateOf<String?>(null) }
     val tab = tabs[sel.coerceIn(0, tabs.lastIndex)]
     val ben = auth.user.role == "beneficiary"
     BackHandler(sel != 0 && openCamp == null) { sel = 0 }
@@ -101,8 +114,8 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             label = "dest",
         ) { t ->
             when (t) {
-                Tab.Home -> if (ben) BenHome(auth, data) else HomeScreen(auth, data, onLogout)
-                Tab.Camps -> if (openCamp != null) PeopleScreen(auth, data, openCamp) { openCamp = null } else CampsScreen(auth, data) { openCamp = it }
+                Tab.Home -> if (ben) BenHome(auth, data) else if (homeFilter != null) PeopleScreen(auth, data, startFilter = homeFilter) { homeFilter = null } else HomeScreen(auth, data, onLogout) { homeFilter = it }
+                Tab.Camps -> if (openCamp != null) PeopleScreen(auth, data, openCamp, startFamily = openFam) { openCamp = null; openFam = null } else CampsScreen(auth, data, { openCamp = it }) { c, f -> openFam = f; openCamp = c }
                 Tab.People -> PeopleScreen(auth, data)
                 Tab.Chat -> MessagesScreen(auth, data)
                 Tab.Accounts -> StaffPage(auth, data) { sel = 0 }
@@ -110,12 +123,12 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
                 Tab.Settings -> MoreScreen(auth, data, onLogout)
             }
         }
-        NavBar(tabs, sel) { sel = it; openCamp = null }
+        NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null }
     }
 }
 
 @Composable
-private fun NavBar(tabs: List<Tab>, sel: Int, onSelect: (Int) -> Unit) {
+private fun NavBar(tabs: List<Tab>, sel: Int, unread: Int, onSelect: (Int) -> Unit) {
     val p = LocalPalette.current
     val haptic = LocalHapticFeedback.current
     Column(Modifier.fillMaxWidth().shadow(8.dp).background(p.surface).navigationBarsPadding()) {
@@ -143,7 +156,11 @@ private fun NavBar(tabs: List<Tab>, sel: Int, onSelect: (Int) -> Unit) {
                         verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Icon(d.icon, null, Modifier.offset(y = lift).size(22.dp), tint = ic)
+                        Box {
+                            Icon(d.icon, null, Modifier.offset(y = lift).size(22.dp), tint = ic)
+                            if (d == Tab.Chat && unread > 0) Text(if (unread > 99) "99+" else "$unread", color = androidx.compose.ui.graphics.Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold,
+                                modifier = Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = (-4).dp).clip(RoundedCornerShape(8.dp)).background(p.danger).padding(horizontal = 4.dp))
+                        }
                         Text(d.label, color = tint, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }

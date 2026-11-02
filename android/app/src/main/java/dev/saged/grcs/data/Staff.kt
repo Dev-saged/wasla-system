@@ -15,6 +15,10 @@ object Staff {
         roles.flatMap { (r, _) -> runCatching { Fs.queryEq("users", listOf("role" to r), st.idToken, 500) }.getOrDefault(emptyList()) }
             .sortedWith(compareBy({ it.optString("role") }, { it.optString("fullName") }))
 
+    /** حسابات المستفيدين لمخيم واحد (تُنشأ تلقائياً لأرباب الأسر). */
+    fun beneficiaries(st: AuthState, camp: String): List<JSONObject> =
+        runCatching { Fs.queryEq("users", listOf("role" to "beneficiary", "campId" to camp), st.idToken, 1000) }.getOrDefault(emptyList()).sortedBy { it.optString("fullName") }
+
     fun setActive(st: AuthState, u: JSONObject, active: Boolean): Boolean {
         if (st.user.role != "admin" || u.getString("id") == st.user.id) return false
         return runCatching { Fs.patch("users/${u.getString("id")}", mapOf("isActive" to active), st.idToken); Fs.pulse("u", null, st.idToken) }.isSuccess

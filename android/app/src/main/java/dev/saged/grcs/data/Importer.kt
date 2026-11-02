@@ -5,7 +5,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class ImportPreview(val toAdd: List<JSONObject>, val skippedExisting: Int, val skippedInvalid: Int, val mapped: List<String>, val headCount: Int)
+class ImportPreview(val toAdd: List<JSONObject>, val skippedExisting: Int, val skippedInvalid: Int, val mapped: List<String>, val headCount: Int, val excluded: List<List<String>> = emptyList())
 
 /** استيراد نموذج مسطّح: صف لكل شخص. الاعتماد على عناوين الأعمدة؛ لا يعدّل ولا يحذف سجلاً موجوداً (يتخطى المكرر بالهوية). */
 object Importer {
@@ -76,13 +76,14 @@ object Importer {
         val nameIdx = m["name"] ?: return ImportPreview(emptyList(), 0, rows.size - 1, mapped, 0)
         val have = existing.map { it.optString("nationalId") }.filter { it.isNotEmpty() }.toHashSet()
         val seen = HashSet<String>(); val out = ArrayList<JSONObject>(); var dupes = 0; var bad = 0
+        val ex = ArrayList<List<String>>()
         val now = Clock.now()
         fun cell(r: List<String>, f: String) = m[f]?.let { r.getOrNull(it) }.orEmpty().trim()
         for (r in rows.drop(1)) {
             val name = r.getOrNull(nameIdx).orEmpty().trim()
-            if (name.length < 2) { if (r.any { it.isNotEmpty() }) bad++; continue }
+            if (name.length < 2) { if (r.any { it.isNotEmpty() }) { bad++; ex += r + "اسم غير صالح" }; continue }
             val nid = digits(cell(r, "nid"))
-            if (nid.isNotEmpty() && (nid in have || !seen.add(nid))) { dupes++; continue }
+            if (nid.isNotEmpty() && (nid in have || !seen.add(nid))) { dupes++; ex += r + "هوية مكررة"; continue }
             val headNid = digits(cell(r, "headNid"))
             val isHead = headNid.isEmpty() || headNid == nid
             val fid = if (isHead) nid.ifEmpty { java.util.UUID.randomUUID().toString() } else headNid
@@ -96,7 +97,7 @@ object Importer {
                 .put("hasChronicDisease", false).put("hasDisability", false).put("createdAt", now).put("createdBy", userId).put("updatedBy", userId)
             out += p
         }
-        return ImportPreview(out, dupes, bad, mapped, out.count { it.optBoolean("isFamilyHead") })
+        return ImportPreview(out, dupes, bad, mapped, out.count { it.optBoolean("isFamilyHead") }, ex)
     }
 
     private class Kid(val name: Int, val nid: Int?, val dob: Int?)

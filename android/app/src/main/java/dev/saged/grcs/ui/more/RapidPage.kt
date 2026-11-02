@@ -62,6 +62,9 @@ fun RapidPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var last by remember { mutableStateOf<JSONObject?>(null) }
     var msg by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    val log = remember { androidx.compose.runtime.mutableStateListOf<String>() }
+    var known by remember(camp) { mutableStateOf<Set<String>>(emptySet()) }
+    androidx.compose.runtime.LaunchedEffect(camp, count) { known = withContext(Dispatchers.IO) { data.people.persons(camp).map { it.optString("nationalId") }.filter { it.isNotEmpty() }.toSet() } }
     fun digits(s: String) = s.map { if (it in '٠'..'٩') '0' + (it - '٠') else it }.filter { it.isDigit() }.joinToString("")
     fun reset() { nid = ""; noId = false; name = ""; gender = ""; dob = ""; phone = "" }
     fun save() {
@@ -90,7 +93,7 @@ fun RapidPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 .put("hasChronicDisease", false).put("hasDisability", false).put("createdAt", now).put("createdBy", auth.user.id).put("updatedBy", auth.user.id)
             val saved = withContext(Dispatchers.IO) { data.people.save(camp, o).also { s -> if (head) runCatching { data.afterSave(auth, camp, s, false) }; data.pushNow(auth, camp) } }
             if (head) { famId = fid; famName = n }
-            last = saved; count++; msg = "حُفظ: $n"; reset(); busy = false
+            last = saved; count++; log.add(0, n + " — " + (if (head) "رب أسرة" else rel)); msg = "حُفظ: $n"; reset(); busy = false
             if (head) rel = "wife"
         }
     }
@@ -103,8 +106,16 @@ fun RapidPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 listOf("head" to "رب أسرة", "wife" to "زوجة", "son" to "ابن", "daughter" to "ابنة", "other" to "فرد آخر").forEach { (k, l) -> QChip(l, rel == k) { rel = k } }
             }
             QField("رقم الهوية", nid, { nid = it }, type = KeyboardType.Number)
+            if (!noId && nid.isNotEmpty()) {
+                val d = digits(nid)
+                Text(if (d.length < 9) "${d.length}/9 أرقام" else if (d in known) "الهوية مسجّلة مسبقاً" else "الهوية متاحة", color = if (d.length >= 9 && d in known) p.danger else if (d.length >= 9) p.success else p.mute, fontSize = 12.sp)
+            }
             QChip(if (noId) "بلا هوية ✓" else "بلا هوية (مولود لم تصدر هويته)", noId) { noId = !noId }
             QField("الاسم الكامل", name, { name = it })
+            if (rel != "head" && famName.isNotEmpty() && name.isNotBlank() && name.trim().split(" ").size < 3) {
+                val sur = famName.trim().split(" ").drop(1).joinToString(" ")
+                if (sur.isNotEmpty()) QChip("إضافة «$sur»", false) { name = name.trim() + " " + sur }
+            }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { QChip("ذكر", gender == "male") { gender = if (gender == "male") "" else "male" }; QChip("أنثى", gender == "female") { gender = if (gender == "female") "" else "female" } }
             QField("تاريخ الميلاد (1990-05-21)", dob, { dob = it }, type = KeyboardType.Number)
             QField("الجوال", phone, { phone = it }, type = KeyboardType.Phone)
@@ -117,6 +128,10 @@ fun RapidPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                         if (l.optBoolean("isFamilyHead")) { famId = ""; famName = ""; rel = "head" } }
                 }
                 if (famId.isNotEmpty()) QAct("أسرة جديدة", false) { famId = ""; famName = ""; rel = "head"; reset() }
+            }
+            if (log.isNotEmpty()) {
+                Text("آخر ما حُفظ", color = p.mute, fontSize = 12.sp)
+                log.take(8).forEach { Text("• $it", color = p.ink, fontSize = 13.sp) }
             }
         }
     }
