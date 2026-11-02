@@ -58,7 +58,7 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         AppHeader("تصدير البيانات", "", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id; res = null } } }
+            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { QChip("كل المخيمات", camp == "*") { camp = "*"; res = null }; camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id; res = null } } }
             Text("الصيغة", color = p.mute, fontSize = 12.sp)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("xlsx" to "Excel", "csv" to "CSV", "pdf" to "PDF").forEach { (k, l) -> QChip(l, kind == k) { kind = k; res = null } } }
             Text("النوع", color = p.mute, fontSize = 12.sp)
@@ -76,8 +76,9 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             }
             QAct(if (busy) "جارٍ التصدير…" else "تصدير", true) {
                 if (!busy && camp.isNotEmpty()) { busy = true; scope.launch {
-                    val cn = camps.firstOrNull { it.first == camp }?.second ?: camp
-                    res = withContext(Dispatchers.IO) { if (custom) data.export.custom(kind, cn, data.people.persons(camp), filter, byFam, cols.toList()) else data.export.run(kind, camp, cn, data.people.persons(camp), heads) }
+                    val cn = if (camp == "*") "كل المخيمات" else camps.firstOrNull { it.first == camp }?.second ?: camp
+                    val ps = withContext(Dispatchers.IO) { if (camp == "*") camps.flatMap { data.people.persons(it.first) } else data.people.persons(camp) }
+                    res = withContext(Dispatchers.IO) { if (custom) data.export.custom(kind, cn, ps, filter, byFam, cols.toList()) else data.export.run(kind, camp, cn, ps, heads) }
                     busy = false
                 } }
             }

@@ -65,15 +65,19 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
     var nPw by remember { mutableStateOf("") }
     var nPhone by remember { mutableStateOf("") }
     var nCamp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
+    var benCamp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
+    var ben by remember { mutableStateOf<List<org.json.JSONObject>?>(null) }
     LaunchedEffect(rev) { rows = withContext(Dispatchers.IO) { Staff.list(auth) } }
+    LaunchedEffect(rev, tab, benCamp) { if (tab == 2) { ben = null; ben = withContext(Dispatchers.IO) { Staff.beneficiaries(auth, benCamp) } } }
     Column(Modifier.fillMaxSize()) {
         AppHeader("الحسابات", "مناديب ومدخلو بيانات ومدراء", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SegTabs(listOf("مناديب ومدخلو بيانات", "المدراء"), tab, { tab = it })
+            SegTabs(listOf("مناديب ومدخلو بيانات", "المدراء", "المستفيدون"), tab, { tab = it })
             SearchBox(query, { query = it }, "بحث بالاسم أو اسم المستخدم")
             if (note.isNotEmpty()) Text(note, color = p.mute, fontSize = 12.sp)
-            if (!adding) Btn("حساب جديد", { adding = true }, Modifier.fillMaxWidth(), icon = QIcons.Plus)
-            else QCard(pad = 14.dp) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (tab == 2 && camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, benCamp == id) { benCamp = id } } }
+            if (tab != 2 && !adding) Btn("حساب جديد", { adding = true }, Modifier.fillMaxWidth(), icon = QIcons.Plus)
+            else if (tab != 2) QCard(pad = 14.dp) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Staff.roles.forEach { (r, l) -> QChip(l, nRole == r) { nRole = r } } }
                 if (nRole != "admin") FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, nCamp == id) { nCamp = id } } }
                 QField("الاسم الكامل", nName, { nName = it })
@@ -89,15 +93,19 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
                     Btn("إلغاء", { adding = false }, kind = BtnKind.Outline, small = true)
                 }
             } }
+            if (tab == 2) {
+                if (ben == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)
+                else Text("${ben!!.size} حساب مستفيد — يُنشأ تلقائياً لكل رب أسرة", color = p.mute, fontSize = 12.sp)
+            }
             if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)
-            rows?.filter { (it.optString("role") == "admin") == (tab == 1) && (query.isBlank() || it.optString("fullName").contains(query.trim()) || it.optString("username").contains(query.trim(), true)) }?.forEach { u ->
+            (if (tab == 2) ben else rows)?.filter { (tab == 2 || (it.optString("role") == "admin") == (tab == 1)) && (query.isBlank() || it.optString("fullName").contains(query.trim()) || it.optString("username").contains(query.trim(), true)) }?.forEach { u ->
                 val id = u.getString("id"); val active = u.optString("isActive") != "false"
                 QCard { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(u.optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                         Pill(if (active) "نشط" else "معطّل", if (active) p.success else p.danger)
                     }
-                    Text(Staff.roles.firstOrNull { it.first == u.optString("role") }?.second.orEmpty() + " · " + u.optString("username") +
+                    Text((Staff.roles.firstOrNull { it.first == u.optString("role") }?.second ?: "مستفيد") + " · " + u.optString("username") +
                         (u.optString("campName").takeIf { it.isNotEmpty() }?.let { " · $it" } ?: "") + if (active) "" else " · معطّل", color = if (active) p.mute else p.danger, fontSize = 12.sp)
                     if (id != auth.user.id) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Btn(if (active) "تعطيل" else "تفعيل", { scope.launch { note = if (withContext(Dispatchers.IO) { Staff.setActive(auth, u, !active) }) "تم" else "تعذّر التنفيذ"; rev++ } }, kind = if (active) BtnKind.Danger else BtnKind.Primary, icon = QIcons.Lock, small = true)

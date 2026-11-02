@@ -47,6 +47,7 @@ import dev.saged.grcs.ui.components.QCard
 import dev.saged.grcs.ui.components.fa
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.auth.AuthState
+import androidx.compose.runtime.LaunchedEffect
 import dev.saged.grcs.data.CampSummary
 import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.ui.theme.GrcsFonts
@@ -54,7 +55,7 @@ import dev.saged.grcs.ui.theme.LocalPalette
 
 /** المخيمات: ملخص كل مخيم من آخر نسخة محلية. */
 @Composable
-fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}) {
+fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, onFamily: (String, String) -> Unit = { _, _ -> }) {
     val p = LocalPalette.current
     var camps by remember { mutableStateOf(data.cached(auth).sortedByDescending { it.stats.total }) }
     val admin = auth.user.role == "admin"
@@ -62,6 +63,21 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}) 
     var creating by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    var sub by remember { mutableStateOf("") }
+    var q by remember { mutableStateOf("") }
+    var hits by remember { mutableStateOf<List<Triple<String, String, org.json.JSONObject>>>(emptyList()) }
+    LaunchedEffect(q) {
+        hits = if (q.trim().length < 2) emptyList() else withContext(Dispatchers.IO) {
+            val n = q.trim()
+            data.campList(auth).flatMap { (cid, cn) -> data.people.persons(cid).filter { it.optString("fullName").contains(n) || it.optString("nationalId").contains(n) }.map { Triple(cid, cn, it) } }.take(30)
+        }
+    }
+    when (sub) {
+        "cats" -> { dev.saged.grcs.ui.camps.CatsPage(auth, data) { sub = "" }; return }
+        "aid" -> { dev.saged.grcs.ui.more.AidScreen(auth, data) { sub = "" }; return }
+        "quality" -> { dev.saged.grcs.ui.more.QualityPage(auth, data) { sub = "" }; return }
+        "export" -> { dev.saged.grcs.ui.more.ExportPage(auth, data) { sub = "" }; return }
+    }
     fun reload() { camps = data.cached(auth).sortedByDescending { it.stats.total } }
     Column(Modifier.fillMaxSize()) {
       AppHeader("المخيمات", "${camps.size} مخيم · ${camps.sumOf { it.stats.families }} أسرة") {
@@ -69,7 +85,24 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}) 
       }
       if (camps.isEmpty()) EmptyState(QIcons.Camp, "لا بيانات بعد", "افتح الرئيسية للمزامنة")
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(16.dp)) {
-            items(camps, key = { it.id }) { c -> Card(c, admin, { onOpen(c.id) }) { edit = c } }
+            if (admin) item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        dev.saged.grcs.ui.components.Btn("كشوفات التصنيفات", { sub = "cats" }, kind = dev.saged.grcs.ui.components.BtnKind.Outline, small = true, icon = QIcons.Filter)
+                        dev.saged.grcs.ui.components.Btn("المساعدات — كل المخيمات", { sub = "aid" }, kind = dev.saged.grcs.ui.components.BtnKind.Outline, small = true, icon = QIcons.Heart)
+                        dev.saged.grcs.ui.components.Btn("مركز الجودة", { sub = "quality" }, kind = dev.saged.grcs.ui.components.BtnKind.Outline, small = true, icon = QIcons.Check)
+                        dev.saged.grcs.ui.components.Btn("تصدير بيانات المخيمات", { sub = "export" }, kind = dev.saged.grcs.ui.components.BtnKind.Navy, small = true, icon = QIcons.Export)
+                    }
+                    dev.saged.grcs.ui.components.SearchBox(q, { q = it }, "بحث موحّد: اسم شخص أو مخيم…")
+                }
+            }
+            items(hits, key = { it.first + it.third.optString("id") }) { (cid, cn, ps) ->
+                QCard(Modifier, { onFamily(cid, ps.optString("familyId").ifEmpty { "i_" + ps.optString("id") }) }) {
+                    Text(ps.optString("fullName"), color = p.ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(cn + " · " + ps.optString("nationalId").ifEmpty { "بلا هوية" }, color = p.mute, fontSize = 12.sp)
+                }
+            }
+            items(camps.filter { q.isBlank() || it.name.contains(q.trim()) }, key = { it.id }) { c -> Card(c, admin, { onOpen(c.id) }) { edit = c } }
         }
     }
     if (creating || edit != null) {

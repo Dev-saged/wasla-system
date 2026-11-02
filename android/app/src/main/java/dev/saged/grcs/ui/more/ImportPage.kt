@@ -66,6 +66,8 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var prev by remember { mutableStateOf<ImportPreview?>(null) }
     var msg by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    val prefs = remember { ctx.getSharedPreferences("grcs_import", android.content.Context.MODE_PRIVATE) }
+    var lastIds by remember(camp) { mutableStateOf(prefs.getStringSet("last_$camp", emptySet()).orEmpty()) }
     val headers = rows?.firstOrNull().orEmpty()
     val flat = rows != null && Importer.isFlat(headers)
 
@@ -124,12 +126,30 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                     }
                 }
             }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Btn("تحميل قالب", { scope.launch { val h = Importer.fieldLabels.map { it.second }; val r = withContext(Dispatchers.IO) { data.export.save("قالب-الاستيراد.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(emptyList(), "قالب", h), 0) }; msg = if (r.ok) "حُفظ القالب في المستندات: ${r.name}" else "تعذّر الحفظ" } }, kind = BtnKind.Outline, small = true, icon = QIcons.Export)
+                if (lastIds.isNotEmpty()) Btn("تراجع عن آخر استيراد (${lastIds.size})", {
+                    scope.launch {
+                        busy = true
+                        withContext(Dispatchers.IO) {
+                            val del = data.people.persons(camp).filter { it.optString("id") in lastIds }
+                            runCatching { data.trash.put(auth, camp, "import_undo", "تراجع استيراد", del) }
+                            del.forEach { data.people.delete(camp, it); data.afterSave(auth, camp, it, true) }
+                            data.pushNow(auth, camp)
+                        }
+                        prefs.edit().remove("last_$camp").apply(); lastIds = emptySet(); msg = "تم التراجع عن آخر استيراد"; busy = false
+                    }
+                }, kind = BtnKind.Danger, small = true, enabled = !busy)
+            }
             prev?.let { r ->
                 Column(Modifier.fillMaxWidth().qcard().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("سيُضاف ${r.toAdd.size} فرداً (${r.headCount} أسرة/رب أسرة)", color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Text("مكرر بالهوية (سيُتخطى): ${r.skippedExisting} · صفوف غير صالحة: ${r.skippedInvalid}", color = p.mute, fontSize = 12.sp)
                     r.mapped.forEach { Text(it, color = p.mute, fontSize = 11.sp) }
                 }
+                if (r.excluded.isNotEmpty()) Btn("تقرير المستبعدين (${r.excluded.size})", {
+                    scope.launch { val res = withContext(Dispatchers.IO) { data.export.save("مستبعدون-الاستيراد.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(r.excluded, "مستبعدون", headers + "السبب"), r.excluded.size) }; msg = if (res.ok) "حُفظ التقرير: ${res.name}" else "تعذّر الحفظ" }
+                }, Modifier.fillMaxWidth(), kind = BtnKind.Outline, icon = QIcons.Export)
                 if (r.toAdd.isNotEmpty()) Btn("تأكيد الإضافة", {
                     scope.launch {
                         busy = true
@@ -137,9 +157,10 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                             r.toAdd.forEach { data.people.save(camp, it) }
                             r.toAdd.filter { it.optBoolean("isFamilyHead") }.forEach { data.afterSave(auth, camp, it, false) }
                             data.pushNow(auth, camp)
+                            prefs.edit().putStringSet("last_$camp", r.toAdd.map { it.optString("id") }.toSet()).apply()
                             map?.let { if (flat) Templates.remember(auth, Importer.fingerprint(headers), headers, it) }
                         }
-                        msg = "تمت إضافة ${r.toAdd.size} فرداً"; prev = null; rows = null; map = null; busy = false
+                        lastIds = r.toAdd.map { it.optString("id") }.toSet(); msg = "تمت إضافة ${r.toAdd.size} فرداً"; prev = null; rows = null; map = null; busy = false
                     }
                 }, Modifier.fillMaxWidth(), enabled = !busy, icon = QIcons.Check)
             }

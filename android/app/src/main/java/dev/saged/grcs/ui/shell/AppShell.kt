@@ -86,6 +86,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     var sel by rememberSaveable { mutableStateOf(0) }
     var openCamp by remember { mutableStateOf<String?>(null) }
     var homeFilter by remember { mutableStateOf<String?>(null) }
+    var openFam by remember { mutableStateOf<String?>(null) }
     val tab = tabs[sel.coerceIn(0, tabs.lastIndex)]
     val ben = auth.user.role == "beneficiary"
     BackHandler(sel != 0 && openCamp == null) { sel = 0 }
@@ -103,7 +104,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
         ) { t ->
             when (t) {
                 Tab.Home -> if (ben) BenHome(auth, data) else if (homeFilter != null) PeopleScreen(auth, data, startFilter = homeFilter) { homeFilter = null } else HomeScreen(auth, data, onLogout) { homeFilter = it }
-                Tab.Camps -> if (openCamp != null) PeopleScreen(auth, data, openCamp) { openCamp = null } else CampsScreen(auth, data) { openCamp = it }
+                Tab.Camps -> if (openCamp != null) PeopleScreen(auth, data, openCamp, startFamily = openFam) { openCamp = null; openFam = null } else CampsScreen(auth, data, { openCamp = it }) { c, f -> openFam = f; openCamp = c }
                 Tab.People -> PeopleScreen(auth, data)
                 Tab.Chat -> MessagesScreen(auth, data)
                 Tab.Accounts -> StaffPage(auth, data) { sel = 0 }
