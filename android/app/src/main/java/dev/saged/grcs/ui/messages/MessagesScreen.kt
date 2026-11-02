@@ -134,7 +134,8 @@ private fun Chat(auth: AuthState, thread: String, title: String, onBack: () -> U
                 }
             }
         }
-        if (failed) Text("تعذّر الإرسال — تحقق من الاتصال وأعد المحاولة", color = p.danger, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+        val queued = Messages.Outbox.count(auth.user.id).also { rev.hashCode() }
+        if (queued > 0) Text("$queued رسالة بانتظار الاتصال — ستُرسل تلقائياً", color = p.mute, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             QField("اكتب رسالة", text, { text = it; failed = false }, Modifier.weight(1f))
             Box(

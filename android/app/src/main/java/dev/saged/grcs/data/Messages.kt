@@ -15,6 +15,7 @@ class Messages {
     }
 
     fun load(st: AuthState, thread: String): List<JSONObject> {
+        runCatching { flush(st) }
         if (thread.startsWith("bt:")) {
             val (camp, tid) = thread.removePrefix("bt:").split(":", limit = 2)
             return Fs.recentMessages("camps/$camp", "benMessages", st.idToken, 200).filter { it.optString("threadId") == tid }.sortedBy { it.getLong("timestamp") }
@@ -24,14 +25,49 @@ class Messages {
         return (own + glob).distinctBy { it.getString("id") }.sortedBy { it.getLong("timestamp") }
     }
 
-    fun loadBen(st: AuthState): List<JSONObject> =
+    fun loadBen(st: AuthState): List<JSONObject> {
+        runCatching { flush(st) }
+        return loadBenRaw(st)
+    }
+
+    private fun loadBenRaw(st: AuthState): List<JSONObject> =
         Fs.recentMessages("camps/${st.user.campId}", "benMessages", st.idToken).filter { it.optString("threadId") == "ben_" + st.user.id }.sortedBy { it.getLong("timestamp") }
 
-    /** يعيد true عند النجاح. */
+    /** صندوق صادر دائم: الرسالة الفاشلة بسبب الشبكة تُحفظ وتُعاد تلقائياً بنفس المعرّف (كتابة idempotent). */
+    object Outbox {
+        private var prefs: android.content.SharedPreferences? = null
+        fun init(ctx: android.content.Context) { prefs = ctx.getSharedPreferences("grcs_outbox", android.content.Context.MODE_PRIVATE) }
+        @Synchronized fun all(): org.json.JSONArray = runCatching { org.json.JSONArray(prefs?.getString("q", "[]")) }.getOrDefault(org.json.JSONArray())
+        @Synchronized fun save(a: org.json.JSONArray) { prefs?.edit()?.putString("q", a.toString())?.apply() }
+        @Synchronized fun add(user: String, thread: String, text: String, id: String) {
+            save(all().put(JSONObject().put("u", user).put("th", thread).put("t", text).put("id", id)))
+        }
+        fun count(user: String) = all().let { a -> (0 until a.length()).count { a.getJSONObject(it).optString("u") == user } }
+    }
+
+    /** يعيد إرسال المعلّق لهذا المستخدم؛ يعيد عدد ما أُرسل. */
+    fun flush(st: AuthState): Int {
+        val q = Outbox.all(); val keep = org.json.JSONArray(); var sent = 0
+        for (i in 0 until q.length()) {
+            val o = q.getJSONObject(i)
+            if (o.optString("u") != st.user.id) { keep.put(o); continue }
+            if (post(st, o.getString("th"), o.getString("t"), o.getString("id"))) sent++ else keep.put(o)
+        }
+        if (sent > 0) Outbox.save(keep)
+        return sent
+    }
+
+    /** true = أُرسلت أو حُفظت في الصادر لإعادة المحاولة. */
     fun send(st: AuthState, thread: String, text: String): Boolean {
+        val id = java.util.UUID.randomUUID().toString()
+        if (post(st, thread, text, id)) { runCatching { flush(st) }; return true }
+        Outbox.add(st.user.id, thread, text, id)
+        return true
+    }
+
+    private fun post(st: AuthState, thread: String, text: String, id: String): Boolean {
         return try {
             val u = st.user
-            val id = java.util.UUID.randomUUID().toString()
             if (thread.startsWith("bt:")) {
                 val (bc, btid) = thread.removePrefix("bt:").split(":", limit = 2)
                 Fs.setWithServerTime("camps/$bc/benMessages/$id", mapOf("id" to id, "threadId" to btid, "senderId" to u.id, "senderName" to u.fullName,
