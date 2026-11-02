@@ -76,6 +76,7 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             "export" -> ExportPage(auth, data) { page = "main" }
             "trash" -> TrashPage(auth, data) { page = "main" }
             "audit" -> AuditPage(auth, data) { page = "main" }
+            "query" -> QueryPage(auth, data) { page = "main" }
             "aidrep" -> AidReportPage(auth, data) { page = "main" }
             else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("المزيد", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
@@ -87,6 +88,7 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
                 if (auth.user.role != "beneficiary") Item("جودة البيانات") { page = "quality" }
                 if (auth.user.role == "admin" || auth.user.role == "delegate") Item("سلة المحذوفات") { page = "trash" }
                 if (auth.user.role == "admin" || auth.user.role == "delegate") Item("سجل النشاط") { page = "audit" }
+                if (auth.user.role != "beneficiary") Item("الفئات والاستعلامات") { page = "query" }
                 if (auth.user.role != "beneficiary") Item("تصدير البيانات") { page = "export" }
                 if (auth.user.role != "beneficiary") Item("تقرير المساعدات") { page = "aidrep" }
                 if (auth.user.role != "beneficiary") Item("النسخ الاحتياطي والاستعادة") { page = "backup" }
