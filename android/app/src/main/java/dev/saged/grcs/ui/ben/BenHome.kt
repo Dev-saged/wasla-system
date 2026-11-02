@@ -33,6 +33,11 @@ import androidx.compose.ui.unit.sp
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.Aid
 import dev.saged.grcs.data.DataRepo
+import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.Btn
+import dev.saged.grcs.ui.components.QCard
+import dev.saged.grcs.ui.components.SectionTitle
+import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.components.QChip
 import dev.saged.grcs.ui.components.QField
 import dev.saged.grcs.ui.theme.GrcsFonts
@@ -64,12 +69,12 @@ fun BenHome(auth0: AuthState, data: DataRepo) {
     }
 
     val head = persons.firstOrNull { it.optBoolean("isFamilyHead") } ?: persons.firstOrNull()
-    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(auth.user.fullName, color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
-        Text(if (busy) "جارٍ التحديث…" else "${persons.size} أفراد في أسرتك", color = p.mute, fontSize = 13.sp)
+    Column(Modifier.fillMaxSize()) {
+      AppHeader(auth.user.fullName, if (busy) "جارٍ التحديث…" else "${persons.size} أفراد في أسرتك")
+      Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         persons.forEach { m ->
-            Column(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(16.dp)).padding(14.dp)) {
-                Text(m.optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            QCard {
+                Text(m.optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 Text(listOfNotNull(if (m.optBoolean("isFamilyHead")) "رب الأسرة" else null, m.optString("birthDate").ifEmpty { null }).joinToString(" · "), color = p.mute, fontSize = 12.sp)
                 Aid.list(m).sortedByDescending { it.optLong("at") }.take(3).forEach { r ->
                     Text("استلام: " + (Aid.types.firstOrNull { it.k == r.optString("t") }?.label ?: r.optString("t")) + " · " + r.optString("d"), color = p.ok, fontSize = 12.sp)
@@ -78,28 +83,26 @@ fun BenHome(auth0: AuthState, data: DataRepo) {
         }
         if (head != null) {
             Spacer(Modifier.height(6.dp))
-            Text("طلباتي", color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            SectionTitle("طلباتي")
             Aid.requests(head).sortedByDescending { it.optLong("createdAt") }.forEach { r ->
-                Column(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(14.dp)).padding(12.dp)) {
+                QCard {
                     Text((Aid.reqTypes.firstOrNull { it.first == r.optString("type") }?.second ?: r.optString("type")) + " — " + (Aid.reqStatus[r.optString("status")] ?: ""), color = p.ink, fontSize = 14.sp)
                     if (r.optString("details").isNotEmpty()) Text(r.optString("details"), color = p.mute, fontSize = 12.sp)
                 }
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Aid.reqTypes.forEach { (k, l) -> QChip(l, type == k) { type = k } } }
             QField("تفاصيل الطلب", details, { details = it }, multiline = true)
-            Box(
-                Modifier.fillMaxWidth().heightIn(min = 52.dp).background(p.pri, RoundedCornerShape(16.dp)).clickable {
-                    if (details.trim().length < 3) return@clickable
+            Btn("إرسال الطلب", {
+                    if (details.trim().length < 3) return@Btn
                     val o = Aid.addRequest(head, type, details, auth.user.id).put("updatedBy", auth.user.id)
                     details = ""
                     scope.launch {
                         withContext(Dispatchers.IO) { data.people.save(camp, o); data.pushNow(auth, camp) }
                         rev++
                     }
-                },
-                contentAlignment = Alignment.Center,
-            ) { Text("إرسال الطلب", color = p.onPri, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+            }, Modifier.fillMaxWidth(), icon = QIcons.Broadcast)
         }
         Spacer(Modifier.height(24.dp))
+      }
     }
 }

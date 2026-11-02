@@ -6,6 +6,8 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -21,6 +23,9 @@ data class Palette(
     val ink: Color, val mute: Color, val line: Color,
     val pri: Color, val onPri: Color, val acc: Color,
     val danger: Color, val ok: Color, val warn: Color,
+    val navy: Color, val navyL: Color, val tealL: Color, val purple: Color, val blue: Color,
+    val pregnant: Color, val success: Color, val gray: Color,
+    val tierHigh: Color, val tierMedium: Color, val tierStable: Color,
     val dark: Boolean,
 )
 
@@ -37,15 +42,30 @@ fun paletteOf(dark: Boolean): Palette {
         ink = pick(p.ink), mute = pick(p.mute), line = pick(p.line),
         pri = pick(p.pri), onPri = pick(p.onPri), acc = pick(p.acc),
         danger = pick(p.danger), ok = pick(p.ok), warn = pick(p.warn),
+        navy = pick(p.navy), navyL = pick(p.navyL), tealL = pick(p.tealL), purple = pick(p.purple), blue = pick(p.blue),
+        pregnant = pick(p.pregnant), success = pick(p.success), gray = pick(p.gray),
+        tierHigh = pick(p.tierHigh), tierMedium = pick(p.tierMedium), tierStable = pick(p.tierStable),
         dark = dark,
     )
+}
+
+/** تفضيل المظهر: 0 تلقائي (الجهاز)، 1 فاتح، 2 ليلي «ليل الخيام». */
+object ThemePref {
+    private var prefs: android.content.SharedPreferences? = null
+    var mode by androidx.compose.runtime.mutableIntStateOf(0)
+    fun init(ctx: android.content.Context) {
+        prefs = ctx.getSharedPreferences("grcs_theme", android.content.Context.MODE_PRIVATE)
+        mode = prefs?.getInt("mode", 0) ?: 0
+    }
+    fun set(m: Int) { mode = m; prefs?.edit()?.putInt("mode", m)?.apply() }
 }
 
 val LocalPalette = staticCompositionLocalOf { paletteOf(dark = true) }
 
 /** المظهر تلقائي يتبع الجهاز، والاتجاه من اليمين لليسار دائماً. */
 @Composable
-fun GrcsTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun GrcsTheme(content: @Composable () -> Unit) {
+    val dark = when (ThemePref.mode) { 1 -> false; 2 -> true; else -> isSystemInDarkTheme() }
     val p = paletteOf(dark)
     val scheme = if (dark) {
         darkColorScheme(primary = p.pri, onPrimary = p.onPri, background = p.bg, onBackground = p.ink,

@@ -1,5 +1,7 @@
 package dev.saged.grcs.ui.more
 
+import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.QAct
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,17 +52,14 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var res by remember { mutableStateOf<ExportResult?>(null) }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack).padding(12.dp))
-            Text("تصدير البيانات", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 20.sp)
-        }
+        AppHeader("تصدير البيانات", "", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id; res = null } } }
             Text("الصيغة", color = p.mute, fontSize = 12.sp)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("xlsx" to "Excel", "csv" to "CSV", "pdf" to "PDF").forEach { (k, l) -> QChip(l, kind == k) { kind = k; res = null } } }
             Text("المحتوى", color = p.mute, fontSize = 12.sp)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { QChip("كل الأفراد", !heads) { heads = false; res = null }; QChip("أرباب الأسر فقط", heads) { heads = true; res = null } }
-            QChip(if (busy) "جارٍ التصدير…" else "تصدير", true) {
+            QAct(if (busy) "جارٍ التصدير…" else "تصدير", true) {
                 if (!busy && camp.isNotEmpty()) { busy = true; scope.launch {
                     res = withContext(Dispatchers.IO) { data.export.run(kind, camp, camps.firstOrNull { it.first == camp }?.second ?: camp, data.people.persons(camp), heads) }
                     busy = false
@@ -70,7 +69,7 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 if (!r.ok) Text("تعذّر الحفظ — تحقق من إذن التخزين", color = p.danger, fontSize = 13.sp)
                 else {
                     Text("تم تصدير ${r.count} سجل: ${r.name}\nالمجلد: المستندات / تصدير ${dev.saged.grcs.config.BrandConfig.BACKUP_DIR}", color = p.ink, fontSize = 13.sp)
-                    r.uri?.let { u -> QChip("مشاركة الملف", false) {
+                    r.uri?.let { u -> QAct("مشاركة الملف", false) {
                         val mime = when (kind) { "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"; "csv" -> "text/csv"; else -> "application/pdf" }
                         ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType(mime).putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), "مشاركة"))
                     } }

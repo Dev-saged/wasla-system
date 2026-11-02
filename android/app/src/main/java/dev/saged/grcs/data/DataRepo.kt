@@ -131,6 +131,66 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         cache.setMeta("camps", m.put(id, n).toString())
     }
 
+    /** معلومات المخيم (للأدمن والمندوب). */
+    fun campInfo(st: AuthState, camp: String): CampInfo {
+        val f = runCatching { Fs.get("camps/$camp", st.idToken) }.getOrNull()
+        fun s(k: String) = Fs.stringField(f, k)
+        val name = s("name").ifBlank { cache.meta("camps")?.let { runCatching { org.json.JSONObject(it).optString(camp) }.getOrNull() }.orEmpty().ifBlank { camp } }
+        return CampInfo(camp, name, s("region"), s("supervisor"), s("supervisorPhone"), s("deputy"), s("deputyPhone"), s("dataEntry"), s("dataEntryPhone"), s("notes"),
+            Fs.intField(f, "createdAt"), Fs.intField(f, "lastUpdated"))
+    }
+
+    fun saveCampInfo(st: AuthState, i: CampInfo): Boolean {
+        val ok = runCatching {
+            Fs.patch("camps/${i.id}", mapOf("name" to i.name.ifBlank { i.id }, "region" to i.region, "supervisor" to i.supervisor, "supervisorPhone" to i.supervisorPhone,
+                "deputy" to i.deputy, "deputyPhone" to i.deputyPhone, "dataEntry" to i.dataEntry, "dataEntryPhone" to i.dataEntryPhone, "notes" to i.notes,
+                "lastUpdated" to System.currentTimeMillis()), st.idToken)
+            Fs.pulse("g", null, st.idToken)
+        }.isSuccess
+        if (ok) { putCampName(i.id, i.name.ifBlank { i.id }); Audit.log(st, i.id, "camp_info", i.id, i.name) }
+        return ok
+    }
+
+    /** تشخيص المزامنة لكل مخيم: ما في الجهاز، المعلّق، الشواهد، مؤشر السحب وعلامة الإفراغ. */
+    fun diagnostics(st: AuthState): List<CampDiag> = campList(st).map { (id, n) ->
+        CampDiag(id, n, cache.docRows(id).size, cache.pending(id).size, cache.tombs(id).size, cache.meta("since_$id").orEmpty(), cache.meta("cleared_$id")?.toLongOrNull() ?: 0L)
+    }
+
+    /** يمسح مؤشرات السحب فتُعاد المزامنة كاملة من الخادم (لا يحذف شيئاً). */
+    fun resetCursors(st: AuthState) { campList(st).forEach { (id, _) -> cache.setMeta("since_$id", "") } }
+
+    /** إفراغ مخيم أو حذفه (أدمن فقط): نسخة احتياطية إلزامية ثم سلة المحذوفات ثم الخادم ثم الجهاز. يعيد رسالة الخطأ أو null عند النجاح. */
+    fun wipeCamp(st: AuthState, camp: String, name: String, deleteCamp: Boolean): String? {
+        if (st.user.role != "admin") return "العملية للمسؤول فقط"
+        if (st.offline) return "تحتاج اتصالاً بالإنترنت ليُطبَّق عند الجميع"
+        val persons = people.persons(camp)
+        if (!backups.write(backups.fileName(camp, false), backups.build(camp, name, persons))) return "تعذّر حفظ النسخة الاحتياطية — امنح إذن التخزين ثم أعد المحاولة"
+        if (persons.isNotEmpty() && !trash.put(st, camp, if (deleteCamp) "camp" else "clear", (if (deleteCamp) "حذف " else "إفراغ ") + name, persons)) return "تعذّر الحفظ في سلة المحذوفات — لم يُحذف شيء"
+        val t = st.idToken
+        return runCatching {
+            val now = Clock.now()
+            Audit.log(st, camp, if (deleteCamp) "delete_camp" else "clear_camp", camp, name, "${persons.size} فرد")
+            if (!deleteCamp) Fs.set("camps/$camp/data/main", mapOf("v" to 2, "blob" to "", "count" to 0, "updatedAt" to now, "deletedIds" to emptyList<String>(), "clearedAt" to now), t)
+            Fs.deleteMany(Fs.listIds("camps/$camp", "fam", t).map { "camps/$camp/fam/$it" }, t)
+            val users = Fs.queryEq("users", listOf("campId" to camp), t, 1000).filter { deleteCamp || it.optString("role") == "beneficiary" }
+            val paths = LinkedHashSet<String>()
+            users.forEach { paths += "users/${it.getString("id")}"; paths += "creds/${it.getString("id")}" }
+            persons.map { it.optString("nationalId") }.filter { it.isNotEmpty() }.forEach { paths += "nationalIds/$it" }
+            Fs.deleteMany(paths.toList(), t)
+            if (deleteCamp) {
+                listOf("messages", "benMessages").forEach { c -> Fs.deleteMany(Fs.listIds("camps/$camp", c, t).map { "camps/$camp/$c/$it" }, t) }
+                Fs.deleteMany(listOf("camps/$camp/data/main", "camps/$camp/data/v2", "camps/$camp/info/main", "camps/$camp"), t)
+            } else runCatching { Fs.patch("camps/$camp", mapOf("totalFamilies" to 0, "lastUpdated" to now), t) }
+            runCatching { Fs.pulse("c", camp, t); Fs.pulse("u", null, t); Fs.pulse("g", null, t) }
+            cache.wipeCamp(camp)
+            if (deleteCamp) {
+                val m = cache.meta("camps")?.let { runCatching { org.json.JSONObject(it) }.getOrNull() } ?: org.json.JSONObject()
+                m.remove(camp); cache.setMeta("camps", m.toString())
+            } else cache.setMeta("cleared_$camp", now.toString())
+            null
+        }.getOrElse { "تعذّر إكمال العملية: ${it.message ?: "خطأ شبكة"} — النسخة محفوظة في الجهاز والسلة" }
+    }
+
     fun autoBackup(camp: String, name: String) {
         runCatching { backups.autoDaily(cache, camp, name, people.persons(camp)) }
     }

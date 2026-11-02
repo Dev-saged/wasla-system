@@ -50,19 +50,46 @@ object BrandConfig {
         val accent = Oklch(.86f, .12f, 80f)
     }
 
-    /** الهوية "بوصلة": كوبالت على ورق بارد، وبرتقالي دافئ للتمييز. */
+    /** #RRGGBB → OKLCH (للحفاظ على فحص التباين الحالي). */
+    private fun hex(h: String): Oklch {
+        val v = h.removePrefix("#").toInt(16)
+        fun lin(c: Int): Double { val x = c / 255.0; return if (x <= 0.04045) x / 12.92 else Math.pow((x + 0.055) / 1.055, 2.4) }
+        val r = lin(v shr 16 and 255); val g = lin(v shr 8 and 255); val b = lin(v and 255)
+        val l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+        val m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+        val s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+        val L = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s
+        val a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s
+        val bb = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+        val h2 = Math.toDegrees(Math.atan2(bb, a)).let { if (it < 0) it + 360 else it }
+        return Oklch(L.toFloat(), Math.hypot(a, bb).toFloat(), h2.toFloat())
+    }
+    private fun x(light: String, dark: String) = Tone(hex(light), hex(dark))
+
+    /** هوية GRCS: كحلي وتيل على ورق بارد؛ داكن "ليل الخيام". القيم مطابقة لنسخة الويب. */
     object Palette {
-        val bg = t(.975f, .006f, 250f, .17f, .03f, 255f)
-        val surface = t(1f, 0f, 0f, .22f, .035f, 255f)
-        val surface2 = t(.95f, .012f, 250f, .27f, .04f, 255f)
-        val ink = t(.22f, .045f, 255f, .95f, .01f, 250f)
-        val mute = t(.46f, .035f, 255f, .76f, .03f, 255f)
-        val line = t(.9f, .01f, 250f, .33f, .035f, 255f)
-        val pri = t(.47f, .17f, 262f, .79f, .12f, 255f)
-        val onPri = t(.99f, .005f, 250f, .18f, .04f, 255f)
-        val acc = t(.52f, .15f, 50f, .82f, .15f, 65f)
-        val danger = t(.5f, .2f, 25f, .76f, .16f, 25f)
-        val ok = t(.45f, .12f, 160f, .8f, .14f, 160f)
-        val warn = t(.5f, .13f, 70f, .83f, .14f, 85f)
+        val bg = x("#F1F5F9", "#07111F")
+        val surface = x("#FFFFFF", "#0E1B2E")
+        val surface2 = x("#F8FAFC", "#13243B")
+        val ink = x("#1E293B", "#E3ECF6")
+        val mute = x("#5B6B80", "#8FA3BA")
+        val line = x("#E2E8F0", "#1F3450")
+        val pri = x("#0E7490", "#22B8D6")
+        val onPri = x("#FFFFFF", "#07111F")
+        val acc = x("#E9B44C", "#E9B44C")
+        val danger = x("#DC2626", "#F87171")
+        val ok = x("#047857", "#34D399")
+        val warn = x("#B45309", "#FBBF24")
+        val navy = x("#0F2B52", "#0B1F3A")
+        val navyL = x("#1E4272", "#1A3A63")
+        val tealL = x("#0891B2", "#3FD0EA")
+        val purple = x("#7C3AED", "#A78BFA")
+        val blue = x("#2563EB", "#60A5FA")
+        val pregnant = x("#EA580C", "#FB923C")
+        val success = x("#059669", "#34D399")
+        val gray = x("#475569", "#94A3B8")
+        val tierHigh = x("#E0663A", "#F08A5D")
+        val tierMedium = x("#3E8FB0", "#5FB0D0")
+        val tierStable = x("#8594A8", "#7C8CA3")
     }
 }

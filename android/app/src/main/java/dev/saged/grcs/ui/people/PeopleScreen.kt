@@ -36,6 +36,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.Btn
+import dev.saged.grcs.ui.components.BtnKind
+import dev.saged.grcs.ui.components.Pill
+import dev.saged.grcs.ui.components.QCard
+import dev.saged.grcs.ui.components.SearchBox
+import dev.saged.grcs.ui.icons.QIcons
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.Aid
 import dev.saged.grcs.data.DataRepo
@@ -64,11 +74,11 @@ private fun group(list: List<JSONObject>): List<Fam> =
 
 /** الأسر والأفراد: قائمة، تفصيل أسرة، إضافة/تعديل/حذف. التعديل محلي فوري ويُرفع في الخلفية. */
 @Composable
-fun PeopleScreen(auth: AuthState, data: DataRepo) {
+fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, onExit: (() -> Unit)? = null) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
     val camps = remember { data.campList(auth) }
-    var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
+    var camp by remember { mutableStateOf(startCamp ?: camps.firstOrNull()?.first.orEmpty()) }
     var persons by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var q by remember { mutableStateOf("") }
     var open by remember { mutableStateOf<String?>(null) }
@@ -116,24 +126,22 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
     val fams = remember(persons) { group(persons) }
     BackHandler(edit != null || open != null) { if (edit != null) edit = null else open = null }
 
-    Box(Modifier.fillMaxSize().statusBarsPadding()) {
+    Box(Modifier.fillMaxSize()) {
         val ed = edit
         val fk = open
         when {
             ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }) }
             fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, auth.user.id, { open = null }, { edit = it }, { remove(it) }, { o -> save(o, fk) }, if (auth.user.role == "admin" && camps.size > 1) ({ openTransfer = true }) else null) { h -> data.credentials(auth, h.optString("nationalId"), camp) }
-            else -> Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            else -> Column(Modifier.fillMaxSize()) {
+                AppHeader("الأسر والأفراد", (camps.firstOrNull { it.first == camp }?.second ?: "") + if (pending > 0) " · معلّق $pending" else "", onBack = onExit)
+                Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) {
                 Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("الأسر والأفراد", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp, modifier = Modifier.weight(1f))
-                    if (pending > 0) Text("معلّق $pending", color = p.warn, fontSize = 12.sp)
-                }
                 if (camps.size > 1) {
                     Spacer(Modifier.height(8.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
                 }
                 Spacer(Modifier.height(8.dp))
-                QField("بحث بالاسم أو الهوية أو الجوال", q, { q = it })
+                SearchBox(q, { q = it }, "بحث بالاسم أو الهوية أو الجوال")
                 Spacer(Modifier.height(8.dp))
                 val qq = normDigits(q)
                 val shown = if (qq.isEmpty()) fams else fams.filter { f ->
@@ -144,11 +152,8 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
                     items(shown.take(300), key = { it.key }) { f -> FamRow(f) { open = f.key } }
                     item { Spacer(Modifier.height(72.dp)) }
                 }
-                if (canWrite) Box(
-                    Modifier.fillMaxWidth().padding(vertical = 10.dp).heightIn(min = 52.dp).background(p.pri, RoundedCornerShape(16.dp))
-                        .clickable { edit = JSONObject().put("isFamilyHead", true).put("relation", "head") },
-                    contentAlignment = Alignment.Center,
-                ) { Text("أسرة جديدة", color = p.onPri, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+                if (canWrite) Btn("أسرة جديدة", { edit = JSONObject().put("isFamilyHead", true).put("relation", "head") }, Modifier.fillMaxWidth().padding(vertical = 10.dp), icon = QIcons.Plus)
+                }
             }
         }
         if (openTransfer) TransferDialog(auth, data, camp, camps, open.orEmpty()) { openTransfer = false; open = null; rev++ }
@@ -158,33 +163,28 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
 @Composable
 private fun FamRow(f: Fam, onClick: () -> Unit) {
     val p = LocalPalette.current
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp).background(p.surface, RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text((f.head ?: f.members.first()).optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-            Text((f.head ?: f.members.first()).optString("phone").ifEmpty { "بلا جوال" }, color = p.mute, fontSize = 12.sp)
+    val h = f.head ?: f.members.first()
+    val r = remember(f.members) { Vuln.compute(f.members) }
+    val tc = when (r.tier) { "critical" -> p.acc; "high" -> p.tierHigh; "medium" -> p.tierMedium; else -> p.tierStable }
+    QCard(Modifier, onClick, 12.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(42.dp).clip(CircleShape).background(tc.copy(alpha = .16f)), contentAlignment = Alignment.Center) {
+                Text(h.optString("fullName").trim().take(1), color = tc, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
+            }
+            Column(Modifier.weight(1f)) {
+                Text(h.optString("fullName"), color = p.ink, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(h.optString("phone").ifEmpty { "بلا جوال" }, color = p.mute, fontSize = 12.sp)
+            }
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (r.tier != "stable") Pill(Vuln.tiers.first { it.first == r.tier }.second, if (r.tier == "critical") p.warn else tc)
+                Text("${f.members.size} فرد", color = p.pri, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+            }
         }
-        val r = remember(f.members) { Vuln.compute(f.members) }
-        if (r.tier != "stable") {
-            val c = if (r.tier == "critical" || r.tier == "high") p.danger else p.mute
-            Text(Vuln.tiers.first { it.first == r.tier }.second, color = c, fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(end = 10.dp).border(1.dp, c, RoundedCornerShape(50)).padding(horizontal = 8.dp, vertical = 2.dp))
-        }
-        Text("${f.members.size} فرد", color = p.pri, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
-private fun TopBar(title: String, onBack: () -> Unit) {
-    val p = LocalPalette.current
-    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack).padding(12.dp))
-        Text(title, color = p.ink, fontFamily = GrcsFonts.display, fontSize = 20.sp)
-    }
-}
+private fun TopBar(title: String, onBack: () -> Unit) = AppHeader(title, "", conn = null, onBack = onBack)
 
 @Composable
 private fun FamilyScreen(f: Fam?, canWrite: Boolean, uid: String, onBack: () -> Unit, onEdit: (JSONObject) -> Unit, onDelete: (JSONObject) -> Unit, onSave: (JSONObject) -> Unit, onTransfer: (() -> Unit)?, loadCreds: (JSONObject) -> Pair<String, String>?) {
@@ -198,8 +198,8 @@ private fun FamilyScreen(f: Fam?, canWrite: Boolean, uid: String, onBack: () -> 
         if (f == null) { Text("لا توجد بيانات", color = p.mute, modifier = Modifier.padding(24.dp)); return }
         LazyColumn(Modifier.weight(1f).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(f.members.sortedByDescending { it.optBoolean("isFamilyHead") }, key = { it.optString("id") }) { m ->
-                Column(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(16.dp)).padding(14.dp)) {
-                    Text(m.optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                QCard {
+                    Text(m.optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     val tags = buildList {
                         if (m.optBoolean("isFamilyHead")) add("رب الأسرة") else relLabels.firstOrNull { it.first == m.optString("relation") }?.let { add(it.second) }
                         m.optString("birthDate").takeIf { it.isNotEmpty() }?.let { add(it) }
@@ -219,28 +219,23 @@ private fun FamilyScreen(f: Fam?, canWrite: Boolean, uid: String, onBack: () -> 
                             }
                         }
                     }
-                    if (canWrite) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (m.optBoolean("isFamilyHead") && m.optString("nationalId").isNotEmpty()) Text("بيانات الدخول", color = p.pri, fontSize = 13.sp,
-                            modifier = Modifier.heightIn(min = 44.dp).clickable {
-                                scope.launch { creds = withContext(Dispatchers.IO) { loadCreds(m) }?.let { "اسم المستخدم: ${it.first}\nكلمة المرور: ${it.second}" } ?: "لا تتوفر بيانات دخول لهذه الأسرة" }
-                            }.padding(vertical = 12.dp, horizontal = 8.dp))
-                        Text("مساعدة", color = p.pri, fontSize = 13.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { aidFor = m }.padding(vertical = 12.dp, horizontal = 8.dp))
-                        Text("تعديل", color = p.pri, fontSize = 13.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { onEdit(m) }.padding(vertical = 12.dp, horizontal = 8.dp))
-                        Text("حذف", color = p.danger, fontSize = 13.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { confirm = m }.padding(vertical = 12.dp, horizontal = 8.dp))
+                    if (canWrite) FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (m.optBoolean("isFamilyHead") && m.optString("nationalId").isNotEmpty()) Btn("بيانات الدخول", {
+                            scope.launch { creds = withContext(Dispatchers.IO) { loadCreds(m) }?.let { "اسم المستخدم: ${it.first}\nكلمة المرور: ${it.second}" } ?: "لا تتوفر بيانات دخول لهذه الأسرة" }
+                        }, kind = BtnKind.Outline, icon = QIcons.Key, small = true)
+                        Btn("مساعدة", { aidFor = m }, kind = BtnKind.Outline, icon = QIcons.Heart, small = true)
+                        Btn("تعديل", { onEdit(m) }, kind = BtnKind.Outline, icon = QIcons.Edit, small = true)
+                        Btn("حذف", { confirm = m }, kind = BtnKind.Danger, icon = QIcons.Trash, small = true)
                     }
                 }
             }
             item { Spacer(Modifier.height(80.dp)) }
         }
-        if (onTransfer != null) Text("نقل الأسرة لمخيم آخر", color = p.acc, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.heightIn(min = 48.dp).clickable { onTransfer() }.padding(horizontal = 16.dp, vertical = 14.dp))
-        if (canWrite) Box(
-            Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 52.dp).background(p.pri, RoundedCornerShape(16.dp)).clickable {
-                val fid = f.head?.optString("familyId").orEmpty().ifEmpty { f.members.first().optString("familyId") }
-                onEdit(JSONObject().put("familyId", fid).put("isFamilyHead", false).put("relation", "son"))
-            },
-            contentAlignment = Alignment.Center,
-        ) { Text("إضافة فرد", color = p.onPri, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+        if (onTransfer != null) Btn("نقل الأسرة لمخيم آخر", onTransfer, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), BtnKind.Outline, QIcons.Transfer)
+        if (canWrite) Btn("إضافة فرد", {
+            val fid = f.head?.optString("familyId").orEmpty().ifEmpty { f.members.first().optString("familyId") }
+            onEdit(JSONObject().put("familyId", fid).put("isFamilyHead", false).put("relation", "son"))
+        }, Modifier.fillMaxWidth().padding(16.dp), icon = QIcons.Plus)
     }
     aidFor?.let { m -> AidDialog(m, uid, { aidFor = null }) { o -> onSave(o); aidFor = null } }
     creds?.let { t ->
@@ -323,9 +318,8 @@ private fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: String
             (err ?: serverErr)?.let { Text(it, color = p.danger, fontSize = 13.sp) }
             Spacer(Modifier.height(8.dp))
         }
-        Box(
-            Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 52.dp).background(p.pri, RoundedCornerShape(16.dp)).clickable {
-                err = validate()
+        Btn("حفظ", {
+            err = validate()
                 if (err == null) {
                     val o = Merge.copy(src)
                     val n = normDigits(nid); val d = normDigits(dob)
@@ -341,9 +335,7 @@ private fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: String
                     if (o.optString("id").isEmpty()) o.put("id", java.util.UUID.randomUUID().toString())
                     onSave(o)
                 }
-            },
-            contentAlignment = Alignment.Center,
-        ) { Text("حفظ", color = p.onPri, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+        }, Modifier.fillMaxWidth().padding(16.dp), icon = QIcons.Check)
     }
 }
 

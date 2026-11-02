@@ -1,5 +1,7 @@
 package dev.saged.grcs.ui.more
 
+import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.qcard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,17 +53,14 @@ fun AuditPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         rows = withContext(Dispatchers.IO) { runCatching { Audit.list(auth, camp) }.getOrElse { error = true; emptyList() } }
     }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack).padding(12.dp))
-            Text("سجل النشاط", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 20.sp)
-        }
+        AppHeader("سجل النشاط", "", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
             if (error) Text("تعذّر تحميل السجل — تحقق من الاتصال", color = p.danger, fontSize = 13.sp)
             else if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)
             else if (rows!!.isEmpty()) Text("لا نشاط مسجّل", color = p.mute, fontSize = 13.sp)
             rows?.forEach { e ->
-                Column(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(16.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.fillMaxWidth().qcard().padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text((Audit.labels[e.action] ?: e.action) + if (e.targetName.isNotEmpty()) " — ${e.targetName}" else "", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     Text(e.userName + " · " + fmt.format(Date(e.at)), color = p.mute, fontSize = 12.sp)
                 }

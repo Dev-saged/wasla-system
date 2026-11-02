@@ -32,6 +32,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.Color
+import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.Btn
+import dev.saged.grcs.ui.components.BtnKind
+import dev.saged.grcs.ui.components.IconTile
+import dev.saged.grcs.ui.components.QCard
+import dev.saged.grcs.ui.components.cardShadow
+import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.data.Messages
@@ -56,35 +69,36 @@ fun MessagesScreen(auth: AuthState, data: DataRepo) {
     var thread by remember { mutableStateOf<String?>(if (ben) "ben" else null) }
     val repo = remember { Messages() }
     BackHandler(thread != null && !ben) { thread = null }
-    Box(Modifier.fillMaxSize().statusBarsPadding()) {
+    Box(Modifier.fillMaxSize()) {
         val t = thread
-        if (t == null) Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("الرسائل", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
-            Spacer(Modifier.height(4.dp))
-            ThreadRow("رسائل عامة لكل المخيمات") { thread = "global" }
+        if (t == null) Column(Modifier.fillMaxSize()) {
+          AppHeader("الرسائل", auth.user.fullName)
+          Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            ThreadRow("رسائل عامة لكل المخيمات", "إعلانات الإدارة لكل المخيمات", QIcons.Broadcast, p.acc) { thread = "global" }
             if (auth.user.role == "admin") {
                 var open by remember { mutableStateOf(false) }
                 var txt by remember { mutableStateOf("") }
                 var busy by remember { mutableStateOf(false) }
                 var res by remember { mutableStateOf("") }
                 val sc = rememberCoroutineScope()
-                if (!open) QChip("رسالة جماعية لكل مستفيدي كل المخيمات", false) { open = true; res = "" }
+                if (!open) Btn("رسالة جماعية لكل مستفيدي كل المخيمات", { open = true; res = "" }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Broadcast)
                 else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     QField("نص الرسالة", txt, { txt = it }, multiline = true)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        QChip(if (busy) "جارٍ الإرسال…" else "إرسال للجميع", true) {
+                        Btn(if (busy) "جارٍ الإرسال…" else "إرسال للجميع", {
                             if (!busy && txt.isNotBlank()) { busy = true; sc.launch {
                                 val n = withContext(Dispatchers.IO) { repo.broadcastAll(auth, camps.map { it.first }, txt.trim()) }
                                 busy = false
                                 if (n >= 0) { res = "أُرسلت إلى $n مستفيد"; txt = ""; open = false } else res = "تعذّر الإرسال لبعض المخيمات — تحقق من الاتصال"
                             } }
-                        }
-                        QChip("إلغاء", false) { open = false }
+                        }, small = true, icon = QIcons.Broadcast)
+                        Btn("إلغاء", { open = false }, kind = BtnKind.Outline, small = true)
                     }
                 }
                 if (res.isNotEmpty()) Text(res, color = p.mute, fontSize = 12.sp)
             }
-            camps.forEach { (id, n) -> ThreadRow(n) { thread = id }; ThreadRow("مستفيدو $n") { thread = "bl:$id" } }
+            camps.forEach { (id, n) -> ThreadRow(n, "محادثة المندوبين والإدارة", QIcons.Camp, p.pri) { thread = id }; ThreadRow("مستفيدو $n", "محادثات الأسر", QIcons.People, p.purple) { thread = "bl:$id" } }
+          }
         } else if (t.startsWith("bl:")) BenList(auth, repo, t.removePrefix("bl:"), camps.firstOrNull { it.first == t.removePrefix("bl:") }?.second.orEmpty(), { thread = null }) { tid -> thread = "bt:${t.removePrefix("bl:")}:$tid" }
         else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) thread = if (t.startsWith("bt:")) "bl:" + t.removePrefix("bt:").substringBefore(":") else null }
     }
@@ -95,48 +109,51 @@ private fun BenList(auth: AuthState, repo: Messages, camp: String, campName: Str
     val p = LocalPalette.current
     var rows by remember { mutableStateOf<List<Triple<String, String, String>>?>(null) }
     LaunchedEffect(camp) { rows = withContext(Dispatchers.IO) { runCatching { repo.benThreads(auth, camp) }.getOrDefault(emptyList()) } }
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack))
-        Text("مستفيدو $campName", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 22.sp)
+    Column(Modifier.fillMaxSize()) {
+      AppHeader("مستفيدو $campName", "", conn = null, onBack = onBack)
+      Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         var bc by remember { mutableStateOf(false) }
         var bcText by remember { mutableStateOf("") }
         var bcBusy by remember { mutableStateOf(false) }
         var bcMsg by remember { mutableStateOf("") }
         val sc = rememberCoroutineScope()
-        if (!bc) QChip("رسالة جماعية لكل المستفيدين", false) { bc = true; bcMsg = "" }
+        if (!bc) Btn("رسالة جماعية لكل المستفيدين", { bc = true; bcMsg = "" }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Broadcast)
         else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             QField("نص الرسالة", bcText, { bcText = it }, multiline = true)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QChip(if (bcBusy) "جارٍ الإرسال…" else "إرسال للجميع", true) {
+                Btn(if (bcBusy) "جارٍ الإرسال…" else "إرسال للجميع", {
                     if (!bcBusy && bcText.isNotBlank()) { bcBusy = true; sc.launch {
                         val n = withContext(Dispatchers.IO) { repo.broadcast(auth, camp, bcText.trim()) }
                         bcBusy = false
                         if (n >= 0) { bcMsg = "أُرسلت إلى $n مستفيد"; bcText = ""; bc = false } else bcMsg = "تعذّر الإرسال — تحقق من الاتصال"
                     } }
-                }
-                QChip("إلغاء", false) { bc = false }
+                }, small = true, icon = QIcons.Broadcast)
+                Btn("إلغاء", { bc = false }, kind = BtnKind.Outline, small = true)
             }
         }
         if (bcMsg.isNotEmpty()) Text(bcMsg, color = p.mute, fontSize = 12.sp)
         if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp) else if (rows!!.isEmpty()) Text("لا محادثات بعد", color = p.mute, fontSize = 13.sp)
         rows?.forEach { (tid, name, last) ->
-            Column(Modifier.fillMaxWidth().heightIn(min = 60.dp).background(p.surface, RoundedCornerShape(16.dp)).clickable { onOpen(tid) }.padding(14.dp)) {
-                val un = repo.unread[tid] ?: 0
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(name, color = p.ink, fontSize = 15.sp, fontWeight = if (un > 0) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.weight(1f))
-                    if (un > 0) Text("$un", color = p.onPri, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(p.pri, RoundedCornerShape(50)).padding(horizontal = 8.dp, vertical = 2.dp))
-                }
-                Text(last, color = p.mute, fontSize = 12.sp, maxLines = 1)
-            }
+            val un = repo.unread[tid] ?: 0
+            ThreadRow(name, last, QIcons.Person, p.pri, un) { onOpen(tid) }
         }
+      }
     }
 }
 
 @Composable
-private fun ThreadRow(title: String, onClick: () -> Unit) {
+private fun ThreadRow(title: String, sub: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: androidx.compose.ui.graphics.Color, unread: Int = 0, onClick: () -> Unit) {
     val p = LocalPalette.current
-    Box(Modifier.fillMaxWidth().heightIn(min = 60.dp).background(p.surface, RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(16.dp), contentAlignment = Alignment.CenterStart) {
-        Text(title, color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+    QCard(Modifier, onClick, 12.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconTile(icon, color, 40.dp, solid = false)
+            Column(Modifier.weight(1f)) {
+                Text(title, color = p.ink, fontSize = 14.5.sp, fontWeight = if (unread > 0) FontWeight.ExtraBold else FontWeight.Bold, maxLines = 1)
+                if (sub.isNotEmpty()) Text(sub, color = p.mute, fontSize = 12.sp, maxLines = 1)
+            }
+            if (unread > 0) Text("$unread", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(p.danger, CircleShape).padding(horizontal = 8.dp, vertical = 2.dp))
+            else Icon(QIcons.Chev, null, Modifier.size(18.dp), tint = p.mute)
+        }
     }
 }
 
@@ -168,16 +185,13 @@ private fun Chat(auth: AuthState, thread: String, title: String, onBack: () -> U
     }
 
     Column(Modifier.fillMaxSize().imePadding()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (!ben) Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack).padding(12.dp))
-            Text(title, color = p.ink, fontFamily = GrcsFonts.display, fontSize = 20.sp, modifier = Modifier.padding(start = if (ben) 12.dp else 0.dp))
-        }
+        AppHeader(title, "", conn = null, onBack = if (ben) null else onBack)
         LazyColumn(Modifier.weight(1f).padding(horizontal = 12.dp), state = listState, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (msgs.isEmpty()) item { Text("لا توجد رسائل بعد", color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(24.dp)) }
             items(msgs, key = { it.getString("id") }) { m ->
                 val out = m.optString("senderId") == auth.user.id
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = if (out) Arrangement.Start else Arrangement.End) {
-                    Column(Modifier.fillMaxWidth(.82f).background(if (out) p.pri else p.surface, RoundedCornerShape(16.dp)).padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    Column(Modifier.fillMaxWidth(.82f).then(if (out) Modifier else Modifier.cardShadow()).background(if (out) p.pri else p.surface, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = if (out) 4.dp else 16.dp, bottomEnd = if (out) 16.dp else 4.dp)).padding(horizontal = 12.dp, vertical = 8.dp)) {
                         if (!out) Text(m.optString("senderName"), color = p.mute, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         Text(m.optString("text"), color = if (out) p.onPri else p.ink, fontSize = 15.sp)
                         Text(fmt.format(Date(m.optLong("timestamp"))), color = (if (out) p.onPri else p.mute).copy(alpha = .75f), fontSize = 10.sp)
@@ -189,16 +203,13 @@ private fun Chat(auth: AuthState, thread: String, title: String, onBack: () -> U
         if (queued > 0) Text("$queued رسالة بانتظار الاتصال — ستُرسل تلقائياً", color = p.mute, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             QField("اكتب رسالة", text, { text = it; failed = false }, Modifier.weight(1f))
-            Box(
-                Modifier.heightIn(min = 56.dp).background(p.pri, RoundedCornerShape(14.dp)).clickable {
+            Btn("إرسال", {
                     val t = text.trim()
                     if (t.isNotEmpty()) scope.launch {
                         val ok = withContext(Dispatchers.IO) { repo.send(auth, thread, t) }
                         if (ok) { text = ""; rev++ } else failed = true
                     }
-                }.padding(horizontal = 18.dp),
-                contentAlignment = Alignment.Center,
-            ) { Text("إرسال", color = p.onPri, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
+            }, icon = QIcons.Broadcast)
         }
     }
 }
