@@ -84,6 +84,14 @@ class Messages {
         docs.size
     } catch (e: Exception) { -1 }
 
+    /** بث لكل مستفيدي كل المخيمات (أدمن). يعيد مجموع المرسَل أو -1 إن فشل مخيم. */
+    fun broadcastAll(st: AuthState, camps: List<String>, text: String): Int {
+        if (st.user.role != "admin") return -1
+        var total = 0
+        for (c in camps) { val n = broadcast(st, c, text); if (n < 0) return -1; total += n }
+        return total
+    }
+
     /** true = أُرسلت أو حُفظت في الصادر لإعادة المحاولة. */
     fun send(st: AuthState, thread: String, text: String): Boolean {
         val id = java.util.UUID.randomUUID().toString()

@@ -62,6 +62,28 @@ fun MessagesScreen(auth: AuthState, data: DataRepo) {
             Text("الرسائل", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
             Spacer(Modifier.height(4.dp))
             ThreadRow("رسائل عامة لكل المخيمات") { thread = "global" }
+            if (auth.user.role == "admin") {
+                var open by remember { mutableStateOf(false) }
+                var txt by remember { mutableStateOf("") }
+                var busy by remember { mutableStateOf(false) }
+                var res by remember { mutableStateOf("") }
+                val sc = rememberCoroutineScope()
+                if (!open) QChip("رسالة جماعية لكل مستفيدي كل المخيمات", false) { open = true; res = "" }
+                else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    QField("نص الرسالة", txt, { txt = it }, multiline = true)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        QChip(if (busy) "جارٍ الإرسال…" else "إرسال للجميع", true) {
+                            if (!busy && txt.isNotBlank()) { busy = true; sc.launch {
+                                val n = withContext(Dispatchers.IO) { repo.broadcastAll(auth, camps.map { it.first }, txt.trim()) }
+                                busy = false
+                                if (n >= 0) { res = "أُرسلت إلى $n مستفيد"; txt = ""; open = false } else res = "تعذّر الإرسال لبعض المخيمات — تحقق من الاتصال"
+                            } }
+                        }
+                        QChip("إلغاء", false) { open = false }
+                    }
+                }
+                if (res.isNotEmpty()) Text(res, color = p.mute, fontSize = 12.sp)
+            }
             camps.forEach { (id, n) -> ThreadRow(n) { thread = id }; ThreadRow("مستفيدو $n") { thread = "bl:$id" } }
         } else if (t.startsWith("bl:")) BenList(auth, repo, t.removePrefix("bl:"), camps.firstOrNull { it.first == t.removePrefix("bl:") }?.second.orEmpty(), { thread = null }) { tid -> thread = "bt:${t.removePrefix("bl:")}:$tid" }
         else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) thread = if (t.startsWith("bt:")) "bl:" + t.removePrefix("bt:").substringBefore(":") else null }
