@@ -43,6 +43,7 @@ import dev.saged.grcs.ui.components.Conn
 import dev.saged.grcs.ui.components.ConnState
 import dev.saged.grcs.ui.components.EmptyState
 import dev.saged.grcs.ui.components.HeaderBtn
+import dev.saged.grcs.data.PFilter
 import dev.saged.grcs.ui.components.KpiCard
 import dev.saged.grcs.ui.components.QCard
 import dev.saged.grcs.ui.components.Ring
@@ -72,7 +73,7 @@ private fun insight(data: DataRepo, token: String, camps: List<CampSummary>): In
 
 /** الرئيسية بتصميم الويب: ترويسة كحلية، بطاقات إحصاء بحافة ملوّنة، مؤشر الهشاشة، جودة البيانات لكل مخيم. */
 @Composable
-fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit) {
+fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (String) -> Unit = {}) {
     val p = LocalPalette.current
     var auth by remember { mutableStateOf(auth0) }
     var camps by remember { mutableStateOf(data.cached(auth0)) }
@@ -125,6 +126,7 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit) {
                             K("أرامل", t.widowed, p.gray, QIcons.Person), K("مطلقون", t.divorced, p.gray, QIcons.Person),
                             K("بلا هوية", t.noId, p.warn, QIcons.IdCard), K("أسر بلا جوال", t.familiesNoPhone, p.danger, QIcons.Phone),
                         ),
+                        onKpi,
                     )
                     ins?.let { if (it.tiers.isNotEmpty()) Risk(it.tiers) }
                     if (camps.size > 1 || ins?.quality?.isNotEmpty() == true) ins?.let { Quality(camps, it.quality) }
@@ -149,14 +151,14 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit) {
     }
 }
 
-private class K(val label: String, val value: Int, val color: Color, val icon: ImageVector)
+private class K(val label: String, val value: Int, val color: Color, val icon: ImageVector) { val key = PFilter.kpiKey[label] ?: "all" }
 
 @Composable
-private fun Grid(items: List<K>) {
+private fun Grid(items: List<K>, onKpi: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         items.chunked(2).forEachIndexed { ri, row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEachIndexed { ci, it -> KpiCard(it.label, it.value, it.color, it.icon, Modifier.weight(1f), index = ri * 2 + ci) }
+                row.forEachIndexed { ci, it -> KpiCard(it.label, it.value, it.color, it.icon, Modifier.weight(1f), index = ri * 2 + ci, onClick = { onKpi(it.key) }) }
                 if (row.size == 1) Box(Modifier.weight(1f))
             }
         }

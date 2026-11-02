@@ -85,6 +85,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     val tabs = remember(auth.user.role) { tabsFor(auth.user.role) }
     var sel by rememberSaveable { mutableStateOf(0) }
     var openCamp by remember { mutableStateOf<String?>(null) }
+    var homeFilter by remember { mutableStateOf<String?>(null) }
     val tab = tabs[sel.coerceIn(0, tabs.lastIndex)]
     val ben = auth.user.role == "beneficiary"
     BackHandler(sel != 0 && openCamp == null) { sel = 0 }
@@ -101,7 +102,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             label = "dest",
         ) { t ->
             when (t) {
-                Tab.Home -> if (ben) BenHome(auth, data) else HomeScreen(auth, data, onLogout)
+                Tab.Home -> if (ben) BenHome(auth, data) else if (homeFilter != null) PeopleScreen(auth, data, startFilter = homeFilter) { homeFilter = null } else HomeScreen(auth, data, onLogout) { homeFilter = it }
                 Tab.Camps -> if (openCamp != null) PeopleScreen(auth, data, openCamp) { openCamp = null } else CampsScreen(auth, data) { openCamp = it }
                 Tab.People -> PeopleScreen(auth, data)
                 Tab.Chat -> MessagesScreen(auth, data)
@@ -110,7 +111,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
                 Tab.Settings -> MoreScreen(auth, data, onLogout)
             }
         }
-        NavBar(tabs, sel) { sel = it; openCamp = null }
+        NavBar(tabs, sel) { sel = it; openCamp = null; homeFilter = null }
     }
 }
 

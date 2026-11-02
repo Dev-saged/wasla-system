@@ -46,6 +46,9 @@ import dev.saged.grcs.ui.icons.QIcons
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import dev.saged.grcs.data.PFilter
+import dev.saged.grcs.data.Stats
+import dev.saged.grcs.ui.components.EmptyState
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.Aid
 import dev.saged.grcs.data.DataRepo
@@ -74,14 +77,16 @@ private fun group(list: List<JSONObject>): List<Fam> =
 
 /** الأسر والأفراد: قائمة، تفصيل أسرة، إضافة/تعديل/حذف. التعديل محلي فوري ويُرفع في الخلفية. */
 @Composable
-fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, onExit: (() -> Unit)? = null) {
+fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, startFilter: String? = null, startFamily: String? = null, onExit: (() -> Unit)? = null) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
     val camps = remember { data.campList(auth) }
     var camp by remember { mutableStateOf(startCamp ?: camps.firstOrNull()?.first.orEmpty()) }
     var persons by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var q by remember { mutableStateOf("") }
-    var open by remember { mutableStateOf<String?>(null) }
+    var open by remember { mutableStateOf<String?>(startFamily) }
+    var filter by remember { mutableStateOf(startFilter ?: "head") }
+    var sort by remember { mutableStateOf("default") }
     var edit by remember { mutableStateOf<JSONObject?>(null) }
     var pending by remember { mutableIntStateOf(0) }
     var nidErr by remember { mutableStateOf<String?>(null) }
@@ -143,13 +148,27 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, onE
                 Spacer(Modifier.height(8.dp))
                 SearchBox(q, { q = it }, "بحث بالاسم أو الهوية أو الجوال")
                 Spacer(Modifier.height(8.dp))
-                val qq = normDigits(q)
-                val shown = if (qq.isEmpty()) fams else fams.filter { f ->
-                    f.members.any { m -> m.optString("fullName").contains(qq) || m.optString("nationalId").contains(qq) || m.optString("phone").contains(qq) }
+                androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(PFilter.chips, key = { it.first }) { (k, l) -> QChip(l, filter == k) { filter = k } }
                 }
-                Text("${shown.size} أسرة", color = p.mute, fontSize = 12.sp)
+                Spacer(Modifier.height(6.dp))
+                val qq = normDigits(q)
+                val byFilter = remember(persons, filter) { PFilter.apply(filter, persons) }
+                val matched = if (qq.isEmpty()) byFilter else byFilter.filter { m -> m.optString("fullName").contains(qq) || m.optString("nationalId").contains(qq) || m.optString("phone").contains(qq) }
+                val vscore = remember(persons, sort) { if (sort == "vuln") Vuln.families(persons).associate { it.head.optString("id") to it.result.score } else emptyMap() }
+                val shownP = remember(matched, sort) { if (sort == "vuln") matched.sortedByDescending { vscore[famKeyOf(it, persons)] ?: 0 } else matched }
+                val headIds = remember(matched) { matched.map { it.optString("familyId").ifEmpty { "i_" + it.optString("id") } }.toHashSet() }
+                val famList = remember(fams, headIds, sort) { fams.filter { it.key in headIds }.let { l -> if (sort == "vuln") l.sortedByDescending { Vuln.compute(it.members).score } else l } }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (filter == "head") "${famList.size} أسرة" else "${shownP.size} سجل", color = p.mute, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    QChip(if (sort == "vuln") "الأكثر هشاشة أولاً" else "ترتيب: الاسم", sort == "vuln") { sort = if (sort == "vuln") "default" else "vuln" }
+                }
                 LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(shown.take(300), key = { it.key }) { f -> FamRow(f) { open = f.key } }
+                    if (filter == "head") items(famList.take(300), key = { it.key }) { f -> FamRow(f) { open = f.key } }
+                    else {
+                        if (shownP.isEmpty()) item { EmptyState(QIcons.People, "لا يوجد سجلات", "جرّب تغيير الفلتر أو البحث") }
+                        items(shownP.take(300), key = { it.optString("id") }) { m -> PersonRow(m, persons, { open = famKeyOf(m, persons) }, { if (canWrite) edit = m }) }
+                    }
                     item { Spacer(Modifier.height(72.dp)) }
                 }
                 if (canWrite) Btn("أسرة جديدة", { edit = JSONObject().put("isFamilyHead", true).put("relation", "head") }, Modifier.fillMaxWidth().padding(vertical = 10.dp), icon = QIcons.Plus)
@@ -157,6 +176,41 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, onE
             }
         }
         if (openTransfer) TransferDialog(auth, data, camp, camps, open.orEmpty()) { openTransfer = false; open = null; rev++ }
+    }
+}
+
+private fun famKeyOf(m: JSONObject, all: List<JSONObject>) = m.optString("familyId").ifEmpty { "i_" + m.optString("id") }
+
+/** بطاقة فرد: صورة الجنس، الاسم والعمر وأسرة رب الأسرة، شارات الحالة، وزر التعديل. */
+@Composable
+private fun PersonRow(m: JSONObject, all: List<JSONObject>, onOpen: () -> Unit, onEdit: () -> Unit) {
+    val p = LocalPalette.current
+    val a = Stats.ageOf(m)
+    val female = m.optString("gender") == "female"; val male = m.optString("gender") == "male"
+    val gc = if (female) p.purple else if (male) p.blue else p.gray
+    val head = remember(m) { all.firstOrNull { it.optString("familyId") == m.optString("familyId") && it.optBoolean("isFamilyHead") } }
+    val badges = buildList {
+        if (m.optBoolean("isPregnant")) add("حامل" to p.pregnant)
+        if (m.optBoolean("isBreastfeeding")) add("مرضعة" to p.purple)
+        if (m.optBoolean("hasChronicDisease")) add("مزمن" to p.warn)
+        if (m.optBoolean("hasDisability")) add("إعاقة" to p.blue)
+        if (a != null && a < 1) add("رضيع" to p.danger)
+        if (m.optString("maritalStatus").let { it.contains("أرمل") || it.contains("مطلق") }) add((if (m.optString("maritalStatus").contains("أرمل")) "أرمل/ة" else "مطلّق/ة") to p.gray)
+        if (m.optString("phone").isEmpty()) add("بلا هاتف" to p.gray)
+        if (m.optBoolean("urgentNeed")) add("طارئ" to p.danger)
+    }
+    QCard(Modifier, onOpen, 12.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(42.dp).clip(CircleShape).background(gc.copy(alpha = .16f)), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.Icon(if (female) QIcons.Female else if (male) QIcons.Male else QIcons.Person, null, Modifier.size(22.dp), tint = gc)
+            }
+            Column(Modifier.weight(1f)) {
+                Text(m.optString("fullName"), color = p.ink, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text((a?.let { "$it سنة" } ?: "العمر غير محدد") + (if (!m.optBoolean("isFamilyHead") && head != null) " · أسرة ${head.optString("fullName")}" else ""), color = p.mute, fontSize = 12.sp, maxLines = 1)
+                if (badges.isNotEmpty()) FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) { badges.forEach { (t, c) -> Pill(t, c) } }
+            }
+            Box(Modifier.size(44.dp).clickable(onClick = onEdit), contentAlignment = Alignment.Center) { androidx.compose.material3.Icon(QIcons.Edit, "تعديل", Modifier.size(20.dp), tint = p.mute) }
+        }
     }
 }
 
