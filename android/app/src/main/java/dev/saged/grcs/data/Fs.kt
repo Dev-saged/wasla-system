@@ -164,6 +164,18 @@ object Fs {
         commitRaw(JSONArray().put(JSONObject().put("update", JSONObject().put("name", fullName(path)).put("fields", f))), token)
     }
 
+    /** كتابة عدة مستندات كاملة دفعة واحدة (حتى 400 في الطلب). */
+    fun setMany(docs: List<Pair<String, Map<String, Any?>>>, token: String) {
+        docs.chunked(400).forEach { chunk ->
+            val w = JSONArray()
+            chunk.forEach { (path, fields) ->
+                val f = JSONObject(); fields.forEach { (k, v) -> f.put(k, enc(v)) }
+                w.put(JSONObject().put("update", JSONObject().put("name", fullName(path)).put("fields", f)))
+            }
+            commitRaw(w, token)
+        }
+    }
+
     /** تحديث حقول محددة فقط (updateMask) دون المساس بباقي المستند. */
     fun patch(path: String, fields: Map<String, Any?>, token: String) {
         val f = JSONObject(); fields.forEach { (k, v) -> f.put(k, enc(v)) }
@@ -211,9 +223,9 @@ object Fs {
     }
 
     /** استعلام تساوي على مجموعة جذرية؛ يعيد حقول المستندات كنصوص/قيم مبسّطة. */
-    fun queryEq(collection: String, eq: List<Pair<String, String>>, token: String): List<JSONObject> {
+    fun queryEq(collection: String, eq: List<Pair<String, String>>, token: String, limit: Int = 5): List<JSONObject> {
         val filters = JSONArray(eq.map { (k, v) -> JSONObject().put("fieldFilter", JSONObject().put("field", JSONObject().put("fieldPath", k)).put("op", "EQUAL").put("value", enc(v))) })
-        val sq = JSONObject().put("from", JSONArray().put(JSONObject().put("collectionId", collection))).put("limit", 5)
+        val sq = JSONObject().put("from", JSONArray().put(JSONObject().put("collectionId", collection))).put("limit", limit)
         sq.put("where", if (filters.length() == 1) filters.getJSONObject(0) else JSONObject().put("compositeFilter", JSONObject().put("op", "AND").put("filters", filters)))
         val r = Http.postJson("${Backend.FIRESTORE}:runQuery", JSONObject().put("structuredQuery", sq), token, 30_000)
         if (r.code !in 200..299) throw FsException(r.code)

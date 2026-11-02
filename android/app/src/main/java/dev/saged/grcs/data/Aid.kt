@@ -69,4 +69,19 @@ object Aid {
         for (i in 0 until a.length()) a.optJSONObject(i)?.let { if (it.optString("id") == id) it.put("status", status).put("updatedAt", Clock.now()).put("reviewedBy", userId) }
         return o
     }
+
+    class Row(val label: String, val records: Int, val people: Int, val qty: Double)
+
+    /** تقرير التوزيع: لكل نوع عدد السجلات والمستفيدين المختلفين ومجموع الكمية، ضمن آخر days يوماً (0 = الكل). */
+    fun report(persons: List<JSONObject>, days: Int): List<Row> {
+        val from = if (days > 0) SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(System.currentTimeMillis() - days * 86_400_000L)) else ""
+        val acc = HashMap<String, Triple<Int, MutableSet<String>, Double>>()
+        for (p in persons) for (r in list(p)) {
+            if (r.optString("d") < from) continue
+            val k = r.optString("t"); val cur = acc[k] ?: Triple(0, mutableSetOf(), 0.0)
+            cur.second.add(p.optString("id"))
+            acc[k] = Triple(cur.first + 1, cur.second, cur.third + r.optDouble("q", 1.0))
+        }
+        return types.mapNotNull { t -> acc[t.k]?.let { Row(t.label, it.first, it.second.size, it.third) } }
+    }
 }

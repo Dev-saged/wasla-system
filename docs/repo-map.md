@@ -47,4 +47,16 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - versionCode base raised to 1000 so the native build always installs over the old WebToApp APK (a lower code would be refused as a downgrade).
 - android vulnerability: `data/Vuln.kt` (same rules/weights/cuts as web VULN_RULES; admin weights read from config/vulnWeights; shelter uses shelterType only, no free-text inference) + `ui/more/VulnPage.kt`.
 - android transfer: `data/Transfer.kt` + `ui/people/TransferDialog.kt` (admin only; plan blocks on nid/family-id conflicts; writes dest first, removes source only after dest is pushed; moves beneficiary user/creds/nationalIds; activityLogs entry in both camps).
+- native: camp admin (create/rename) — DataRepo.createCamp/renameCamp + CampsScreen dialog; rename propagates campName to users; camp delete/clear intentionally not implemented (risky, web only).
+- native: message outbox (Messages.Outbox, SharedPreferences, idempotent retry by id, flush on load/send).
+- native: Vuln.effectiveShelter/inferShelter (free-text shelter inference) + tier chip on FamRow.
+- native: deleting a head queues benDel (users+creds by username=nid, campId) in Accounts todo.
+- native: AidReportPage (Aid.report) in More; docs/releases/v4.0.0.md written.
+- native: Messages.broadcast (per-camp, all beneficiaries, Fs.setMany batch) + button in BenList.
+- native import: horizontal family-tree sheets (Importer.horizontal; head+wife+numbered children, add-only, skips existing nids); auto-detected by repeating child columns.
+- native admin: data/Staff.kt + ui/more/StaffPage.kt (list delegates/dataentry/admins, enable/disable, reset password -> users salt/verifier + creds); admin-only item in More.
+- native admin: Staff.create (delegate/dataentry/admin; username uniqueness via query; creds doc) in StaffPage.
+- native messages: unread badges for beneficiary threads (Messages.Seen per-device last-read, counts from already-loaded messages, no extra reads).
+- native messages: admin broadcastAll over camps (per-camp batches).
+- native: GenderInfer (assets/gender_lex.json exported from web lexicons) fills missing gender in imports; no learned father/vote corpus.
 - v3.6.2: removed legacy PUSH_ADMIN_KEY/X-Admin-Key from client (secV=2 confirmed; Worker rejects old key); push needs admin idToken.

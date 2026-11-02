@@ -2,6 +2,7 @@ package dev.saged.grcs.ui.people
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,7 @@ import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.Aid
 import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.data.Merge
+import dev.saged.grcs.data.Vuln
 import dev.saged.grcs.ui.components.QChip
 import dev.saged.grcs.ui.components.QField
 import dev.saged.grcs.ui.theme.GrcsFonts
@@ -163,6 +165,12 @@ private fun FamRow(f: Fam, onClick: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text((f.head ?: f.members.first()).optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             Text((f.head ?: f.members.first()).optString("phone").ifEmpty { "بلا جوال" }, color = p.mute, fontSize = 12.sp)
+        }
+        val r = remember(f.members) { Vuln.compute(f.members) }
+        if (r.tier != "stable") {
+            val c = if (r.tier == "critical" || r.tier == "high") p.danger else p.mute
+            Text(Vuln.tiers.first { it.first == r.tier }.second, color = c, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(end = 10.dp).border(1.dp, c, RoundedCornerShape(50)).padding(horizontal = 8.dp, vertical = 2.dp))
         }
         Text("${f.members.size} فرد", color = p.pri, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }

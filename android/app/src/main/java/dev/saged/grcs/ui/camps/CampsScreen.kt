@@ -11,7 +11,19 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import dev.saged.grcs.ui.components.QChip
+import dev.saged.grcs.ui.components.QField
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -28,21 +40,52 @@ import dev.saged.grcs.ui.theme.LocalPalette
 @Composable
 fun CampsScreen(auth: AuthState, data: DataRepo) {
     val p = LocalPalette.current
-    val camps = remember { data.cached(auth).sortedByDescending { it.stats.total } }
+    var camps by remember { mutableStateOf(data.cached(auth).sortedByDescending { it.stats.total }) }
+    val admin = auth.user.role == "admin"
+    var edit by remember { mutableStateOf<CampSummary?>(null) }
+    var creating by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    fun reload() { camps = data.cached(auth).sortedByDescending { it.stats.total } }
     Column(Modifier.fillMaxSize().statusBarsPadding().padding(16.dp)) {
-        Text("المخيمات", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("المخيمات", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
+            if (admin) QChip("مخيم جديد", false) { creating = true }
+        }
         if (camps.isEmpty()) Text("لا بيانات بعد — افتح الرئيسية للمزامنة", color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(top = 16.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
-            items(camps, key = { it.id }) { Card(it) }
+            items(camps, key = { it.id }) { c -> Card(c, admin) { edit = c } }
         }
+    }
+    if (creating || edit != null) {
+        var name by remember(edit, creating) { mutableStateOf(edit?.name.orEmpty()) }
+        AlertDialog(
+            onDismissRequest = { if (!busy) { creating = false; edit = null } },
+            title = { Text(if (creating) "مخيم جديد" else "تعديل اسم المخيم") },
+            text = { QField("اسم المخيم", name, { name = it }) },
+            confirmButton = {
+                TextButton(enabled = !busy && name.isNotBlank(), onClick = {
+                    busy = true
+                    val target = edit
+                    scope.launch {
+                        withContext(Dispatchers.IO) { if (target == null) data.createCamp(auth, name) != null else data.renameCamp(auth, target.id, name) }
+                        busy = false; creating = false; edit = null; reload()
+                    }
+                }) { Text("حفظ") }
+            },
+            dismissButton = { TextButton(enabled = !busy, onClick = { creating = false; edit = null }) { Text("إلغاء") } },
+        )
     }
 }
 
 @Composable
-private fun Card(c: CampSummary) {
+private fun Card(c: CampSummary, admin: Boolean, onEdit: () -> Unit) {
     val p = LocalPalette.current
     Column(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(18.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(c.name, color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text(c.name, color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            if (admin) QChip("تعديل الاسم", false, onEdit)
+        }
         Text("${c.stats.families} أسرة · ${c.stats.total} فرد", color = p.pri, fontSize = 13.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("أطفال ${c.stats.child}", color = p.mute, fontSize = 12.sp)

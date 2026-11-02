@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.data.Messages
+import dev.saged.grcs.ui.components.QChip
 import dev.saged.grcs.ui.components.QField
 import dev.saged.grcs.ui.theme.GrcsFonts
 import dev.saged.grcs.ui.theme.LocalPalette
@@ -53,6 +54,7 @@ fun MessagesScreen(auth: AuthState, data: DataRepo) {
     val ben = auth.user.role == "beneficiary"
     val camps = remember { data.campList(auth) }
     var thread by remember { mutableStateOf<String?>(if (ben) "ben" else null) }
+    val repo = remember { Messages() }
     BackHandler(thread != null && !ben) { thread = null }
     Box(Modifier.fillMaxSize().statusBarsPadding()) {
         val t = thread
@@ -60,8 +62,73 @@ fun MessagesScreen(auth: AuthState, data: DataRepo) {
             Text("الرسائل", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
             Spacer(Modifier.height(4.dp))
             ThreadRow("رسائل عامة لكل المخيمات") { thread = "global" }
-            camps.forEach { (id, n) -> ThreadRow(n) { thread = id } }
-        } else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) thread = null }
+            if (auth.user.role == "admin") {
+                var open by remember { mutableStateOf(false) }
+                var txt by remember { mutableStateOf("") }
+                var busy by remember { mutableStateOf(false) }
+                var res by remember { mutableStateOf("") }
+                val sc = rememberCoroutineScope()
+                if (!open) QChip("رسالة جماعية لكل مستفيدي كل المخيمات", false) { open = true; res = "" }
+                else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    QField("نص الرسالة", txt, { txt = it }, multiline = true)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        QChip(if (busy) "جارٍ الإرسال…" else "إرسال للجميع", true) {
+                            if (!busy && txt.isNotBlank()) { busy = true; sc.launch {
+                                val n = withContext(Dispatchers.IO) { repo.broadcastAll(auth, camps.map { it.first }, txt.trim()) }
+                                busy = false
+                                if (n >= 0) { res = "أُرسلت إلى $n مستفيد"; txt = ""; open = false } else res = "تعذّر الإرسال لبعض المخيمات — تحقق من الاتصال"
+                            } }
+                        }
+                        QChip("إلغاء", false) { open = false }
+                    }
+                }
+                if (res.isNotEmpty()) Text(res, color = p.mute, fontSize = 12.sp)
+            }
+            camps.forEach { (id, n) -> ThreadRow(n) { thread = id }; ThreadRow("مستفيدو $n") { thread = "bl:$id" } }
+        } else if (t.startsWith("bl:")) BenList(auth, repo, t.removePrefix("bl:"), camps.firstOrNull { it.first == t.removePrefix("bl:") }?.second.orEmpty(), { thread = null }) { tid -> thread = "bt:${t.removePrefix("bl:")}:$tid" }
+        else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) thread = if (t.startsWith("bt:")) "bl:" + t.removePrefix("bt:").substringBefore(":") else null }
+    }
+}
+
+@Composable
+private fun BenList(auth: AuthState, repo: Messages, camp: String, campName: String, onBack: () -> Unit, onOpen: (String) -> Unit) {
+    val p = LocalPalette.current
+    var rows by remember { mutableStateOf<List<Triple<String, String, String>>?>(null) }
+    LaunchedEffect(camp) { rows = withContext(Dispatchers.IO) { runCatching { repo.benThreads(auth, camp) }.getOrDefault(emptyList()) } }
+    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack))
+        Text("مستفيدو $campName", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 22.sp)
+        var bc by remember { mutableStateOf(false) }
+        var bcText by remember { mutableStateOf("") }
+        var bcBusy by remember { mutableStateOf(false) }
+        var bcMsg by remember { mutableStateOf("") }
+        val sc = rememberCoroutineScope()
+        if (!bc) QChip("رسالة جماعية لكل المستفيدين", false) { bc = true; bcMsg = "" }
+        else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            QField("نص الرسالة", bcText, { bcText = it }, multiline = true)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                QChip(if (bcBusy) "جارٍ الإرسال…" else "إرسال للجميع", true) {
+                    if (!bcBusy && bcText.isNotBlank()) { bcBusy = true; sc.launch {
+                        val n = withContext(Dispatchers.IO) { repo.broadcast(auth, camp, bcText.trim()) }
+                        bcBusy = false
+                        if (n >= 0) { bcMsg = "أُرسلت إلى $n مستفيد"; bcText = ""; bc = false } else bcMsg = "تعذّر الإرسال — تحقق من الاتصال"
+                    } }
+                }
+                QChip("إلغاء", false) { bc = false }
+            }
+        }
+        if (bcMsg.isNotEmpty()) Text(bcMsg, color = p.mute, fontSize = 12.sp)
+        if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp) else if (rows!!.isEmpty()) Text("لا محادثات بعد", color = p.mute, fontSize = 13.sp)
+        rows?.forEach { (tid, name, last) ->
+            Column(Modifier.fillMaxWidth().heightIn(min = 60.dp).background(p.surface, RoundedCornerShape(16.dp)).clickable { onOpen(tid) }.padding(14.dp)) {
+                val un = repo.unread[tid] ?: 0
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(name, color = p.ink, fontSize = 15.sp, fontWeight = if (un > 0) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.weight(1f))
+                    if (un > 0) Text("$un", color = p.onPri, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(p.pri, RoundedCornerShape(50)).padding(horizontal = 8.dp, vertical = 2.dp))
+                }
+                Text(last, color = p.mute, fontSize = 12.sp, maxLines = 1)
+            }
+        }
     }
 }
 
@@ -94,7 +161,11 @@ private fun Chat(auth: AuthState, thread: String, title: String, onBack: () -> U
             delay(15_000)
         }
     }
-    LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) listState.scrollToItem(msgs.size - 1) }
+    LaunchedEffect(msgs.size) {
+        if (msgs.isNotEmpty()) listState.scrollToItem(msgs.size - 1)
+        val key = if (thread.startsWith("bt:")) thread.substringAfterLast(":") else thread
+        msgs.maxOfOrNull { it.optLong("timestamp") }?.let { Messages.Seen.mark(auth.user.id, key, it) }
+    }
 
     Column(Modifier.fillMaxSize().imePadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -114,7 +185,8 @@ private fun Chat(auth: AuthState, thread: String, title: String, onBack: () -> U
                 }
             }
         }
-        if (failed) Text("تعذّر الإرسال — تحقق من الاتصال وأعد المحاولة", color = p.danger, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+        val queued = Messages.Outbox.count(auth.user.id).also { rev.hashCode() }
+        if (queued > 0) Text("$queued رسالة بانتظار الاتصال — ستُرسل تلقائياً", color = p.mute, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             QField("اكتب رسالة", text, { text = it; failed = false }, Modifier.weight(1f))
             Box(
