@@ -49,6 +49,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.saged.grcs.auth.AuthState
+import dev.saged.grcs.data.DataRepo
+import dev.saged.grcs.ui.home.HomeScreen
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.theme.LocalPalette
 import dev.saged.grcs.ui.theme.rememberReduceMotion
@@ -65,7 +68,7 @@ private val Silk = CubicBezierEasing(.2f, .8f, .2f, 1f)
 
 /** القشرة المعتمدة: شاشة واحدة لكل وظيفة، وشريط سفلي بخمسة عناصر ومؤشر ينزلق. */
 @Composable
-fun AppShell() {
+fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     val p = LocalPalette.current
     val reduce = rememberReduceMotion()
     var sel by rememberSaveable { mutableIntStateOf(0) }
@@ -80,7 +83,7 @@ fun AppShell() {
                 }
             },
             label = "dest",
-        ) { i -> Placeholder(Dest.entries[i]) }
+        ) { i -> if (i == 0) HomeScreen(auth, data, onLogout) else Placeholder(Dest.entries[i]) }
         NavBar(sel) { sel = it }
     }
 }

@@ -34,3 +34,5 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 
 - android auth: `auth/{Pbkdf2,Http,SessionStore,AuthRepo}.kt` login via existing Worker + Keystore-encrypted session; `config/Backend.kt` public Firebase client config; `ui/login/LoginScreen.kt`.
 - MainActivity flow: Opening -> (restore session) -> Login -> AppShell.
+- android data (read-only): `data/{Fs,FamCache,Stats,DataRepo}.kt` incremental `fam` pull by `u` cursor into SQLite, stats mirror web computeStats; `ui/home/HomeScreen.kt` shows real totals.
+- Writes to `fam` NOT ported yet: never call Fs write paths until merge logic is ported.

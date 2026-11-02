@@ -21,6 +21,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import dev.saged.grcs.auth.AuthRepo
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.auth.SessionStore
+import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.ui.login.LoginScreen
 import dev.saged.grcs.ui.opening.OpeningScreen
 import dev.saged.grcs.ui.shell.AppShell
@@ -34,6 +35,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             GrcsTheme {
                 val repo = remember { AuthRepo(SessionStore(applicationContext)) }
+                val data = remember { DataRepo(applicationContext, repo) }
                 var opening by rememberSaveable { mutableStateOf(true) }
                 var auth by remember { mutableStateOf<AuthState?>(null) }
                 var restored by remember { mutableStateOf(false) }
@@ -49,7 +51,7 @@ class MainActivity : ComponentActivity() {
                     when (it) {
                         0 -> OpeningScreen { opening = false }
                         1 -> LoginScreen(repo) { st -> auth = st }
-                        else -> AppShell()
+                        else -> auth?.let { a -> AppShell(a, data) { repo.logout(); data.clear(); auth = null } }
                     }
                 }
             }
