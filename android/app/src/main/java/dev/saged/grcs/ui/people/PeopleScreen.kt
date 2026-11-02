@@ -106,7 +106,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
 
     fun remove(o: JSONObject) {
         scope.launch {
-            withContext(Dispatchers.IO) { data.people.delete(camp, o); data.afterSave(auth, camp, o, true) }
+            withContext(Dispatchers.IO) { runCatching { data.trash.put(auth, camp, "person", o.optString("fullName").ifEmpty { "—" }, listOf(o)) }; data.people.delete(camp, o); data.afterSave(auth, camp, o, true) }
             rev++
             withContext(Dispatchers.IO) { data.pushNow(auth, camp) }
             rev++
