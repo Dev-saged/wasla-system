@@ -74,7 +74,7 @@ object Importer {
             val isHead = headNid.isEmpty() || headNid == nid
             val fid = if (isHead) nid.ifEmpty { java.util.UUID.randomUUID().toString() } else headNid
             val dob = date(cell(r, "dob"))
-            val g = gender(cell(r, "gender"))
+            val g = gender(cell(r, "gender")).ifEmpty { GenderInfer.infer(name) }
             val p = JSONObject().put("id", java.util.UUID.randomUUID().toString()).put("campId", camp).put("fullName", name).put("nationalId", nid)
                 .put("birthDate", if (dob.isEmpty()) JSONObject.NULL else dob).put("calculatedAge", dobAge(dob) ?: JSONObject.NULL).put("gender", g)
                 .put("phone", digits(cell(r, "phone"))).put("address", cell(r, "address")).put("notes", "").put("isFamilyHead", isHead)
@@ -146,7 +146,7 @@ object Importer {
             val nid = digits(cell(r, c["hNid"]))
             if (nid.isNotEmpty() && (nid in have || !seen.add(nid))) { dupes++; continue }
             val fid = nid.ifEmpty { java.util.UUID.randomUUID().toString() }
-            val head = person(name, nid, cell(r, c["hDob"]), fid, "head", true, gender(cell(r, c["gender"])))
+            val head = person(name, nid, cell(r, c["hDob"]), fid, "head", true, gender(cell(r, c["gender"])).ifEmpty { GenderInfer.infer(name) })
                 .put("phone", digits(cell(r, c["phone"]))).put("address", cell(r, c["address"])).put("maritalStatus", cell(r, c["marital"]))
             val hs = cell(r, c["health"])
             if (hs.isNotEmpty() && norm(hs) != "سليم") {
@@ -163,7 +163,7 @@ object Importer {
                 val kn = cell(r, k.name); if (kn.length < 2) continue
                 val knid = digits(cell(r, k.nid))
                 if (knid.isNotEmpty() && (knid in have || !seen.add(knid))) continue
-                out += person(kn, knid, cell(r, k.dob), fid, "child", false, "")
+                out += person(kn, knid, cell(r, k.dob), fid, "child", false, GenderInfer.infer(kn))
             }
         }
         return ImportPreview(out, dupes, bad, mapped, heads)
