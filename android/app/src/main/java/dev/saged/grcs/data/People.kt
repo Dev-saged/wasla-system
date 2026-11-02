@@ -30,6 +30,16 @@ class People(private val cache: FamCache) {
         return o
     }
 
+    /** استعادة سجل من نسخة احتياطية دون تغيير وقت تعديله: الأحدث يفوز عند الدمج. يعيد true إن أُضيف. */
+    fun restore(camp: String, p: JSONObject, current: Map<String, JSONObject>): Boolean {
+        val id = p.optString("id"); if (id.isEmpty()) return false
+        val ex = current[id]
+        if (ex != null && Merge.time(ex) >= Merge.time(p)) return false
+        val o = Merge.copy(p).put("campId", camp)
+        cache.putPend(camp, id, Merge.personDocId(o), o.toString(), Merge.time(o))
+        return true
+    }
+
     fun delete(camp: String, p: JSONObject) {
         cache.putTomb(camp, p.getString("id"), Merge.personDocId(p), Clock.now())
     }

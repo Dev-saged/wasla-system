@@ -59,6 +59,7 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit) {
         try {
             val (st, list) = withContext(Dispatchers.IO) { data.sync(auth) { pulled = it } }
             auth = st; camps = list
+            withContext(Dispatchers.IO) { list.forEach { data.autoBackup(it.id, it.name) } }
             if (st.offline) error = "دون اتصال — تُعرض آخر نسخة محفوظة"
         } catch (e: Exception) {
             error = "تعذّرت المزامنة — تُعرض آخر نسخة محفوظة"

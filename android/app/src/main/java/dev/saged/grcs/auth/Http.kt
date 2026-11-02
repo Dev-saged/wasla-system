@@ -7,6 +7,20 @@ import java.net.URL
 class HttpResult(val code: Int, val json: JSONObject?, val array: org.json.JSONArray? = null)
 
 object Http {
+    fun getPublic(url: String, timeoutMs: Int = 15_000): HttpResult {
+        val c = URL(url).openConnection() as HttpURLConnection
+        try {
+            c.connectTimeout = timeoutMs
+            c.readTimeout = timeoutMs
+            c.setRequestProperty("Accept", "application/vnd.github+json")
+            val code = c.responseCode
+            val text = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+            return HttpResult(code, runCatching { JSONObject(text) }.getOrNull())
+        } finally {
+            c.disconnect()
+        }
+    }
+
     fun get(url: String, bearer: String, timeoutMs: Int = 30_000): HttpResult {
         val c = URL(url).openConnection() as HttpURLConnection
         try {

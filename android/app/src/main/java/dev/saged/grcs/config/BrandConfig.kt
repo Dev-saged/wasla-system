@@ -8,6 +8,9 @@ object BrandConfig {
     const val TAGLINE = "سجل واحد لكل أسرة، في كل مخيم"
     const val UPDATE_REPO = "Dev-saged/wasla-system"
 
+    /** مجلد النسخ الاحتياطية داخل المستندات على الجهاز. */
+    const val BACKUP_DIR = "منظومة إدارة المخيمات"
+
     /** واتساب مالك المنصة لطلبات التفعيل والمميزات المدفوعة. */
     const val OWNER_WHATSAPP = "972597857250"
 

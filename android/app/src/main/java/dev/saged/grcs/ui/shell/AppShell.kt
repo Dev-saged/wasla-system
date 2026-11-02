@@ -51,8 +51,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.DataRepo
+import dev.saged.grcs.ui.camps.CampsScreen
 import dev.saged.grcs.ui.home.HomeScreen
 import dev.saged.grcs.ui.messages.MessagesScreen
+import dev.saged.grcs.ui.more.MoreScreen
 import dev.saged.grcs.ui.people.PeopleScreen
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.theme.LocalPalette
@@ -85,7 +87,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
                 }
             },
             label = "dest",
-        ) { i -> when (i) { 0 -> HomeScreen(auth, data, onLogout); 2 -> PeopleScreen(auth, data); 3 -> MessagesScreen(auth, data); else -> Placeholder(Dest.entries[i]) } }
+        ) { i -> when (i) { 0 -> HomeScreen(auth, data, onLogout); 1 -> CampsScreen(auth, data); 2 -> PeopleScreen(auth, data); 3 -> MessagesScreen(auth, data); 4 -> MoreScreen(auth, data, onLogout); else -> Placeholder(Dest.entries[i]) } }
         NavBar(sel) { sel = it }
     }
 }

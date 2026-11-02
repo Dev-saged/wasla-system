@@ -13,6 +13,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     val people = People(cache)
     private val writer = FamWriter(cache)
     private val accounts = Accounts(cache)
+    val backups = Backups(ctx)
     private var secV = 2L
 
     init { Clock.init(ctx) }
@@ -72,6 +73,10 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
 
     private fun summary(id: String, name: String): CampSummary {
         return CampSummary(id, name, Stats.compute(people.persons(id)))
+    }
+
+    fun autoBackup(camp: String, name: String) {
+        runCatching { backups.autoDaily(cache, camp, name, people.persons(camp)) }
     }
 
     fun clear() { if (!cache.hasPending()) cache.clear() }
