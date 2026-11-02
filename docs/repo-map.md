@@ -61,3 +61,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - native: GenderInfer (assets/gender_lex.json exported from web lexicons) fills missing gender in imports; no learned father/vote corpus.
 - v3.6.2: removed legacy PUSH_ADMIN_KEY/X-Admin-Key from client (secV=2 confirmed; Worker rejects old key); push needs admin idToken.
 - native 2.1 export: data/Export.kt (xlsx hand-built zip RTL, csv BOM, pdf PdfDocument landscape) + ui/more/ExportPage.kt; saves to Documents/تصدير <BACKUP_DIR> (separate from backups list); share via ACTION_SEND on API29+.
+- native 2.2 trash: data/Trash.kt (same trash/{tid} gzip+b64 parts as web, 30d TTL; person delete saves first; restore re-stamps persons) + ui/more/TrashPage.kt.

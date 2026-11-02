@@ -15,6 +15,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     private val accounts = Accounts(cache)
     val backups = Backups(ctx)
     val export = Export(ctx)
+    val trash by lazy { Trash(this) }
     val transfer by lazy { Transfer(this) }
     private var secV = 2L
 
