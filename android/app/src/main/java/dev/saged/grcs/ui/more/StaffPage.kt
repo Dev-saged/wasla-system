@@ -70,13 +70,13 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
     LaunchedEffect(rev) { rows = withContext(Dispatchers.IO) { Staff.list(auth) } }
     LaunchedEffect(rev, tab, benCamp) { if (tab == 2) { ben = null; ben = withContext(Dispatchers.IO) { Staff.beneficiaries(auth, benCamp) } } }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("الحسابات", "مناديب ومدخلو بيانات ومدراء", conn = null, onBack = onBack)
+        AppHeader("إدارة الحسابات", "", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SegTabs(listOf("مناديب ومدخلو بيانات", "المدراء", "المستفيدون"), tab, { tab = it })
-            SearchBox(query, { query = it }, "بحث بالاسم أو اسم المستخدم")
+            if (tab != 2 && !adding) Btn("إنشاء مستخدم جديد", { adding = true }, Modifier.fillMaxWidth(), icon = QIcons.Plus)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("مناديب ومدخلو بيانات", "المدراء", "المستفيدون").forEachIndexed { i, l -> QChip(l, tab == i) { tab = i } } }
+            SearchBox(query, { query = it }, "بحث بالاسم، اسم المستخدم، أو المخيم...")
             if (note.isNotEmpty()) Text(note, color = p.mute, fontSize = 12.sp)
             if (tab == 2 && camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, benCamp == id) { benCamp = id } } }
-            if (tab != 2 && !adding) Btn("حساب جديد", { adding = true }, Modifier.fillMaxWidth(), icon = QIcons.Plus)
             else if (tab != 2) QCard(pad = 14.dp) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Staff.roles.forEach { (r, l) -> QChip(l, nRole == r) { nRole = r } } }
                 if (nRole != "admin") FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, nCamp == id) { nCamp = id } } }
@@ -98,7 +98,9 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
                 else Text("${ben!!.size} حساب مستفيد — يُنشأ تلقائياً لكل رب أسرة", color = p.mute, fontSize = 12.sp)
             }
             if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)
-            (if (tab == 2) ben else rows)?.filter { (tab == 2 || (it.optString("role") == "admin") == (tab == 1)) && (query.isBlank() || it.optString("fullName").contains(query.trim()) || it.optString("username").contains(query.trim(), true)) }?.forEach { u ->
+            val shown = (if (tab == 2) ben else rows)?.filter { (tab == 2 || (it.optString("role") == "admin") == (tab == 1)) && (query.isBlank() || it.optString("fullName").contains(query.trim()) || it.optString("username").contains(query.trim(), true) || it.optString("campName").contains(query.trim())) }
+            if (shown != null && shown.isEmpty()) dev.saged.grcs.ui.components.EmptyState(QIcons.Person, "لا توجد حسابات في هذا القسم", "جرّب تبويباً آخر أو امسح كلمة البحث")
+            shown?.forEach { u ->
                 val id = u.getString("id"); val active = u.optString("isActive") != "false"
                 QCard { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

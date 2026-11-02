@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -56,7 +57,7 @@ fun AidScreen(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val camps = remember { data.campList(auth) }
     var camp by remember { mutableStateOf(if (camps.size > 1) "*" else camps.firstOrNull()?.first.orEmpty()) }
     var type by remember { mutableStateOf("food") }
-    var days by remember { mutableIntStateOf(30) }
+    var period by remember { mutableStateOf("month") }
     var status by remember { mutableStateOf("all") }
     var q by remember { mutableStateOf("") }
     var rows by remember { mutableStateOf<List<AidRow>>(emptyList()) }
@@ -65,10 +66,11 @@ fun AidScreen(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val canWrite = auth.user.role != "beneficiary"
     val t = Aid.types.first { it.k == type }
 
-    LaunchedEffect(camp, type, days, rev) {
+    LaunchedEffect(camp, type, period, rev) {
         busy = true
         rows = withContext(Dispatchers.IO) {
-            val from = if (days > 0) SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(System.currentTimeMillis() - days * 86_400_000L)) else ""
+            val df = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val from = when (period) { "today" -> df.format(Date()); "month" -> df.format(Date()).substring(0, 8) + "01"; else -> "" }
             val ids = if (camp == "*") camps else camps.filter { it.first == camp }
             ids.flatMap { (cid, cn) ->
                 data.people.persons(cid).filter { Aid.eligible(it, type) }.map { ps ->
@@ -99,20 +101,49 @@ fun AidScreen(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val got = rows.count { it.entry != null }
 
     Column(Modifier.fillMaxSize()) {
-        AppHeader("المساعدات", "${t.label} · استلم ${fa(got)} من ${fa(rows.size)}", conn = null, onBack = onBack)
+        AppHeader("المساعدات", if (camp == "*") "ملخص كل المخيمات" else camps.firstOrNull { it.first == camp }?.second.orEmpty(), conn = null, onBack = if (camp != "*" && camps.size > 1) ({ camp = "*" }) else onBack)
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QChip("كل المخيمات", camp == "*") { camp = "*" }
-                camps.forEach { (id, n) -> QChip(n, camp == id) { camp = id } }
-            }
             androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { items(Aid.types, key = { it.k }) { a -> QChip(a.label, type == a.k) { type = a.k } } }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(7 to "آخر 7 أيام", 30 to "آخر 30 يوماً", 90 to "آخر 90 يوماً", 0 to "الكل").forEach { (d, l) -> QChip(l, days == d) { days = d } }
+                listOf("today" to "اليوم", "month" to "هذا الشهر", "all" to "كل الفترات").forEach { (d, l) -> QChip(l, period == d) { period = d } }
             }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QChip("الكل", status == "all") { status = "all" }; QChip("استلموا", status == "got") { status = "got" }; QChip("لم يستلموا", status == "not") { status = "not" }
+            val basis = when (type) { "food", "cash" -> "لكل أسرة (رب الأسرة)"; "milk", "diapers" -> "لكل طفل دون سنتين"; "prenatal" -> "لكل حامل ومرضعة"; "medicine" -> "لكل مريض مزمن"; "assist" -> "لكل ذي إعاقة"; "orphan" -> "لكل يتيم"; "elder" -> "لكل مسن +60"; else -> "لكل فرد" }
+            QCard {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text("${fa(rows.size)} مؤهّل", color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text("${fa(got)} استلم", color = p.success, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text("${fa(rows.size - got)} متبقٍ", color = p.warn, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(8.dp))
+                dev.saged.grcs.ui.components.Bar(if (rows.isEmpty()) 0f else got.toFloat() / rows.size, p.success)
+                Text("$basis — ${if (camp == "*") "كل المخيمات" else camps.firstOrNull { it.first == camp }?.second.orEmpty()} — ${if (rows.isEmpty()) 0 else Math.round(got * 100f / rows.size)}%", color = p.mute, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
             }
-            SearchBox(q, { q = it }, "بحث بالاسم أو الهوية")
+            if (camp != "*") {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    QChip("الكل", status == "all") { status = "all" }; QChip("استلموا", status == "got") { status = "got" }; QChip("لم يستلموا", status == "not") { status = "not" }
+                }
+                SearchBox(q, { q = it }, "بحث بالاسم أو الهوية")
+            }
+        }
+        if (camp == "*") {
+            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                camps.forEach { (cid, cn) ->
+                    val el = rows.count { it.camp == cid }; val gt = rows.count { it.camp == cid && it.entry != null }
+                    QCard {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(cn, color = p.ink, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Text("${fa(gt)} / ${fa(el)} (${if (el == 0) 0 else Math.round(gt * 100f / el)}%)", color = p.mute, fontSize = 12.sp)
+                                Spacer(Modifier.height(6.dp))
+                                dev.saged.grcs.ui.components.Bar(if (el == 0) 0f else gt.toFloat() / el, p.success)
+                            }
+                            Spacer(Modifier.padding(horizontal = 6.dp))
+                            Btn("فتح المخيم", { camp = cid }, kind = BtnKind.Outline, small = true)
+                        }
+                    }
+                }
+            }
+            return@Column
         }
         if (!busy && shown.isEmpty()) EmptyState(QIcons.Heart, "لا يوجد مستحقون", "غيّر النوع أو الفترة أو الحالة")
         LazyColumn(Modifier.weight(1f).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

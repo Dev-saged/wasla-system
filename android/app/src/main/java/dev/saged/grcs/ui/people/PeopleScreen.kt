@@ -89,6 +89,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
     var open by remember { mutableStateOf<String?>(startFamily) }
     var filter by remember { mutableStateOf(startFilter ?: "head") }
     var sort by remember { mutableStateOf("default") }
+    var exportNote by remember { mutableStateOf("") }
     var edit by remember { mutableStateOf<JSONObject?>(null) }
     var pending by remember { mutableIntStateOf(0) }
     var nidErr by remember { mutableStateOf<String?>(null) }
@@ -179,6 +180,13 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
                     Text(if (filter == "head") "${famList.size} أسرة" else "${shownP.size} سجل", color = p.mute, fontSize = 12.sp, modifier = Modifier.weight(1f))
                     QChip(if (sort == "vuln") "الأكثر هشاشة أولاً" else "ترتيب: الاسم", sort == "vuln") { sort = if (sort == "vuln") "default" else "vuln" }
                 }
+                Btn("تحميل هذا التصنيف", {
+                    scope.launch {
+                        val r = withContext(Dispatchers.IO) { data.export.custom("xlsx", camps.firstOrNull { it.first == camp }?.second ?: camp, persons, filter, filter == "head", data.export.defaultCols + listOf("phone2", "shelter")) }
+                        exportNote = if (r.ok) "تم حفظ ${r.count} سجل: ${r.name}" else "تعذّر الحفظ"
+                    }
+                }, Modifier.fillMaxWidth(), kind = BtnKind.Outline, small = true, icon = QIcons.Export)
+                if (exportNote.isNotEmpty()) Text(exportNote, color = p.mute, fontSize = 11.5.sp)
                 LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (filter == "head") items(famList.take(300), key = { it.key }) { f -> FamRow(f) { open = f.key } }
                     else {
@@ -364,12 +372,14 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
     var sBf by remember { mutableStateOf(oldSpouse?.optBoolean("isBreastfeeding") == true) }
     class Kid(var name: String, var gender: String, var dob: String, var rel: String)
     val kids = remember { mutableStateListOf<MutableState<Kid>>() }
+    var noId by remember { mutableStateOf(!isNew && src.optString("nationalId").isEmpty()) }
     var err by remember { mutableStateOf<String?>(null) }
 
     fun validate(): String? {
         val n = normDigits(nid)
         if (name.trim().length < 2) return "أدخل الاسم"
         if (gender.isEmpty()) return "اختر الجنس"
+        if (!noId && normDigits(nid).isEmpty()) return "رقم الهوية مطلوب أو فعّل «لا يوجد رقم هوية»"
         if (n.isNotEmpty() && !Regex("^\\d{9}$").matches(n)) return "رقم الهوية 9 أرقام"
         if (n.isNotEmpty() && all.any { it.optString("nationalId") == n && it.optString("id") != src.optString("id") }) return "رقم الهوية مسجّل لشخص آخر"
         val d = normDigits(dob)
@@ -392,42 +402,42 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
 
     Column(Modifier.fillMaxSize()) {
         TopBar(if (isNew) (if (head) "أسرة جديدة" else "فرد جديد") else "تعديل", onBack)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            QField("الاسم الكامل", name, { name = it })
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QChip("ذكر", gender == "male") { gender = "male" }
-                QChip("أنثى", gender == "female") { gender = "female" }
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FormCard("البيانات الأساسية") {
+                QField("الاسم الكامل *", name, { name = it })
+                QField("رقم الهوية *", nid, { nid = it }, type = KeyboardType.Number)
+                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable { noId = !noId; if (noId) nid = "" }, verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Checkbox(noId, { noId = it; if (it) nid = "" })
+                    Text("لا يوجد رقم هوية بعد (مولود لم تصدر هويته)", color = p.mute, fontSize = 12.sp)
+                }
+                QField("تاريخ الميلاد (1990-05-21)", dob, { dob = it }, type = KeyboardType.Number)
+                val age = dobAge(normDigits(dob))
+                Text("العمر المحسوب: " + (age?.let { "$it سنة" } ?: "—"), color = p.mute, fontSize = 12.5.sp)
+                Text("الجنس", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    QChip("ذكر", gender == "male") { gender = "male" }
+                    QChip("أنثى", gender == "female") { gender = "female" }
+                    QChip("غير محدد", gender == "unknown") { gender = "unknown" }
+                }
             }
-            QField("رقم الهوية", nid, { nid = it }, type = KeyboardType.Number)
-            QField("تاريخ الميلاد (1990-05-21)", dob, { dob = it }, type = KeyboardType.Number)
-            val age = dobAge(normDigits(dob))
-            if (age != null) Text("العمر: $age سنة", color = p.mute, fontSize = 12.sp)
-            QField("الجوال", phone, { phone = it }, type = KeyboardType.Phone)
-            QField("جوال إضافي (اختياري)", phone2, { phone2 = it }, type = KeyboardType.Phone)
+            FormCard("الأسرة") {
+                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("رب الأسرة", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    androidx.compose.material3.Switch(head, null, enabled = false)
+                }
+                if (head) {
+                    Text("الحالة الاجتماعية", color = p.mute, fontSize = 12.sp)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { maritalLabels.forEach { m -> QChip(m, marital == m) { marital = m } } }
+                    Text("نوع المأوى", color = p.mute, fontSize = 12.sp)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { shelterLabels.forEach { (k, l) -> QChip(l, shelter == k) { shelter = if (shelter == k) "" else k } } }
+                } else if (!src.optBoolean("isFamilyHead")) {
+                    Text("صلة القرابة برب الأسرة", color = p.mute, fontSize = 12.sp)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { relLabels.forEach { (k, l) -> QChip(l, rel == k) { rel = k } } }
+                }
+            }
             if (head) {
-                QField("العنوان", address, { address = it })
-                Text("نوع المأوى", color = p.mute, fontSize = 12.sp)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { shelterLabels.forEach { (k, l) -> QChip(l, shelter == k) { shelter = if (shelter == k) "" else k } } }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { maritalLabels.forEach { m -> QChip(m, marital == m) { marital = m } } }
-            } else if (!src.optBoolean("isFamilyHead")) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { relLabels.forEach { (k, l) -> QChip(l, rel == k) { rel = k } } }
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (gender == "female") QChip("حامل", preg) { preg = !preg }
-                if (gender == "female") QChip("مرضعة", bf) { bf = !bf }
-                QChip("مرض مزمن", chronic) { chronic = !chronic }
-                QChip("إعاقة", dis) { dis = !dis }
-                QChip("حالة طارئة", urgent) { urgent = !urgent }
-            }
-            if (chronic) {
-                Text("الحالات المرضية", color = p.mute, fontSize = 12.sp)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { chronicLabels.forEach { (k, l) -> QChip(l, k in conds) { if (k in conds) conds.remove(k) else conds.add(k) } } }
-                QField("تفاصيل المرض", diseaseDetails, { diseaseDetails = it })
-            }
-            if (dis) QField("تفاصيل الإعاقة", disDetails, { disDetails = it })
-            if (head) {
-                QCard {
-                    Text("الزوج / الزوجة (اختياري)", color = p.ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                FormCard("الزوج / الزوجة (اختياري)") {
+                    Text("", color = p.ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(Modifier.height(8.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         QField("الاسم الكامل", sName, { sName = it })
@@ -457,7 +467,25 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
                 }
                 Btn("إضافة فرد للأسرة", { kids.add(mutableStateOf(Kid("", "", "", "son"))) }, kind = BtnKind.Outline, icon = QIcons.Plus)
             }
-            QField("ملاحظات", notes, { notes = it }, multiline = true)
+            FormCard("التواصل") {
+                QField("رقم الهاتف الأساسي", phone, { phone = it }, type = KeyboardType.Phone)
+                QField("رقم هاتف إضافي (اختياري)", phone2, { phone2 = it }, type = KeyboardType.Phone)
+                if (head) QField("العنوان / الموقع", address, { address = it })
+            }
+            FormCard("الحالة الصحية") {
+                if (gender == "female") ToggleLine("حامل", preg) { preg = it }
+                if (gender == "female") ToggleLine("مرضعة", bf) { bf = it }
+                ToggleLine("مرض مزمن", chronic) { chronic = it }
+                if (chronic) {
+                    Text("اختر الحالة/الحالات المرضية", color = p.mute, fontSize = 12.sp)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { chronicLabels.forEach { (k, l) -> QChip(l, k in conds) { if (k in conds) conds.remove(k) else conds.add(k) } } }
+                    QField("تفاصيل إضافية / أخرى", diseaseDetails, { diseaseDetails = it })
+                }
+                ToggleLine("إعاقة", dis) { dis = it }
+                if (dis) QField("تفاصيل الإعاقة", disDetails, { disDetails = it })
+                ToggleLine("حالة طارئة", urgent) { urgent = it }
+            }
+            FormCard("ملاحظات") { QField("ملاحظات إضافية…", notes, { notes = it }, multiline = true) }
             (err ?: serverErr)?.let { Text(it, color = p.danger, fontSize = 13.sp) }
             Spacer(Modifier.height(8.dp))
         }
@@ -513,4 +541,22 @@ private fun dobAge(d: String): Int? {
     val dm = t.get(java.util.Calendar.MONTH) + 1 - m.groupValues[2].toInt()
     if (dm < 0 || (dm == 0 && t.get(java.util.Calendar.DAY_OF_MONTH) < m.groupValues[3].toInt())) a--
     return a.coerceAtLeast(0)
+}
+
+@Composable
+private fun FormCard(title: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    val p = LocalPalette.current
+    QCard {
+        Text(title, color = p.navy.takeIf { !p.dark } ?: p.ink, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(bottom = 10.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
+    }
+}
+
+@Composable
+private fun ToggleLine(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
+    val p = LocalPalette.current
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        androidx.compose.material3.Switch(on, onChange)
+    }
 }

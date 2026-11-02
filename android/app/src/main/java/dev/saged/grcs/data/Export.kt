@@ -112,6 +112,31 @@ class Export(private val ctx: Context) {
         } else { legacyDir.mkdirs(); File(legacyDir, name).writeBytes(bytes); ExportResult(true, name, null, count) }
     }.getOrDefault(ExportResult(false, name, null, 0))
 
+    val familyHeaders = listOf("رب الأسرة", "رقم الهوية", "الجوال", "جوال إضافي", "العنوان", "الحالة الاجتماعية", "المأوى", "عدد الأفراد", "الزوج/ة", "الأبناء والأفراد")
+
+    /** صف واحد لكل أسرة: رب الأسرة وبيانات التواصل والمأوى وعدد الأفراد وأسماء الباقين. */
+    fun familyRows(persons: List<JSONObject>, onlyFamily: String? = null): List<List<String>> =
+        persons.groupBy { it.optString("familyId").ifEmpty { "i_" + it.optString("id") } }
+            .filter { onlyFamily == null || it.key == onlyFamily }
+            .mapNotNull { (_, ms) ->
+                val h = ms.firstOrNull { it.optBoolean("isFamilyHead") } ?: return@mapNotNull null
+                val spouse = ms.firstOrNull { it.optString("relation") in listOf("wife", "husband", "spouse") }
+                listOf(h.optString("fullName"), h.optString("nationalId"), h.optString("phone"), h.optString("phone2"), h.optString("address"), h.optString("maritalStatus"),
+                    shelters[h.optString("shelterType")].orEmpty(), ms.size.toString(), spouse?.optString("fullName").orEmpty(),
+                    ms.filter { it !== h && it !== spouse }.joinToString("، ") { it.optString("fullName") })
+            }.sortedBy { it[0] }
+
+    /** يحفظ صفوفاً جاهزة بصيغة kind ويعيد النتيجة. */
+    fun runRows(kind: String, baseName: String, title: String, rows: List<List<String>>, hdr: List<String>): ExportResult {
+        val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
+        val base = "$baseName-$stamp".replace(Regex("[\\\\/:*?\"<>|]"), "-")
+        return when (kind) {
+            "xlsx" -> save("$base.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsx(rows, title, hdr), rows.size)
+            "csv" -> save("$base.csv", "text/csv", csv(rows, hdr), rows.size)
+            else -> save("$base.pdf", "application/pdf", pdf(rows, title, hdr), rows.size)
+        }
+    }
+
     class Col(val k: String, val label: String, val get: (JSONObject) -> String)
 
     private fun yn(b: Boolean) = if (b) "نعم" else ""
