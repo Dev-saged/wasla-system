@@ -90,6 +90,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     var sel by rememberSaveable { mutableStateOf(0) }
     var openCamp by remember { mutableStateOf<String?>(null) }
     var homeFilter by remember { mutableStateOf<String?>(null) }
+    dev.saged.grcs.ui.theme.UiPrefs.init(androidx.compose.ui.platform.LocalContext.current)
     var unread by remember { mutableStateOf(0) }
     LaunchedEffect(sel) {
         while (true) {
@@ -114,7 +115,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             label = "dest",
         ) { t ->
             when (t) {
-                Tab.Home -> if (ben) BenHome(auth, data) else if (homeFilter != null) PeopleScreen(auth, data, startFilter = homeFilter) { homeFilter = null } else HomeScreen(auth, data, onLogout) { homeFilter = it }
+                Tab.Home -> if (ben) BenHome(auth, data) else if (homeFilter != null) PeopleScreen(auth, data, startFilter = homeFilter) { homeFilter = null } else HomeScreen(auth, data, onLogout, { homeFilter = it }, { sel = tabs.indexOf(Tab.Camps).coerceAtLeast(0) })
                 Tab.Camps -> if (openCamp != null) PeopleScreen(auth, data, openCamp, startFamily = openFam) { openCamp = null; openFam = null } else CampsScreen(auth, data, { openCamp = it }) { c, f -> openFam = f; openCamp = c }
                 Tab.People -> PeopleScreen(auth, data)
                 Tab.Chat -> MessagesScreen(auth, data)
@@ -150,7 +151,7 @@ private fun NavBar(tabs: List<Tab>, sel: Int, unread: Int, onSelect: (Int) -> Un
                         Modifier.weight(1f).fillMaxSize().clickable(
                             interactionSource = remember { MutableInteractionSource() }, indication = null, role = Role.Tab,
                         ) {
-                            if (!on) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            if (!on && dev.saged.grcs.ui.theme.UiPrefs.haptic) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onSelect(i)
                         },
                         verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,

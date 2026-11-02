@@ -57,6 +57,7 @@ import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.data.Usage
 import dev.saged.grcs.ui.theme.GrcsFonts
 import dev.saged.grcs.ui.theme.LocalPalette
+import dev.saged.grcs.ui.theme.UiPrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -119,15 +120,15 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 640.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SettingCard("المزامنة", QIcons.Sync) {
-                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("آخر مزامنة", color = p.mute, fontSize = 12.5.sp)
-                        Text(if (ConnState.lastSync == 0L) "—" else fmt.format(Date(ConnState.lastSync)), color = p.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("آخر مزامنة ناجحة", color = p.ink, fontSize = 13.sp)
+                        Text(if (ConnState.lastSync == 0L) "لم تتم بعد" else fmt.format(Date(ConnState.lastSync)), color = p.mute, fontSize = 12.5.sp)
                     }
-                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("تغييرات بانتظار الرفع", color = p.mute, fontSize = 12.5.sp)
-                        Text(pending.toString(), color = if (pending > 0) p.warn else p.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                    Hair()
+                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("عمليات بانتظار المزامنة", color = p.ink, fontSize = 13.sp)
+                        Text(pending.toString(), color = if (pending > 0) p.warn else p.mute, fontSize = 12.5.sp)
                     }
-                    MenuRow(QIcons.Chart, "تشخيص المزامنة", "حالة كل مخيم والحصة اليومية", p.blue) { go("diag") }
                     Spacer(Modifier.height(8.dp))
                     Btn(if (syncing) "جارٍ المزامنة…" else "مزامنة مع المركز الآن", {
                         scope.launch {
@@ -143,54 +144,82 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
                     msg?.let { Text(it, color = if (it.startsWith("اكتملت")) p.ok else p.warn, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp)) }
                     Text("استهلاك هذا الجهاز اليوم: ${Usage.reads()} قراءة · ${Usage.writes()} كتابة", color = p.mute, fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
                 }
-                if (staff) SettingCard("النسخ الاحتياطي", QIcons.Backup) {
-                    MenuRow(QIcons.Backup, "نسخ احتياطي واستعادة", "نسخة يومية تلقائية في المستندات ← ${BrandConfig.BACKUP_DIR}") { go("backup") }
-                    Hair()
-                    MenuRow(QIcons.Export, "تصدير البيانات", "Excel · CSV · PDF") { go("export") }
-                    Hair()
-                    MenuRow(QIcons.Import, "استيراد كشف Excel", "أسر ومعيلون وأفراد") { go("import") }
-                }
-                SettingCard("الحساب", QIcons.Key) {
-                    MenuRow(QIcons.Key, "تغيير كلمة المرور", null, p.pri) { go("changepw") }
+                if (staff) SettingCard("النسخ الاحتياطية", QIcons.Backup) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Btn("تصدير نسخة احتياطية كاملة", { go("backup") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        Btn("استعادة من نسخة احتياطية", { go("backup") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                    }
                 }
                 if (adminDel) SettingCard("الحماية من فقدان البيانات", QIcons.Shield) {
-                    MenuRow(QIcons.Trash, "سلة المحذوفات", "استعادة ما حُذف خلال ٣٠ يوماً", p.danger) { go("trash") }
-                    Hair()
-                    MenuRow(QIcons.Clock, "سجل النشاط", "من فعل ماذا ومتى", p.blue) { go("audit") }
+                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("آخر نسخة يومية", color = p.ink, fontSize = 13.sp)
+                        Text("تلقائية في المستندات", color = p.mute, fontSize = 12.5.sp)
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Btn("النسخ الاحتياطية اليومية", { go("backup") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        Btn("سلة المحذوفات", { go("trash") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                    }
                 }
-                if (staff) SettingCard("أدوات البيانات", QIcons.Chart) {
-                    MenuRow(QIcons.Bolt, "إدخال سريع", null, p.warn) { go("rapid") }
-                    Hair()
-                    MenuRow(QIcons.Alert, "مؤشر الهشاشة", "ترتيب الأسر حسب الاحتياج", p.acc) { go("vuln") }
-                    Hair()
-                    MenuRow(QIcons.Check, "جودة البيانات", "نقص وتعارض وقيم مشبوهة", p.success) { go("quality") }
-                    Hair()
-                    MenuRow(QIcons.Filter, "الفئات والاستعلامات", "فئات جاهزة واستعلامات محفوظة", p.purple) { go("query") }
-                    Hair()
-                    MenuRow(QIcons.Copy, "الأسماء المتشابهة", "كشف التكرار المحتمل", p.gray) { go("similar") }
-                    Hair()
-                    MenuRow(QIcons.Heart, "المساعدات", "المستحقون والتسليم والاستلام", p.pri) { go("aid") }
-                    Hair()
-                    MenuRow(QIcons.Report, "تقرير المساعدات", null, p.blue) { go("aidrep") }
+                if (adminDel) SettingCard("سجل التغييرات", QIcons.Clock) {
+                    Btn("عرض سجل التغييرات", { go("audit") }, Modifier.fillMaxWidth(), BtnKind.Outline)
                 }
-                if (adminDel) SettingCard("المخيم", QIcons.Camp) {
-                    MenuRow(QIcons.Info, "معلومات المخيم", "المسؤول ونائبه ومدخل البيانات") { go("caminfo") }
-                    Hair()
-                    MenuRow(QIcons.Transfer, "سجل نقل الأسر", "الأسر المنقولة بين المخيمات", p.purple) { go("tlog") }
-                }
-                if (role == "admin") SettingCard("الإدارة", QIcons.Key) {
-                    MenuRow(QIcons.Key, "حسابات الطاقم", "مناديب ومدخلو بيانات") { go("staff") }
-                    Hair()
-                    MenuRow(QIcons.Alert, "إفراغ وحذف المخيمات", "نسخة إلزامية + سلة + تأكيد بالاسم", p.danger) { go("danger") }
+                SettingCard("الاستجابة والمزامنة", QIcons.Bolt) {
+                    ToggleRow("اهتزاز خفيف", "عند الضغط والنجاح والتنبيه", UiPrefs.haptic) { UiPrefs.updateHaptic(it) }
+                    ToggleRow("صوت نقرة", "اختياري — يتوقف عند تفعيل «تقليل الحركة»", UiPrefs.click) { UiPrefs.updateClick(it) }
+                    Spacer(Modifier.height(6.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Btn("تشخيص المزامنة", { go("diag") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        if (adminDel) Btn("سجل نقل الأسر بين المخيمات", { go("tlog") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                    }
                 }
                 SettingCard("المظهر", QIcons.Moon) {
-                    SegTabs(listOf("تلقائي", "فاتح", "ليلي"), ThemePref.mode, { ThemePref.set(it) })
+                    SegTabs(listOf("تلقائي", "فاتح", "داكن"), ThemePref.mode, { ThemePref.set(it) })
                 }
-                SettingCard("حول التطبيق", QIcons.Info) {
-                    MenuRow(QIcons.Sync, "التحديثات", "الإصدار ${BuildConfig.VERSION_NAME}") { go("update") }
+                if (staff) SettingCard("مؤشر الهشاشة", QIcons.Alert) {
+                    Text("أوزان العوامل وحدود التصنيف — تُطبَّق على الأسر بعد الحفظ", color = p.mute, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Btn("تعديل الأوزان والحدود", { go("vuln") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        Btn("منشئ الاستعلامات", { go("query") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                    }
+                }
+                if (staff) SettingCard("أدوات البيانات", QIcons.Chart) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Btn("إدخال سريع", { go("rapid") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        Btn("المساعدات", { go("aid") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        Btn("تقرير المساعدات", { go("aidrep") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        Btn("جودة البيانات", { go("quality") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        Btn("الأسماء المتشابهة", { go("similar") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        Btn("استيراد كشف Excel", { go("import") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        Btn("تصدير البيانات", { go("export") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                    }
+                }
+                if (adminDel) SettingCard("معلومات المخيم", QIcons.Camp) {
+                    Btn("معلومات المخيم", { go("caminfo") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                }
+                if (role == "admin") SettingCard("إدارة النظام", QIcons.Key) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Btn("حسابات الطاقم", { go("staff") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        Btn("إفراغ وحذف المخيمات", { go("danger") }, Modifier.fillMaxWidth(), BtnKind.Danger)
+                    }
+                }
+                SettingCard("الحساب", QIcons.Person) {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("الاسم", color = p.ink, fontSize = 13.sp); Text(auth.user.fullName, color = p.mute, fontSize = 12.5.sp)
+                    }
+                    Hair()
+                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("الدور", color = p.ink, fontSize = 13.sp)
+                        Text(mapOf("admin" to "مسؤول عام", "delegate" to "مندوب", "dataentry" to "مدخل بيانات", "beneficiary" to "مستفيد")[role] ?: role, color = p.mute, fontSize = 12.5.sp)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Btn("تغيير كلمة المرور", { go("changepw") }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Key)
                 }
                 Btn("تسجيل الخروج", onLogout, Modifier.fillMaxWidth(), BtnKind.Danger, QIcons.Logout)
-                Text("تطوير ${BrandConfig.Dev.NAME}", color = p.mute, fontSize = 10.sp, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("منظومة مخيمات النزوح", color = p.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("تطوير: ${BrandConfig.Dev.NAME}", color = p.mute, fontSize = 11.sp)
+                    Text("الإصدار: v${BuildConfig.VERSION_NAME} — فحص التحديثات", color = p.pri, fontSize = 11.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { go("update") }.padding(top = 10.dp))
+                }
             }
         }
     }
@@ -293,5 +322,17 @@ private fun BackupPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ToggleRow(title: String, sub: String, on: Boolean, onChange: (Boolean) -> Unit) {
+    val p = LocalPalette.current
+    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(sub, color = p.mute, fontSize = 11.5.sp)
+        }
+        androidx.compose.material3.Switch(on, onChange)
     }
 }
