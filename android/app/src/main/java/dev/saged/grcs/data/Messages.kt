@@ -57,6 +57,20 @@ class Messages {
         return sent
     }
 
+    /** رسالة جماعية لكل مستفيدي مخيم، كل واحد بمحادثته (كما sendAllBeneficiariesBroadcast). يعيد العدد أو -1 عند الفشل. */
+    fun broadcast(st: AuthState, camp: String, text: String): Int = try {
+        val bens = Fs.queryEq("users", listOf("role" to "beneficiary", "campId" to camp), st.idToken, 1000)
+        val now = Clock.now()
+        val docs = bens.map { b ->
+            val id = java.util.UUID.randomUUID().toString()
+            "camps/$camp/benMessages/$id" to mapOf<String, Any?>("id" to id, "threadId" to "ben_" + b.getString("id"), "beneficiaryId" to b.getString("id"),
+                "beneficiaryName" to b.optString("fullName").ifEmpty { b.optString("username") }, "senderId" to st.user.id, "senderName" to st.user.fullName,
+                "senderRole" to st.user.role, "campId" to camp, "text" to text, "timestamp" to now)
+        }
+        if (docs.isNotEmpty()) { Fs.setMany(docs, st.idToken); runCatching { Fs.pulse("m", camp, st.idToken) } }
+        docs.size
+    } catch (e: Exception) { -1 }
+
     /** true = أُرسلت أو حُفظت في الصادر لإعادة المحاولة. */
     fun send(st: AuthState, thread: String, text: String): Boolean {
         val id = java.util.UUID.randomUUID().toString()

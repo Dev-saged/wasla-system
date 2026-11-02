@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.data.Messages
+import dev.saged.grcs.ui.components.QChip
 import dev.saged.grcs.ui.components.QField
 import dev.saged.grcs.ui.theme.GrcsFonts
 import dev.saged.grcs.ui.theme.LocalPalette
@@ -75,6 +76,26 @@ private fun BenList(auth: AuthState, repo: Messages, camp: String, campName: Str
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack))
         Text("مستفيدو $campName", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 22.sp)
+        var bc by remember { mutableStateOf(false) }
+        var bcText by remember { mutableStateOf("") }
+        var bcBusy by remember { mutableStateOf(false) }
+        var bcMsg by remember { mutableStateOf("") }
+        val sc = rememberCoroutineScope()
+        if (!bc) QChip("رسالة جماعية لكل المستفيدين", false) { bc = true; bcMsg = "" }
+        else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            QField("نص الرسالة", bcText, { bcText = it }, multiline = true)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                QChip(if (bcBusy) "جارٍ الإرسال…" else "إرسال للجميع", true) {
+                    if (!bcBusy && bcText.isNotBlank()) { bcBusy = true; sc.launch {
+                        val n = withContext(Dispatchers.IO) { repo.broadcast(auth, camp, bcText.trim()) }
+                        bcBusy = false
+                        if (n >= 0) { bcMsg = "أُرسلت إلى $n مستفيد"; bcText = ""; bc = false } else bcMsg = "تعذّر الإرسال — تحقق من الاتصال"
+                    } }
+                }
+                QChip("إلغاء", false) { bc = false }
+            }
+        }
+        if (bcMsg.isNotEmpty()) Text(bcMsg, color = p.mute, fontSize = 12.sp)
         if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp) else if (rows!!.isEmpty()) Text("لا محادثات بعد", color = p.mute, fontSize = 13.sp)
         rows?.forEach { (tid, name, last) ->
             Column(Modifier.fillMaxWidth().heightIn(min = 60.dp).background(p.surface, RoundedCornerShape(16.dp)).clickable { onOpen(tid) }.padding(14.dp)) {

@@ -164,6 +164,18 @@ object Fs {
         commitRaw(JSONArray().put(JSONObject().put("update", JSONObject().put("name", fullName(path)).put("fields", f))), token)
     }
 
+    /** كتابة عدة مستندات كاملة دفعة واحدة (حتى 400 في الطلب). */
+    fun setMany(docs: List<Pair<String, Map<String, Any?>>>, token: String) {
+        docs.chunked(400).forEach { chunk ->
+            val w = JSONArray()
+            chunk.forEach { (path, fields) ->
+                val f = JSONObject(); fields.forEach { (k, v) -> f.put(k, enc(v)) }
+                w.put(JSONObject().put("update", JSONObject().put("name", fullName(path)).put("fields", f)))
+            }
+            commitRaw(w, token)
+        }
+    }
+
     /** تحديث حقول محددة فقط (updateMask) دون المساس بباقي المستند. */
     fun patch(path: String, fields: Map<String, Any?>, token: String) {
         val f = JSONObject(); fields.forEach { (k, v) -> f.put(k, enc(v)) }

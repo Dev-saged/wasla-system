@@ -50,3 +50,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - native: Vuln.effectiveShelter/inferShelter (free-text shelter inference) + tier chip on FamRow.
 - native: deleting a head queues benDel (users+creds by username=nid, campId) in Accounts todo.
 - native: AidReportPage (Aid.report) in More; docs/releases/v4.0.0.md written.
+- native: Messages.broadcast (per-camp, all beneficiaries, Fs.setMany batch) + button in BenList.
