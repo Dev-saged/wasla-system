@@ -4,7 +4,12 @@ package dev.saged.grcs.config
 object BrandConfig {
     const val NAME = "منظومة إدارة المخيمات"
     const val NAME_LATIN = "GRCS"
+    val NAME_LINES = listOf("منظومة إدارة", "المخيمات")
+    const val TAGLINE = "سجل واحد لكل أسرة، في كل مخيم"
     const val UPDATE_REPO = "Dev-saged/wasla-system"
+
+    /** مجلد النسخ الاحتياطية داخل المستندات على الجهاز. */
+    const val BACKUP_DIR = "منظومة إدارة المخيمات"
 
     /** واتساب مالك المنصة لطلبات التفعيل والمميزات المدفوعة. */
     const val OWNER_WHATSAPP = "972597857250"
@@ -35,17 +40,29 @@ object BrandConfig {
     private fun t(ll: Float, lc: Float, lh: Float, dl: Float, dc: Float, dh: Float) =
         Tone(Oklch(ll, lc, lh), Oklch(dl, dc, dh))
 
+    /** ألوان شاشة الافتتاح: سماء الفجر، الأرض، ونص عاجي. */
+    object Opening {
+        val skyTop = Oklch(.28f, .11f, 268f)
+        val skyMid = Oklch(.5f, .13f, 240f)
+        val horizon = Oklch(.86f, .12f, 80f)
+        val ground = Oklch(.24f, .07f, 255f)
+        val text = Oklch(.97f, .02f, 90f)
+        val accent = Oklch(.86f, .12f, 80f)
+    }
+
+    /** الهوية "بوصلة": كوبالت على ورق بارد، وبرتقالي دافئ للتمييز. */
     object Palette {
-        val bg = t(.975f, .008f, 95f, .17f, .02f, 225f)
-        val surface = t(1f, 0f, 0f, .22f, .025f, 225f)
-        val surface2 = t(.95f, .01f, 95f, .27f, .028f, 225f)
-        val ink = t(.24f, .03f, 230f, .95f, .01f, 95f)
-        val mute = t(.46f, .03f, 230f, .74f, .03f, 225f)
-        val line = t(.89f, .01f, 95f, .32f, .025f, 225f)
-        val pri = t(.45f, .09f, 200f, .78f, .11f, 190f)
-        val onPri = t(.985f, .01f, 95f, .18f, .03f, 220f)
-        val danger = t(.5f, .2f, 25f, .74f, .16f, 25f)
-        val ok = t(.46f, .12f, 155f, .78f, .14f, 155f)
-        val warn = t(.5f, .13f, 65f, .82f, .14f, 80f)
+        val bg = t(.975f, .006f, 250f, .17f, .03f, 255f)
+        val surface = t(1f, 0f, 0f, .22f, .035f, 255f)
+        val surface2 = t(.95f, .012f, 250f, .27f, .04f, 255f)
+        val ink = t(.22f, .045f, 255f, .95f, .01f, 250f)
+        val mute = t(.46f, .035f, 255f, .76f, .03f, 255f)
+        val line = t(.9f, .01f, 250f, .33f, .035f, 255f)
+        val pri = t(.47f, .17f, 262f, .79f, .12f, 255f)
+        val onPri = t(.99f, .005f, 250f, .18f, .04f, 255f)
+        val acc = t(.52f, .15f, 50f, .82f, .15f, 65f)
+        val danger = t(.5f, .2f, 25f, .76f, .16f, 25f)
+        val ok = t(.45f, .12f, 160f, .8f, .14f, 160f)
+        val warn = t(.5f, .13f, 70f, .83f, .14f, 85f)
     }
 }
