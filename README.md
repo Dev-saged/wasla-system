@@ -238,7 +238,6 @@ wasla-system/
 <div align="center">
 
 **تطوير:** المهندس ساجد العبادلة · [@Dev-saged](https://github.com/Dev-saged)
-**إدارة المنطقة:** ايهاب العبادلة
 
 <sub>جميع الحقوق محفوظة © 2026</sub>
 
