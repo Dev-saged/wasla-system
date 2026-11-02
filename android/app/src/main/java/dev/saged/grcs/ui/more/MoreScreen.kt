@@ -92,6 +92,8 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             "similar" -> SimilarPage(auth, data) { page = "main" }
             "rapid" -> RapidPage(auth, data) { page = "main" }
             "aidrep" -> AidReportPage(auth, data) { page = "main" }
+            "aid" -> AidScreen(auth, data) { page = "main" }
+            "changepw" -> ChangePwPage(auth) { page = "main" }
             "caminfo" -> CampInfoPage(auth, data) { page = "main" }
             "tlog" -> TransferLogPage(auth, data) { page = "main" }
             "diag" -> SyncDiagPage(auth, data) { page = "main" }
@@ -148,6 +150,9 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
                     Hair()
                     MenuRow(QIcons.Import, "استيراد كشف Excel", "أسر ومعيلون وأفراد") { go("import") }
                 }
+                SettingCard("الحساب", QIcons.Key) {
+                    MenuRow(QIcons.Key, "تغيير كلمة المرور", null, p.pri) { go("changepw") }
+                }
                 if (adminDel) SettingCard("الحماية من فقدان البيانات", QIcons.Shield) {
                     MenuRow(QIcons.Trash, "سلة المحذوفات", "استعادة ما حُذف خلال ٣٠ يوماً", p.danger) { go("trash") }
                     Hair()
@@ -163,6 +168,8 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
                     MenuRow(QIcons.Filter, "الفئات والاستعلامات", "فئات جاهزة واستعلامات محفوظة", p.purple) { go("query") }
                     Hair()
                     MenuRow(QIcons.Copy, "الأسماء المتشابهة", "كشف التكرار المحتمل", p.gray) { go("similar") }
+                    Hair()
+                    MenuRow(QIcons.Heart, "المساعدات", "المستحقون والتسليم والاستلام", p.pri) { go("aid") }
                     Hair()
                     MenuRow(QIcons.Report, "تقرير المساعدات", null, p.blue) { go("aidrep") }
                 }

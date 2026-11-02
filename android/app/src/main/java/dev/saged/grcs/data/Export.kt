@@ -40,16 +40,16 @@ class Export(private val ctx: Context) {
 
     private fun csvCell(s: String) = "\"" + s.replace("\"", "\"\"").let { if (it.firstOrNull() in listOf('=', '+', '-', '@')) "'$it" else it } + "\""
 
-    fun csv(rows: List<List<String>>): ByteArray {
+    fun csv(rows: List<List<String>>, hdr: List<String> = headers): ByteArray {
         val sb = StringBuilder("﻿")
-        (listOf(headers) + rows).forEach { r -> sb.append(r.joinToString(",") { csvCell(it) }).append("\r\n") }
+        (listOf(hdr) + rows).forEach { r -> sb.append(r.joinToString(",") { csvCell(it) }).append("\r\n") }
         return sb.toString().toByteArray(Charsets.UTF_8)
     }
 
     private fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").filter { it.code >= 32 || it == '\n' }
     private fun col(i: Int) = ('A' + i).toString()
 
-    fun xlsx(rows: List<List<String>>, sheet: String): ByteArray {
+    fun xlsx(rows: List<List<String>>, sheet: String, hdr: List<String> = headers): ByteArray {
         val bo = ByteArrayOutputStream()
         ZipOutputStream(bo).use { z ->
             fun put(n: String, s: String) { z.putNextEntry(ZipEntry(n)); z.write(s.toByteArray(Charsets.UTF_8)); z.closeEntry() }
@@ -58,7 +58,7 @@ class Export(private val ctx: Context) {
             put("xl/workbook.xml", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"${esc(sheet.take(31).replace(Regex("[\\[\\]*?/\\\\:]"), " "))}\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>")
             put("xl/_rels/workbook.xml.rels", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>")
             val sb = StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetViews><sheetView rightToLeft=\"1\" workbookViewId=\"0\"/></sheetViews><sheetData>")
-            (listOf(headers) + rows).forEachIndexed { ri, r ->
+            (listOf(hdr) + rows).forEachIndexed { ri, r ->
                 sb.append("<row r=\"${ri + 1}\">")
                 r.forEachIndexed { ci, v -> sb.append("<c r=\"${col(ci)}${ri + 1}\" t=\"inlineStr\"><is><t xml:space=\"preserve\">${esc(v)}</t></is></c>") }
                 sb.append("</row>")
@@ -69,7 +69,7 @@ class Export(private val ctx: Context) {
     }
 
     /** PDF أفقي A4: جدول من اليمين لليسار بأعمدة الاسم والهوية والعمر والجنس والصلة والجوال. */
-    fun pdf(rows: List<List<String>>, title: String): ByteArray {
+    fun pdf(rows: List<List<String>>, title: String, hdr: List<String> = headers): ByteArray {
         val idx = listOf(0, 1, 3, 4, 5, 6)
         val widths = listOf(250f, 120f, 40f, 50f, 90f, 100f)
         val w = 842; val h = 595; val margin = 28f; val rowH = 20f
@@ -94,7 +94,7 @@ class Export(private val ctx: Context) {
                 }
                 y += rowH
             }
-            line(headers, bold); chunk.forEach { line(it, txt) }
+            line(hdr, bold); chunk.forEach { line(it, txt) }
             doc.finishPage(page)
         }
         val bo = ByteArrayOutputStream(); doc.writeTo(bo); doc.close()
@@ -111,6 +111,46 @@ class Export(private val ctx: Context) {
             ExportResult(true, name, uri, count)
         } else { legacyDir.mkdirs(); File(legacyDir, name).writeBytes(bytes); ExportResult(true, name, null, count) }
     }.getOrDefault(ExportResult(false, name, null, 0))
+
+    class Col(val k: String, val label: String, val get: (JSONObject) -> String)
+
+    private fun yn(b: Boolean) = if (b) "نعم" else ""
+    private fun aidSum(p: JSONObject) = Aid.list(p).size.toString().takeIf { it != "0" }.orEmpty()
+    private val shelters = mapOf("tent_ok" to "خيمة سليمة", "tent_damaged" to "خيمة تالفة", "shared" to "مأوى مشترك", "building_damaged" to "مبنى متضرر", "none" to "بلا مأوى")
+
+    /** أعمدة التقرير المخصص كما في الويب: الأساسية أولاً ثم الصحية والمأوى والمساعدات. */
+    val columns = listOf(
+        Col("name", "الاسم") { it.optString("fullName") }, Col("nid", "رقم الهوية") { it.optString("nationalId") },
+        Col("dob", "تاريخ الميلاد") { it.optString("birthDate").takeIf { v -> v != "null" }.orEmpty() }, Col("age", "العمر") { Stats.ageOf(it)?.toString().orEmpty() },
+        Col("gender", "الجنس") { when (it.optString("gender")) { "male" -> "ذكر"; "female" -> "أنثى"; else -> "" } },
+        Col("rel", "الصلة") { rels[it.optString("relation")] ?: it.optString("relation") },
+        Col("phone", "الجوال") { it.optString("phone") }, Col("phone2", "جوال إضافي") { it.optString("phone2") },
+        Col("addr", "العنوان") { it.optString("address") }, Col("marital", "الحالة الاجتماعية") { it.optString("maritalStatus") },
+        Col("shelter", "المأوى") { shelters[it.optString("shelterType")].orEmpty() },
+        Col("preg", "حامل") { yn(it.optBoolean("isPregnant")) }, Col("bf", "مرضعة") { yn(it.optBoolean("isBreastfeeding")) },
+        Col("chronic", "مرض مزمن") { p -> if (p.optBoolean("hasChronicDisease")) (p.optString("diseaseDetails").ifEmpty { "نعم" }) else "" },
+        Col("dis", "إعاقة") { p -> if (p.optBoolean("hasDisability")) (p.optString("disabilityDetails").ifEmpty { "نعم" }) else "" },
+        Col("urgent", "حالة طارئة") { yn(it.optBoolean("urgentNeed")) },
+        Col("aid", "عدد المساعدات") { aidSum(it) }, Col("notes", "ملاحظات") { it.optString("notes") },
+        Col("fid", "رقم الأسرة") { it.optString("familyId") },
+    )
+    val defaultCols = listOf("name", "nid", "age", "gender", "rel", "phone", "addr")
+
+    /** تقرير مخصص: الفلتر يحدد الأفراد، byFamily يكتفي برب الأسرة الذي تنتمي إليه سجلات مطابقة. */
+    fun custom(kind: String, campName: String, persons: List<JSONObject>, filter: String, byFamily: Boolean, keys: List<String>): ExportResult {
+        var sel = PFilter.apply(filter, persons)
+        if (byFamily) { val fids = sel.map { it.optString("familyId") }.toHashSet(); sel = persons.filter { it.optBoolean("isFamilyHead") && it.optString("familyId") in fids } }
+        val cols = columns.filter { it.k in keys }.ifEmpty { columns.filter { it.k in defaultCols } }
+        val r = sel.sortedWith(compareBy({ it.optString("familyId") }, { !it.optBoolean("isFamilyHead") }, { it.optString("fullName") })).map { p -> cols.map { it.get(p) } }
+        val h = cols.map { it.label }
+        val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
+        val base = "$campName-${PFilter.labels[filter] ?: filter}-$stamp".replace(Regex("[\\\\/:*?\"<>|]"), "-")
+        return when (kind) {
+            "xlsx" -> save("$base.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsx(r, campName, h), r.size)
+            "csv" -> save("$base.csv", "text/csv", csv(r, h), r.size)
+            else -> save("$base.pdf", "application/pdf", pdf(r, campName, h), r.size)
+        }
+    }
 
     fun run(kind: String, camp: String, campName: String, persons: List<JSONObject>, headsOnly: Boolean): ExportResult {
         val r = rows(persons, headsOnly)

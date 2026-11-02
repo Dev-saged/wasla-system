@@ -22,6 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -100,7 +102,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
         pending = withContext(Dispatchers.IO) { data.people.pendingCount(camp) }
     }
 
-    fun save(o: JSONObject, famKey: String?) {
+    fun save(o: JSONObject, famKey: String?, extras: List<JSONObject> = emptyList()) {
         scope.launch {
             o.put("updatedBy", auth.user.id)
             if (o.optString("createdBy").isEmpty()) o.put("createdBy", auth.user.id)
@@ -110,8 +112,22 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
                 if (bad != null) { nidErr = bad; return@launch }
             }
             nidErr = null
+            for (x in extras) {
+                val xn = x.optString("nationalId")
+                if (xn.isNotEmpty()) {
+                    val bad = withContext(Dispatchers.IO) { data.checkNid(auth, xn, camp) }
+                    if (bad != null) { nidErr = bad; return@launch }
+                }
+            }
             val saved = withContext(Dispatchers.IO) { data.people.save(camp, o) }
             withContext(Dispatchers.IO) { data.afterSave(auth, camp, saved, false) }
+            for (x in extras) {
+                x.put("updatedBy", auth.user.id)
+                if (x.optString("createdBy").isEmpty()) x.put("createdBy", auth.user.id)
+                x.put("familyId", saved.optString("familyId"))
+                val sx = withContext(Dispatchers.IO) { data.people.save(camp, x) }
+                withContext(Dispatchers.IO) { data.afterSave(auth, camp, sx, false) }
+            }
             rev++; edit = null
             open = famKey ?: open
             withContext(Dispatchers.IO) { data.pushNow(auth, camp) }
@@ -135,7 +151,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
         val ed = edit
         val fk = open
         when {
-            ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }) }
+            ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o, ex -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }, ex) }
             fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, auth.user.id, { open = null }, { edit = it }, { remove(it) }, { o -> save(o, fk) }, if (auth.user.role == "admin" && camps.size > 1) ({ openTransfer = true }) else null) { h -> data.credentials(auth, h.optString("nationalId"), camp) }
             else -> Column(Modifier.fillMaxSize()) {
                 AppHeader("الأسر والأفراد", (camps.firstOrNull { it.first == camp }?.second ?: "") + if (pending > 0) " · معلّق $pending" else "", onBack = onExit)
@@ -317,7 +333,7 @@ private fun FamilyScreen(f: Fam?, canWrite: Boolean, uid: String, onBack: () -> 
 }
 
 @Composable
-private fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: String?, onBack: () -> Unit, onSave: (JSONObject) -> Unit) {
+internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: String?, onBack: () -> Unit, onSave: (JSONObject, List<JSONObject>) -> Unit) {
     val p = LocalPalette.current
     val isNew = src.optString("id").isEmpty()
     val head = src.optBoolean("isFamilyHead")
@@ -333,6 +349,21 @@ private fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: String
     var preg by remember { mutableStateOf(src.optBoolean("isPregnant")) }
     var chronic by remember { mutableStateOf(src.optBoolean("hasChronicDisease")) }
     var dis by remember { mutableStateOf(src.optBoolean("hasDisability")) }
+    var phone2 by remember { mutableStateOf(src.optString("phone2")) }
+    var shelter by remember { mutableStateOf(src.optString("shelterType")) }
+    var bf by remember { mutableStateOf(src.optBoolean("isBreastfeeding")) }
+    var urgent by remember { mutableStateOf(src.optBoolean("urgentNeed")) }
+    var diseaseDetails by remember { mutableStateOf(src.optString("diseaseDetails")) }
+    var disDetails by remember { mutableStateOf(src.optString("disabilityDetails")) }
+    val conds = remember { mutableStateListOf<String>().also { l -> src.optJSONArray("chronicConditions")?.let { a -> for (i in 0 until a.length()) l.add(a.optString(i)) } } }
+    val oldSpouse = remember(src) { if (head) all.firstOrNull { it.optString("familyId") == src.optString("familyId") && it.optString("relation") in listOf("wife", "husband", "spouse") } else null }
+    var sName by remember { mutableStateOf(oldSpouse?.optString("fullName").orEmpty()) }
+    var sNid by remember { mutableStateOf(oldSpouse?.optString("nationalId").orEmpty()) }
+    var sDob by remember { mutableStateOf(oldSpouse?.optString("birthDate")?.takeIf { it != "null" }.orEmpty()) }
+    var sPreg by remember { mutableStateOf(oldSpouse?.optBoolean("isPregnant") == true) }
+    var sBf by remember { mutableStateOf(oldSpouse?.optBoolean("isBreastfeeding") == true) }
+    class Kid(var name: String, var gender: String, var dob: String, var rel: String)
+    val kids = remember { mutableStateListOf<MutableState<Kid>>() }
     var err by remember { mutableStateOf<String?>(null) }
 
     fun validate(): String? {
@@ -343,6 +374,19 @@ private fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: String
         if (n.isNotEmpty() && all.any { it.optString("nationalId") == n && it.optString("id") != src.optString("id") }) return "رقم الهوية مسجّل لشخص آخر"
         val d = normDigits(dob)
         if (d.isNotEmpty() && !Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(d)) return "التاريخ بصيغة 1990-05-21"
+        if (phone2.isNotEmpty() && normDigits(phone2).length < 9) return "الجوال الإضافي غير صحيح"
+        if (head && sName.isNotBlank()) {
+            val sn = normDigits(sNid)
+            if (sn.isEmpty()) return "رقم هوية الزوج/ة مطلوب"
+            if (!Regex("^\\d{9}$").matches(sn)) return "هوية الزوج/ة 9 أرقام"
+            if (sn == normDigits(nid) || all.any { it.optString("nationalId") == sn && it.optString("id") != oldSpouse?.optString("id") }) return "هوية الزوج/ة مسجّلة"
+        }
+        for (k in kids) {
+            val kd = normDigits(k.value.dob)
+            if (k.value.name.isBlank()) return "اسم الفرد المضاف مطلوب"
+            if (k.value.gender.isEmpty()) return "جنس ${k.value.name} مطلوب"
+            if (kd.isNotEmpty() && !Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(kd)) return "تاريخ ${k.value.name} بصيغة 1990-05-21"
+        }
         return null
     }
 
@@ -356,17 +400,62 @@ private fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: String
             }
             QField("رقم الهوية", nid, { nid = it }, type = KeyboardType.Number)
             QField("تاريخ الميلاد (1990-05-21)", dob, { dob = it }, type = KeyboardType.Number)
+            val age = dobAge(normDigits(dob))
+            if (age != null) Text("العمر: $age سنة", color = p.mute, fontSize = 12.sp)
             QField("الجوال", phone, { phone = it }, type = KeyboardType.Phone)
+            QField("جوال إضافي (اختياري)", phone2, { phone2 = it }, type = KeyboardType.Phone)
             if (head) {
                 QField("العنوان", address, { address = it })
+                Text("نوع المأوى", color = p.mute, fontSize = 12.sp)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { shelterLabels.forEach { (k, l) -> QChip(l, shelter == k) { shelter = if (shelter == k) "" else k } } }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { maritalLabels.forEach { m -> QChip(m, marital == m) { marital = m } } }
             } else if (!src.optBoolean("isFamilyHead")) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { relLabels.forEach { (k, l) -> QChip(l, rel == k) { rel = k } } }
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (gender == "female") QChip("حامل", preg) { preg = !preg }
+                if (gender == "female") QChip("مرضعة", bf) { bf = !bf }
                 QChip("مرض مزمن", chronic) { chronic = !chronic }
                 QChip("إعاقة", dis) { dis = !dis }
+                QChip("حالة طارئة", urgent) { urgent = !urgent }
+            }
+            if (chronic) {
+                Text("الحالات المرضية", color = p.mute, fontSize = 12.sp)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { chronicLabels.forEach { (k, l) -> QChip(l, k in conds) { if (k in conds) conds.remove(k) else conds.add(k) } } }
+                QField("تفاصيل المرض", diseaseDetails, { diseaseDetails = it })
+            }
+            if (dis) QField("تفاصيل الإعاقة", disDetails, { disDetails = it })
+            if (head) {
+                QCard {
+                    Text("الزوج / الزوجة (اختياري)", color = p.ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        QField("الاسم الكامل", sName, { sName = it })
+                        QField("رقم الهوية", sNid, { sNid = it }, type = KeyboardType.Number)
+                        QField("تاريخ الميلاد (1990-05-21)", sDob, { sDob = it }, type = KeyboardType.Number)
+                        val sFemale = gender == "male"
+                        if (sName.isNotBlank() && sFemale) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            QChip("حامل", sPreg) { sPreg = !sPreg }; QChip("مرضعة", sBf) { sBf = !sBf }
+                        }
+                    }
+                }
+                Text("أفراد الأسرة المضافون", color = p.mute, fontSize = 12.sp)
+                kids.forEachIndexed { i, st ->
+                    val k = st.value
+                    QCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            QField("الاسم", k.name, { st.value = Kid(it, k.gender, k.dob, k.rel) })
+                            QField("تاريخ الميلاد (1990-05-21)", k.dob, { st.value = Kid(k.name, k.gender, it, k.rel) }, type = KeyboardType.Number)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                QChip("ذكر", k.gender == "male") { st.value = Kid(k.name, "male", k.dob, k.rel) }
+                                QChip("أنثى", k.gender == "female") { st.value = Kid(k.name, "female", k.dob, k.rel) }
+                            }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { relLabels.forEach { (rk, l) -> QChip(l, k.rel == rk) { st.value = Kid(k.name, k.gender, k.dob, rk) } } }
+                            Btn("حذف", { kids.removeAt(i) }, kind = BtnKind.Danger)
+                        }
+                    }
+                }
+                Btn("إضافة فرد للأسرة", { kids.add(mutableStateOf(Kid("", "", "", "son"))) }, kind = BtnKind.Outline, icon = QIcons.Plus)
             }
             QField("ملاحظات", notes, { notes = it }, multiline = true)
             (err ?: serverErr)?.let { Text(it, color = p.danger, fontSize = 13.sp) }
@@ -381,17 +470,41 @@ private fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: String
                         .put("birthDate", if (d.isEmpty()) JSONObject.NULL else d)
                         .put("calculatedAge", dobAge(d) ?: JSONObject.NULL)
                         .put("isPregnant", gender == "female" && preg).put("hasChronicDisease", chronic).put("hasDisability", dis)
-                        .put("notes", notes.trim())
+                        .put("notes", notes.trim()).put("phone2", normDigits(phone2).trim())
+                        .put("isBreastfeeding", gender == "female" && bf).put("urgentNeed", urgent)
+                        .put("chronicConditions", org.json.JSONArray(if (chronic) conds.toList() else emptyList<String>()))
+                        .put("diseaseDetails", if (chronic) diseaseDetails.trim() else "").put("disabilityDetails", if (dis) disDetails.trim() else "")
                     if (head) {
-                        o.put("address", address.trim()).put("maritalStatus", marital).put("isFamilyHead", true).put("relation", "head")
+                        o.put("shelterType", shelter).put("address", address.trim()).put("maritalStatus", marital).put("isFamilyHead", true).put("relation", "head")
                         if (o.optString("familyId").isEmpty()) o.put("familyId", n.ifEmpty { java.util.UUID.randomUUID().toString() })
                     } else if (!o.optBoolean("isFamilyHead")) o.put("relation", rel.ifEmpty { "other" })
                     if (o.optString("id").isEmpty()) o.put("id", java.util.UUID.randomUUID().toString())
-                    onSave(o)
+                    val fid = o.optString("familyId")
+                    val ex = mutableListOf<JSONObject>()
+                    if (head && sName.isNotBlank()) {
+                        val sd = normDigits(sDob); val sg = if (gender == "male") "female" else if (gender == "female") "male" else ""
+                        val sp = if (oldSpouse != null) Merge.copy(oldSpouse) else JSONObject().put("relation", if (gender == "male") "wife" else "husband").put("isFamilyHead", false)
+                        sp.put("fullName", sName.trim()).put("nationalId", normDigits(sNid)).put("gender", sg)
+                            .put("birthDate", if (sd.isEmpty()) JSONObject.NULL else sd).put("calculatedAge", dobAge(sd) ?: JSONObject.NULL)
+                            .put("address", address.trim()).put("maritalStatus", marital)
+                            .put("isPregnant", sg == "female" && sPreg).put("isBreastfeeding", sg == "female" && sBf)
+                        ex.add(sp)
+                    }
+                    for (st in kids) {
+                        val k = st.value; val kd = normDigits(k.dob)
+                        ex.add(JSONObject().put("fullName", k.name.trim()).put("gender", k.gender).put("relation", k.rel).put("isFamilyHead", false)
+                            .put("birthDate", if (kd.isEmpty()) JSONObject.NULL else kd).put("calculatedAge", dobAge(kd) ?: JSONObject.NULL)
+                            .put("nationalId", "").put("phone", "").put("address", address.trim()).put("maritalStatus", "")
+                            .put("isPregnant", false).put("hasChronicDisease", false).put("hasDisability", false).put("notes", ""))
+                    }
+                    onSave(o, ex)
                 }
         }, Modifier.fillMaxWidth().padding(16.dp), icon = QIcons.Check)
     }
 }
+
+private val shelterLabels = listOf("tent_ok" to "خيمة سليمة", "tent_damaged" to "خيمة تالفة", "shared" to "مأوى مشترك", "building_damaged" to "مبنى متضرر", "none" to "بلا مأوى")
+private val chronicLabels = listOf("heart" to "قلب", "diabetes" to "سكري", "hypertension" to "ضغط الدم", "kidney" to "كلى", "cancer" to "سرطان", "respiratory" to "ربو / تنفسي", "liver" to "كبد", "thyroid" to "غدة درقية", "mental" to "نفسية", "blood" to "أمراض دم", "neuro" to "عصبية", "bone" to "مفاصل / عظام", "other" to "أخرى")
 
 private fun dobAge(d: String): Int? {
     val m = Regex("^(\\d{4})-(\\d{2})-(\\d{2})$").find(d) ?: return null

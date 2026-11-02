@@ -72,3 +72,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - native 5.3 quota: per-device counters vs free limits in SyncDiagPage; global cross-device panel needs a Worker /usage endpoint (not deployed).
 - web parity S1: data/PFilter.kt (26 filter chips, tier filters via Vuln.families, kpiKey map); PeopleScreen has chips + sort by vulnerability + PersonRow (badges, edit button) with startFilter/startFamily.
 - Home KpiCards open PeopleScreen(startFilter) via AppShell.homeFilter; NavBar tap resets it.
+- web parity P1: EditScreen (internal) now has phone2/shelter/breastfeeding/urgent/chronic grid+details/disability details + spouse card + added members (save(o, extras)); Export.custom + ExportPage "تقرير مخصص" (PFilter, columns, family/person); ui/more/AidScreen.kt (eligible/received/period/all camps, quick give/undo); BenHome 4 tabs (ملفي/أسرتي/طلباتي/إشعاراتي); AuthRepo.changePassword + ChangePwPage (Settings > الحساب).
