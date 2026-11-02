@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="grcs_night">#061116</color>
-    <color name="grcs_mark">#51CEC7</color>
-    <color name="grcs_paper">#F0EEE7</color>
+    <color name="grcs_night">#12215E</color>
 </resources>
