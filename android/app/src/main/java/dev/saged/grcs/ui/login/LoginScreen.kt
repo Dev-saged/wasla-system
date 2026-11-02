@@ -93,10 +93,10 @@ fun LoginScreen(repo: AuthRepo, onDone: (AuthState) -> Unit) {
         }
     }
 
-    Box(Modifier.fillMaxSize().background(p.bg)) {
+    Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(p.navyL, p.navy)))) {
         Canvas(Modifier.fillMaxSize()) {
             val c = Offset(size.width * .5f, size.height * .1f)
-            tatreezStar(c, size.width * .9f).let { drawPath(it, p.pri.copy(alpha = .07f)) }
+            tatreezStar(c, size.width * .9f).let { drawPath(it, androidx.compose.ui.graphics.Color.White.copy(alpha = .05f)) }
             tatreezStar(c, size.width * .55f).let { drawPath(it, p.acc.copy(alpha = .08f)) }
         }
         Column(
@@ -106,14 +106,17 @@ fun LoginScreen(repo: AuthRepo, onDone: (AuthState) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(72.dp))
-            Canvas(Modifier.size(64.dp)) { drawPath(tatreezStar(center, size.minDimension / 2f), p.acc) }
+            Box(
+                Modifier.size(96.dp).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.pri)), RoundedCornerShape(26.dp)),
+                contentAlignment = Alignment.Center,
+            ) { androidx.compose.material3.Icon(dev.saged.grcs.ui.icons.QIcons.Camp, null, Modifier.size(48.dp), tint = androidx.compose.ui.graphics.Color.White) }
             Spacer(Modifier.height(20.dp))
             Text(
-                BrandConfig.NAME_LINES.joinToString("\n"), color = p.ink, fontFamily = GrcsFonts.display,
-                fontSize = 38.sp, lineHeight = 44.sp, textAlign = TextAlign.Center,
+                BrandConfig.NAME_LINES.joinToString("\n"), color = androidx.compose.ui.graphics.Color.White, fontFamily = GrcsFonts.display,
+                fontSize = 32.sp, lineHeight = 40.sp, textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(8.dp))
-            Text(BrandConfig.TAGLINE, color = p.mute, fontSize = 14.sp, textAlign = TextAlign.Center)
+            Text(BrandConfig.TAGLINE, color = androidx.compose.ui.graphics.Color(0xFFBFD8E8), fontSize = 14.sp, textAlign = TextAlign.Center)
             Spacer(Modifier.height(40.dp))
 
             Field("اسم المستخدم", user, { user = it; error = null }, KeyboardType.Text, ImeAction.Next, false, null) {}
@@ -124,20 +127,20 @@ fun LoginScreen(repo: AuthRepo, onDone: (AuthState) -> Unit) {
             ) { submit() }
 
             Box(Modifier.fillMaxWidth().padding(top = 12.dp).height(22.dp)) {
-                error?.let { Text(it, color = p.danger, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
+                error?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFFCA5A5), fontSize = 13.sp, fontWeight = FontWeight.Medium) }
             }
             Spacer(Modifier.height(12.dp))
             Box(
-                Modifier.fillMaxWidth().height(56.dp).background(if (busy) p.pri.copy(alpha = .6f) else p.pri, RoundedCornerShape(16.dp))
+                Modifier.fillMaxWidth().height(56.dp).background(if (busy) p.tealL.copy(alpha = .6f) else p.tealL, RoundedCornerShape(16.dp))
                     .clickable(enabled = !busy) { submit() },
                 contentAlignment = Alignment.Center,
             ) {
-                if (busy) CircularProgressIndicator(Modifier.size(24.dp), color = p.onPri, strokeWidth = 2.5.dp)
-                else Text("دخول", color = p.onPri, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                if (busy) CircularProgressIndicator(Modifier.size(24.dp), color = androidx.compose.ui.graphics.Color.White, strokeWidth = 2.5.dp)
+                else Text("دخول", color = androidx.compose.ui.graphics.Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(48.dp))
             Text(
-                "تطوير ${BrandConfig.Dev.NAME}", color = p.mute, fontSize = 11.sp,
+                "تطوير ${BrandConfig.Dev.NAME}", color = androidx.compose.ui.graphics.Color(0xFFBFD8E8), fontSize = 10.sp,
                 modifier = Modifier.padding(bottom = 16.dp),
             )
         }

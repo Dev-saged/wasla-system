@@ -31,6 +31,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.EmptyState
+import dev.saged.grcs.ui.components.HeaderBtn
+import dev.saged.grcs.ui.components.IconTile
+import dev.saged.grcs.ui.components.Pill
+import dev.saged.grcs.ui.components.QCard
+import dev.saged.grcs.ui.components.fa
+import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.CampSummary
 import dev.saged.grcs.data.DataRepo
@@ -48,13 +63,12 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}) 
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     fun reload() { camps = data.cached(auth).sortedByDescending { it.stats.total } }
-    Column(Modifier.fillMaxSize().statusBarsPadding().padding(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("المخيمات", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
-            if (admin) QChip("مخيم جديد", false) { creating = true }
-        }
-        if (camps.isEmpty()) Text("لا بيانات بعد — افتح الرئيسية للمزامنة", color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(top = 16.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
+    Column(Modifier.fillMaxSize()) {
+      AppHeader("المخيمات", "${camps.size} مخيم · ${camps.sumOf { it.stats.families }} أسرة") {
+        if (admin) HeaderBtn(QIcons.Plus, "مخيم جديد") { creating = true }
+      }
+      if (camps.isEmpty()) EmptyState(QIcons.Camp, "لا بيانات بعد", "افتح الرئيسية للمزامنة")
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(16.dp)) {
             items(camps, key = { it.id }) { c -> Card(c, admin, { onOpen(c.id) }) { edit = c } }
         }
     }
@@ -79,20 +93,22 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}) 
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Card(c: CampSummary, admin: Boolean, onOpen: () -> Unit, onEdit: () -> Unit) {
     val p = LocalPalette.current
-    Column(Modifier.fillMaxWidth().clickable(onClick = onOpen).background(p.surface, RoundedCornerShape(18.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(c.name, color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            if (admin) QChip("تعديل الاسم", false, onEdit)
+    QCard(Modifier, onOpen) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconTile(QIcons.Camp, p.pri, 40.dp)
+            Column(Modifier.weight(1f)) {
+                Text(c.name, color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text("${fa(c.stats.families)} أسرة · ${fa(c.stats.total)} فرد", color = p.pri, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+            }
+            if (admin) Box(Modifier.size(44.dp).clickable(onClick = onEdit), contentAlignment = Alignment.Center) { Icon(QIcons.Edit, "تعديل الاسم", Modifier.size(20.dp), tint = p.mute) }
         }
-        Text("${c.stats.families} أسرة · ${c.stats.total} فرد", color = p.pri, fontSize = 13.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("أطفال ${c.stats.child}", color = p.mute, fontSize = 12.sp)
-            Text("كبار ${c.stats.elderly}", color = p.mute, fontSize = 12.sp)
-            Text("حوامل ${c.stats.pregnant}", color = p.mute, fontSize = 12.sp)
-            Text("إعاقة ${c.stats.disability}", color = p.mute, fontSize = 12.sp)
+        Spacer(Modifier.height(10.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Pill("أطفال ${c.stats.child}", p.warn); Pill("كبار ${c.stats.elderly}", p.gray); Pill("حوامل ${c.stats.pregnant}", p.pregnant); Pill("إعاقة ${c.stats.disability}", p.purple)
         }
     }
 }
