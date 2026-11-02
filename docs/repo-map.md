@@ -30,3 +30,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 ## Open issues
 - (none)
 - prototype/home-directions.html: static prototype (3 home directions, 3 splash, 3 icon concepts); awaiting user choice, no logic.
+- prototype/home-b.html: chosen home direction B (Compass) as interactive prototype + 3 icon developments (A compass, B lit door, C embroidered) of the chosen "tent and door" concept; awaiting icon pick.
