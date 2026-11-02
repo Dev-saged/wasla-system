@@ -31,6 +31,8 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 
 ## Open issues
 - (none)
+- prototype/home-directions.html: static prototype (3 home directions, 3 splash, 3 icon concepts); awaiting user choice, no logic.
+- v3.6.1: removed regional admin credit from README/index.html/manifest.json (name list for gender inference at index.html ~6374 kept: it is a generic first-name list).
 
 - android auth: `auth/{Pbkdf2,Http,SessionStore,AuthRepo}.kt` login via existing Worker + Keystore-encrypted session; `config/Backend.kt` public Firebase client config; `ui/login/LoginScreen.kt`.
 - MainActivity flow: Opening -> (restore session) -> Login -> AppShell.
@@ -57,3 +59,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - native messages: unread badges for beneficiary threads (Messages.Seen per-device last-read, counts from already-loaded messages, no extra reads).
 - native messages: admin broadcastAll over camps (per-camp batches).
 - native: GenderInfer (assets/gender_lex.json exported from web lexicons) fills missing gender in imports; no learned father/vote corpus.
+- v3.6.2: removed legacy PUSH_ADMIN_KEY/X-Admin-Key from client (secV=2 confirmed; Worker rejects old key); push needs admin idToken.
