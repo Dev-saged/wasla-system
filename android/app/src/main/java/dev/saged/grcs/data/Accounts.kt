@@ -40,7 +40,9 @@ class Accounts(private val cache: FamCache) {
 
     fun enqueueDelete(camp: String, p: JSONObject) {
         val nid = p.optString("nationalId"); if (nid.isEmpty()) return
-        saveTodo(camp, todo(camp).put(JSONObject().put("t", "nidDel").put("nid", nid)))
+        val q = todo(camp).put(JSONObject().put("t", "nidDel").put("nid", nid))
+        if (p.optBoolean("isFamilyHead")) q.put(JSONObject().put("t", "benDel").put("nid", nid))
+        saveTodo(camp, q)
     }
 
     /** ينفّذ القائمة المؤجلة؛ ما يفشل بسبب الشبكة يبقى للمرة القادمة. */
@@ -59,6 +61,10 @@ class Accounts(private val cache: FamCache) {
                     "nidDel" -> {
                         val f = Fs.get("nationalIds/${it.getString("nid")}", token)
                         if (f != null && Fs.stringField(f, "campId") == camp) Fs.delete("nationalIds/${it.getString("nid")}", token)
+                    }
+                    "benDel" -> Fs.queryEq("users", listOf("username" to it.getString("nid"), "campId" to camp), token).filter { u -> u.optString("role") == "beneficiary" }.forEach { u ->
+                        Fs.delete("users/${u.getString("id")}", token)
+                        runCatching { Fs.delete("creds/${u.getString("id")}", token) }
                     }
                     "ben" -> if (secV >= 2) ensureBeneficiary(JSONObject(it.getString("p")), camp, campName, token)
                 }

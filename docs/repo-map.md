@@ -48,3 +48,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - native: camp admin (create/rename) — DataRepo.createCamp/renameCamp + CampsScreen dialog; rename propagates campName to users; camp delete/clear intentionally not implemented (risky, web only).
 - native: message outbox (Messages.Outbox, SharedPreferences, idempotent retry by id, flush on load/send).
 - native: Vuln.effectiveShelter/inferShelter (free-text shelter inference) + tier chip on FamRow.
+- native: deleting a head queues benDel (users+creds by username=nid, campId) in Accounts todo.
