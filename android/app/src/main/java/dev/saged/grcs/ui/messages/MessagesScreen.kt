@@ -99,7 +99,11 @@ private fun BenList(auth: AuthState, repo: Messages, camp: String, campName: Str
         if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp) else if (rows!!.isEmpty()) Text("لا محادثات بعد", color = p.mute, fontSize = 13.sp)
         rows?.forEach { (tid, name, last) ->
             Column(Modifier.fillMaxWidth().heightIn(min = 60.dp).background(p.surface, RoundedCornerShape(16.dp)).clickable { onOpen(tid) }.padding(14.dp)) {
-                Text(name, color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                val un = repo.unread[tid] ?: 0
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(name, color = p.ink, fontSize = 15.sp, fontWeight = if (un > 0) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.weight(1f))
+                    if (un > 0) Text("$un", color = p.onPri, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(p.pri, RoundedCornerShape(50)).padding(horizontal = 8.dp, vertical = 2.dp))
+                }
                 Text(last, color = p.mute, fontSize = 12.sp, maxLines = 1)
             }
         }
@@ -135,7 +139,11 @@ private fun Chat(auth: AuthState, thread: String, title: String, onBack: () -> U
             delay(15_000)
         }
     }
-    LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) listState.scrollToItem(msgs.size - 1) }
+    LaunchedEffect(msgs.size) {
+        if (msgs.isNotEmpty()) listState.scrollToItem(msgs.size - 1)
+        val key = if (thread.startsWith("bt:")) thread.substringAfterLast(":") else thread
+        msgs.maxOfOrNull { it.optLong("timestamp") }?.let { Messages.Seen.mark(auth.user.id, key, it) }
+    }
 
     Column(Modifier.fillMaxSize().imePadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {

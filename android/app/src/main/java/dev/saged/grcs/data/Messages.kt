@@ -5,10 +5,23 @@ import org.json.JSONObject
 
 /** رسائل المخيم والرسائل العامة (اتصال مباشر؛ الإرسال الفاشل يبقى نصه في الشاشة لإعادة المحاولة). */
 class Messages {
+    /** عدد غير المقروء لكل موضوع، يُملأ عند benThreads (من الرسائل المحمّلة أصلاً دون قراءات إضافية). */
+    val unread = HashMap<String, Int>()
+
+    /** آخر وقت قراءة لكل موضوع (محلي للجهاز كما في الويب). */
+    object Seen {
+        private var prefs: android.content.SharedPreferences? = null
+        fun init(ctx: android.content.Context) { prefs = ctx.getSharedPreferences("grcs_seen", android.content.Context.MODE_PRIVATE) }
+        fun get(user: String, thread: String) = prefs?.getLong("$user|$thread", 0L) ?: 0L
+        fun mark(user: String, thread: String, ts: Long) { if (ts > get(user, thread)) prefs?.edit()?.putLong("$user|$thread", ts)?.apply() }
+    }
+
     /** مواضيع المستفيدين في مخيم: (معرّف الموضوع، اسم المستفيد، آخر رسالة). */
     fun benThreads(st: AuthState, camp: String): List<Triple<String, String, String>> {
         val all = Fs.recentMessages("camps/$camp", "benMessages", st.idToken, 200)
         return all.groupBy { it.optString("threadId") }.filterKeys { it.startsWith("ben_") }.map { (tid, ms) ->
+            val seen = Seen.get(st.user.id, tid)
+            unread[tid] = ms.count { it.optString("senderId") != st.user.id && it.optLong("timestamp") > seen }
             val name = ms.firstOrNull { it.optString("senderId") == tid.removePrefix("ben_") }?.optString("senderName") ?: ms.first().optString("senderName")
             Triple(tid, name, ms.maxByOrNull { it.getLong("timestamp") }!!.optString("text"))
         }.sortedBy { it.second }
