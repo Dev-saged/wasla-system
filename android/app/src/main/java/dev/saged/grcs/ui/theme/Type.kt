@@ -10,14 +10,15 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import dev.saged.grcs.R
 
-/** لالزار للعناوين، وIBM Plex العربي للنصوص. */
+/** Cairo للجميع كما في نسخة الويب؛ display هو نفس الخط بوزن أثقل للأرقام والعناوين. */
 object GrcsFonts {
-    val display = FontFamily(Font(R.font.lalezar))
+    val display = FontFamily(Font(R.font.cairo_extrabold, FontWeight.Normal), Font(R.font.cairo_extrabold, FontWeight.Bold))
     val body = FontFamily(
-        Font(R.font.plex_arabic_regular, FontWeight.Normal),
-        Font(R.font.plex_arabic_medium, FontWeight.Medium),
-        Font(R.font.plex_arabic_semibold, FontWeight.SemiBold),
-        Font(R.font.plex_arabic_bold, FontWeight.Bold),
+        Font(R.font.cairo_regular, FontWeight.Normal),
+        Font(R.font.cairo_medium, FontWeight.Medium),
+        Font(R.font.cairo_semibold, FontWeight.SemiBold),
+        Font(R.font.cairo_bold, FontWeight.Bold),
+        Font(R.font.cairo_extrabold, FontWeight.ExtraBold),
     )
 }
 

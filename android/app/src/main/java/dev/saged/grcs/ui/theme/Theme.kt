@@ -21,6 +21,9 @@ data class Palette(
     val ink: Color, val mute: Color, val line: Color,
     val pri: Color, val onPri: Color, val acc: Color,
     val danger: Color, val ok: Color, val warn: Color,
+    val navy: Color, val navyL: Color, val tealL: Color, val purple: Color, val blue: Color,
+    val pregnant: Color, val success: Color, val gray: Color,
+    val tierHigh: Color, val tierMedium: Color, val tierStable: Color,
     val dark: Boolean,
 )
 
@@ -37,6 +40,9 @@ fun paletteOf(dark: Boolean): Palette {
         ink = pick(p.ink), mute = pick(p.mute), line = pick(p.line),
         pri = pick(p.pri), onPri = pick(p.onPri), acc = pick(p.acc),
         danger = pick(p.danger), ok = pick(p.ok), warn = pick(p.warn),
+        navy = pick(p.navy), navyL = pick(p.navyL), tealL = pick(p.tealL), purple = pick(p.purple), blue = pick(p.blue),
+        pregnant = pick(p.pregnant), success = pick(p.success), gray = pick(p.gray),
+        tierHigh = pick(p.tierHigh), tierMedium = pick(p.tierMedium), tierStable = pick(p.tierStable),
         dark = dark,
     )
 }
