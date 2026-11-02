@@ -1,5 +1,6 @@
 package dev.saged.grcs.ui.more
 
+import dev.saged.grcs.ui.components.AppHeader
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -73,10 +74,7 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack).padding(12.dp))
-            Text("استيراد كشف", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 20.sp)
-        }
+        AppHeader("استيراد كشف", "", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id; prev = null } } }
             Text("صف لكل شخص. أعمدة معروفة: الاسم، رقم الهوية، الجوال، تاريخ الميلاد، الجنس، الحالة الاجتماعية، هوية رب الأسرة (للأفراد التابعين).", color = p.mute, fontSize = 12.sp)

@@ -90,7 +90,7 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit) {
             auth = st; camps = list
             withContext(Dispatchers.IO) { list.forEach { data.autoBackup(it.id, it.name) } }
             withContext(Dispatchers.IO) { runCatching { insight(data, st.idToken, list) } }.getOrNull()?.let { ins = it }
-            if (st.offline) { error = "دون اتصال — تُعرض آخر نسخة محفوظة"; ConnState.state = Conn.Off } else ConnState.state = Conn.On
+            if (st.offline) { error = "دون اتصال — تُعرض آخر نسخة محفوظة"; ConnState.state = Conn.Off } else { ConnState.state = Conn.On; ConnState.lastSync = System.currentTimeMillis() }
         } catch (e: Exception) {
             error = "تعذّرت المزامنة — تُعرض آخر نسخة محفوظة"; ConnState.state = Conn.Off
         } finally {

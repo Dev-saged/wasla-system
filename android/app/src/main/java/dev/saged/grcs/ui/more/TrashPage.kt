@@ -1,5 +1,6 @@
 package dev.saged.grcs.ui.more
 
+import dev.saged.grcs.ui.components.AppHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,10 +52,7 @@ fun TrashPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val kinds = mapOf("person" to "فرد", "family" to "أسرة", "clear" to "إفراغ مخيم", "camp" to "مخيم", "account" to "حساب")
     LaunchedEffect(rev) { items = withContext(Dispatchers.IO) { runCatching { data.trash.list(auth) }.getOrNull() ?: emptyList() } }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack).padding(12.dp))
-            Text("سلة المحذوفات", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 20.sp)
-        }
+        AppHeader("سلة المحذوفات", "", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("تُحفظ المحذوفات 30 يوماً ثم تُمسح تلقائياً", color = p.mute, fontSize = 12.sp)
             if (note.isNotEmpty()) Text(note, color = p.ink, fontSize = 12.sp)

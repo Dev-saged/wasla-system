@@ -1,5 +1,6 @@
 package dev.saged.grcs.ui.more
 
+import dev.saged.grcs.ui.components.AppHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -57,10 +58,7 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
     var nCamp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
     LaunchedEffect(rev) { rows = withContext(Dispatchers.IO) { Staff.list(auth) } }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack).padding(12.dp))
-            Text("حسابات الطاقم", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 20.sp)
-        }
+        AppHeader("حسابات الطاقم", "", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (note.isNotEmpty()) Text(note, color = p.mute, fontSize = 12.sp)
             if (!adding) QChip("حساب جديد", false) { adding = true }

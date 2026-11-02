@@ -88,7 +88,10 @@ fun IconTile(icon: ImageVector, color: Color, size: Dp = 32.dp, solid: Boolean =
 enum class Conn { On, Sync, Off }
 
 /** حالة الاتصال العامة تُحدَّثها المزامنة وتقرؤها كل ترويسة. */
-object ConnState { var state by androidx.compose.runtime.mutableStateOf(Conn.On) }
+object ConnState {
+    var state by androidx.compose.runtime.mutableStateOf(Conn.On)
+    var lastSync by androidx.compose.runtime.mutableStateOf(0L)
+}
 
 /** شارة الاتصال في الترويسة: نقطة ملوّنة ونص داخل حبّة شفافة. */
 @Composable
@@ -252,7 +255,7 @@ fun Bar(frac: Float, color: Color, modifier: Modifier = Modifier, h: Dp = 8.dp) 
 
 /** صف إعدادات: أيقونة، عنوان ووصف، وسهم. */
 @Composable
-fun MenuRow(icon: ImageVector, title: String, sub: String? = null, color: Color? = null, onClick: () -> Unit, trailing: @Composable () -> Unit = { Icon(QIcons.Chev, null, Modifier.size(18.dp), tint = LocalPalette.current.mute) }) {
+fun MenuRow(icon: ImageVector, title: String, sub: String? = null, color: Color? = null, trailing: @Composable () -> Unit = { Icon(QIcons.Chev, null, Modifier.size(18.dp), tint = LocalPalette.current.mute) }, onClick: () -> Unit) {
     val p = LocalPalette.current
     Row(
         Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(role = Role.Button, onClick = onClick).padding(vertical = 8.dp),

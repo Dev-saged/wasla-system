@@ -1,5 +1,6 @@
 package dev.saged.grcs.ui.more
 
+import dev.saged.grcs.ui.components.AppHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -62,10 +63,7 @@ fun QueryPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     fun run(g: List<List<Cond>>, t: String) { groups = g; title = t; result = null; scope.launch { result = withContext(Dispatchers.Default) { Query.run(persons, g) } } }
     fun addCond(c: Cond, newGroup: Boolean) { run(if (newGroup || groups.isEmpty()) groups + listOf(listOf(c)) else groups.dropLast(1) + listOf(groups.last() + c), "استعلام مخصص"); fieldK = null; vMin = ""; vMax = "" }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack).padding(12.dp))
-            Text("الفئات والاستعلامات", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 20.sp)
-        }
+        AppHeader("الفئات والاستعلامات", "", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id; groups = emptyList(); result = null } } }
             Text("الفئات", color = p.mute, fontSize = 12.sp)

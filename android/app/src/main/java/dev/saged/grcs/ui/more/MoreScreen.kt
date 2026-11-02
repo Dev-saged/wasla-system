@@ -36,6 +36,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.Btn
+import dev.saged.grcs.ui.components.BtnKind
+import dev.saged.grcs.ui.components.Conn
+import dev.saged.grcs.ui.components.ConnState
+import dev.saged.grcs.ui.components.Hair
+import dev.saged.grcs.ui.components.MenuRow
+import dev.saged.grcs.ui.components.SettingCard
+import dev.saged.grcs.ui.icons.QIcons
+import androidx.compose.foundation.layout.widthIn
 import dev.saged.grcs.BuildConfig
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.auth.Http
@@ -65,7 +75,7 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     val p = LocalPalette.current
     var page by remember { mutableStateOf("main") }
     BackHandler(page != "main") { page = "main" }
-    Box(Modifier.fillMaxSize().statusBarsPadding()) {
+    Box(Modifier.fillMaxSize()) {
         when (page) {
             "backup" -> BackupPage(auth, data) { page = "main" }
             "update" -> UpdatePage { page = "main" }
@@ -80,48 +90,92 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             "similar" -> SimilarPage(auth, data) { page = "main" }
             "rapid" -> RapidPage(auth, data) { page = "main" }
             "aidrep" -> AidReportPage(auth, data) { page = "main" }
-            else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("المزيد", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
-                Text(auth.user.fullName, color = p.mute, fontSize = 13.sp)
-                Text("استهلاك هذا الجهاز اليوم: ${Usage.reads()} قراءة · ${Usage.writes()} كتابة (الحد المجاني للمشروع كله: 50,000 / 20,000)", color = p.mute, fontSize = 11.sp)
-                Spacer(Modifier.height(8.dp))
-                if (auth.user.role != "beneficiary") Item("إدخال سريع") { page = "rapid" }
-                if (auth.user.role != "beneficiary") Item("استيراد كشف Excel") { page = "import" }
-                if (auth.user.role != "beneficiary") Item("مؤشر الهشاشة") { page = "vuln" }
-                if (auth.user.role != "beneficiary") Item("جودة البيانات") { page = "quality" }
-                if (auth.user.role == "admin" || auth.user.role == "delegate") Item("سلة المحذوفات") { page = "trash" }
-                if (auth.user.role == "admin" || auth.user.role == "delegate") Item("سجل النشاط") { page = "audit" }
-                if (auth.user.role != "beneficiary") Item("الفئات والاستعلامات") { page = "query" }
-                if (auth.user.role != "beneficiary") Item("الأسماء المتشابهة") { page = "similar" }
-                if (auth.user.role != "beneficiary") Item("تصدير البيانات") { page = "export" }
-                if (auth.user.role != "beneficiary") Item("تقرير المساعدات") { page = "aidrep" }
-                if (auth.user.role != "beneficiary") Item("النسخ الاحتياطي والاستعادة") { page = "backup" }
-                if (auth.user.role == "admin") Item("حسابات الطاقم") { page = "staff" }
-                Item("التحديثات") { page = "update" }
-                Item("تسجيل الخروج", danger = true) { onLogout() }
-                Spacer(Modifier.height(24.dp))
-                Text("الإصدار ${BuildConfig.VERSION_NAME}", color = p.mute, fontSize = 11.sp)
-                Text("تطوير ${BrandConfig.Dev.NAME}", color = p.mute, fontSize = 11.sp)
+            else -> Settings(auth, data, onLogout) { page = it }
+        }
+    }
+}
+
+@Composable
+private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: (String) -> Unit) {
+    val p = LocalPalette.current
+    val scope = rememberCoroutineScope()
+    val role = auth.user.role
+    val staff = role != "beneficiary"
+    val adminDel = role == "admin" || role == "delegate"
+    var syncing by remember { mutableStateOf(false) }
+    var msg by remember { mutableStateOf<String?>(null) }
+    val pending = remember(syncing) { data.campList(auth).sumOf { data.people.pendingCount(it.first) } }
+    val fmt = remember { SimpleDateFormat("yyyy/MM/dd  HH:mm", Locale.US) }
+    Column(Modifier.fillMaxSize()) {
+        AppHeader("الإعدادات", auth.user.fullName)
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+            Column(Modifier.widthIn(max = 640.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SettingCard("المزامنة", QIcons.Sync) {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("آخر مزامنة", color = p.mute, fontSize = 12.5.sp)
+                        Text(if (ConnState.lastSync == 0L) "—" else fmt.format(Date(ConnState.lastSync)), color = p.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("تغييرات بانتظار الرفع", color = p.mute, fontSize = 12.5.sp)
+                        Text(pending.toString(), color = if (pending > 0) p.warn else p.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Btn(if (syncing) "جارٍ المزامنة…" else "مزامنة مع المركز الآن", {
+                        scope.launch {
+                            syncing = true; msg = null; ConnState.state = Conn.Sync
+                            val r = withContext(Dispatchers.IO) { runCatching { data.sync(auth) } }
+                            val ok = r.isSuccess && !r.getOrThrow().first.offline
+                            ConnState.state = if (ok) Conn.On else Conn.Off
+                            if (ok) ConnState.lastSync = System.currentTimeMillis()
+                            msg = if (ok) "اكتملت المزامنة" else "تعذّرت المزامنة — تحقق من الاتصال"
+                            syncing = false
+                        }
+                    }, Modifier.fillMaxWidth(), enabled = !syncing, icon = QIcons.Sync)
+                    msg?.let { Text(it, color = if (it.startsWith("اكتملت")) p.ok else p.warn, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp)) }
+                    Text("استهلاك هذا الجهاز اليوم: ${Usage.reads()} قراءة · ${Usage.writes()} كتابة", color = p.mute, fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
+                }
+                if (staff) SettingCard("النسخ الاحتياطي", QIcons.Backup) {
+                    MenuRow(QIcons.Backup, "نسخ احتياطي واستعادة", "نسخة يومية تلقائية في المستندات ← ${BrandConfig.BACKUP_DIR}") { go("backup") }
+                    Hair()
+                    MenuRow(QIcons.Export, "تصدير البيانات", "Excel · CSV · PDF") { go("export") }
+                    Hair()
+                    MenuRow(QIcons.Import, "استيراد كشف Excel", "أسر ومعيلون وأفراد") { go("import") }
+                }
+                if (adminDel) SettingCard("الحماية من فقدان البيانات", QIcons.Shield) {
+                    MenuRow(QIcons.Trash, "سلة المحذوفات", "استعادة ما حُذف خلال ٣٠ يوماً", p.danger) { go("trash") }
+                    Hair()
+                    MenuRow(QIcons.Clock, "سجل النشاط", "من فعل ماذا ومتى", p.blue) { go("audit") }
+                }
+                if (staff) SettingCard("أدوات البيانات", QIcons.Chart) {
+                    MenuRow(QIcons.Bolt, "إدخال سريع", null, p.warn) { go("rapid") }
+                    Hair()
+                    MenuRow(QIcons.Alert, "مؤشر الهشاشة", "ترتيب الأسر حسب الاحتياج", p.acc) { go("vuln") }
+                    Hair()
+                    MenuRow(QIcons.Check, "جودة البيانات", "نقص وتعارض وقيم مشبوهة", p.success) { go("quality") }
+                    Hair()
+                    MenuRow(QIcons.Filter, "الفئات والاستعلامات", "فئات جاهزة واستعلامات محفوظة", p.purple) { go("query") }
+                    Hair()
+                    MenuRow(QIcons.Copy, "الأسماء المتشابهة", "كشف التكرار المحتمل", p.gray) { go("similar") }
+                    Hair()
+                    MenuRow(QIcons.Report, "تقرير المساعدات", null, p.blue) { go("aidrep") }
+                }
+                if (role == "admin") SettingCard("الإدارة", QIcons.Key) {
+                    MenuRow(QIcons.Key, "حسابات الطاقم", "مناديب ومدخلو بيانات") { go("staff") }
+                }
+                SettingCard("حول التطبيق", QIcons.Info) {
+                    MenuRow(QIcons.Sync, "التحديثات", "الإصدار ${BuildConfig.VERSION_NAME}") { go("update") }
+                }
+                Btn("تسجيل الخروج", onLogout, Modifier.fillMaxWidth(), BtnKind.Danger, QIcons.Logout)
+                Text("تطوير ${BrandConfig.Dev.NAME}", color = p.mute, fontSize = 10.sp, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
         }
     }
 }
 
 @Composable
-private fun Item(title: String, danger: Boolean = false, onClick: () -> Unit) {
-    val p = LocalPalette.current
-    Box(Modifier.fillMaxWidth().heightIn(min = 56.dp).background(p.surface, RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(16.dp), contentAlignment = Alignment.CenterStart) {
-        Text(title, color = if (danger) p.danger else p.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-    }
-}
-
-@Composable
 private fun Back(title: String, onBack: () -> Unit) {
     val p = LocalPalette.current
-    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("رجوع", color = p.pri, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 48.dp).clickable(onClick = onBack).padding(12.dp))
-        Text(title, color = p.ink, fontFamily = GrcsFonts.display, fontSize = 20.sp)
-    }
+    AppHeader(title, "", conn = null, onBack = onBack)
 }
 
 @Composable
