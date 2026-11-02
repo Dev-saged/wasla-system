@@ -15,6 +15,35 @@ object Vuln {
     private val badShelter = setOf("tent_damaged", "shared", "building_damaged", "none")
     val tiers = listOf("critical" to "حرجة", "high" to "عالية", "medium" to "متوسطة", "stable" to "مستقرة")
 
+    private val shelterLabels = mapOf("tent_ok" to "خيمة سليمة", "tent_damaged" to "خيمة تالفة", "shared" to "مأوى مشترك", "building_damaged" to "مبنى متضرر", "none" to "بلا مأوى")
+
+    fun norm(s: String) = s.replace(Regex("[\\u064B-\\u065F\\u0670\\u0640\\u200e\\u200f\\ufeff]"), "").replace(Regex("[إأآٱ]"), "ا").replace('ى', 'ي').replace('ة', 'ه')
+        .replace(Regex("[/\\-_,،]"), " ").replace(Regex("\\s+"), " ").trim().lowercase()
+
+    /** تفسير نص حر إلى نوع مأوى (كما inferShelterFromText في الويب). */
+    fun inferShelter(raw: String): String {
+        val t = norm(raw); if (t.isEmpty()) return ""
+        shelterLabels.entries.firstOrNull { norm(it.value) == t }?.let { return it.key }
+        fun has(r: String) = Regex(r).containsMatchIn(t)
+        return when {
+            has("بلا ماوي|بدون ماوي|لا يوجد ماوي|الشارع|العراء|بلا مسكن|بدون مسكن") -> "none"
+            has("خيم") && has("تالف|ممزق|مهتري|مهترئ|ممزع|قديم|متضرر|مدمر|غرق") -> "tent_damaged"
+            has("مشترك|مدرس|مركز ايواء|مراكز ايواء|ايواء جماعي|مع اقارب|عند اقارب|استضاف") -> "shared"
+            has("متضرر|مدمر|مهدم|ايل للسقوط|قصف|جزئي|كلي") -> "building_damaged"
+            has("خيم") -> "tent_ok"
+            else -> ""
+        }
+    }
+
+    fun effectiveShelter(p: JSONObject): String {
+        p.optString("shelterType").takeIf { it.isNotEmpty() }?.let { return it }
+        val cf = p.optJSONObject("customFields")
+        for (src in listOf(p.optString("livingSituation"), cf?.optString("حالة السكن"), cf?.optString("حالة المسكن"), cf?.optString("نوع السكن"), cf?.optString("نوع المسكن"))) {
+            inferShelter(src.orEmpty()).takeIf { it.isNotEmpty() }?.let { return it }
+        }
+        return ""
+    }
+
     var weights: Map<String, Int> = defaults
     var cuts = Triple(60, 40, 20)
 
@@ -39,7 +68,7 @@ object Vuln {
         val n = mapOf(
             "disability" to members.count { it.optBoolean("hasDisability") },
             "femaleHead" to if (head.optString("gender") == "female" && (ms.contains("أرمل") || ms.contains("مطلق") || Regex("شهيد|متوف").containsMatchIn(fate))) 1 else 0,
-            "shelter" to if (head.optString("shelterType") in badShelter) 1 else 0,
+            "shelter" to if (effectiveShelter(head) in badShelter) 1 else 0,
             "chronic" to if (members.any { it.optBoolean("hasChronicDisease") }) 1 else 0,
             "infant" to if (ages.any { it != null && it < 2 }) 1 else 0,
             "maternal" to if (members.any { it.optBoolean("isPregnant") || it.optBoolean("isBreastfeeding") }) 1 else 0,

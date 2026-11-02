@@ -47,3 +47,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - android transfer: `data/Transfer.kt` + `ui/people/TransferDialog.kt` (admin only; plan blocks on nid/family-id conflicts; writes dest first, removes source only after dest is pushed; moves beneficiary user/creds/nationalIds; activityLogs entry in both camps).
 - native: camp admin (create/rename) — DataRepo.createCamp/renameCamp + CampsScreen dialog; rename propagates campName to users; camp delete/clear intentionally not implemented (risky, web only).
 - native: message outbox (Messages.Outbox, SharedPreferences, idempotent retry by id, flush on load/send).
+- native: Vuln.effectiveShelter/inferShelter (free-text shelter inference) + tier chip on FamRow.
