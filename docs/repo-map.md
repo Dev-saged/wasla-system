@@ -36,3 +36,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - MainActivity flow: Opening -> (restore session) -> Login -> AppShell.
 - android data (read-only): `data/{Fs,FamCache,Stats,DataRepo}.kt` incremental `fam` pull by `u` cursor into SQLite, stats mirror web computeStats; `ui/home/HomeScreen.kt` shows real totals.
 - android writes: `data/{Merge,FamWriter,People,Clock}.kt` port of web fam merge (person-level by updatedAt, tombstones d, clearedAt, famDocId/fnv1a) with updateTime precondition; pending edits in SQLite `pend`/`tomb`. Compare any change with index.html ~10414-10735.
+- android people UI: `ui/people/PeopleScreen.kt` (list/search/family/edit/delete, local-first then pushNow); `ui/components/QField.kt`. Missing vs web: nationalIds index push, beneficiary auto-accounts, family record `f`.

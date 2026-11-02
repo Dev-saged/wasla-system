@@ -20,6 +20,13 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         else -> emptyList()
     }
 
+    /** المخيمات المتاحة للمستخدم من النسخة المحلية (المعرّف، الاسم). */
+    fun campList(st: AuthState): List<Pair<String, String>> {
+        val names = cache.meta("camps")?.let { runCatching { org.json.JSONObject(it) }.getOrNull() }
+        val fromCache = names?.keys()?.asSequence()?.map { it to names.optString(it).ifBlank { it } }?.toList().orEmpty()
+        return if (st.user.role == "admin") fromCache else listOf(st.user.campId to (names?.optString(st.user.campId)?.ifBlank { null } ?: st.user.campId))
+    }
+
     /** الملخصات المخزنة دون شبكة. */
     fun cached(st: AuthState): List<CampSummary> {
         val names = cache.meta("camps")?.let { runCatching { org.json.JSONObject(it) }.getOrNull() }

@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.ui.home.HomeScreen
+import dev.saged.grcs.ui.people.PeopleScreen
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.theme.LocalPalette
 import dev.saged.grcs.ui.theme.rememberReduceMotion
@@ -83,7 +84,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
                 }
             },
             label = "dest",
-        ) { i -> if (i == 0) HomeScreen(auth, data, onLogout) else Placeholder(Dest.entries[i]) }
+        ) { i -> when (i) { 0 -> HomeScreen(auth, data, onLogout); 2 -> PeopleScreen(auth, data); else -> Placeholder(Dest.entries[i]) } }
         NavBar(sel) { sel = it }
     }
 }
