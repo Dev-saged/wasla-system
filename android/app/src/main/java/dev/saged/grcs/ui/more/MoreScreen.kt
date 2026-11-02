@@ -68,10 +68,12 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
         when (page) {
             "backup" -> BackupPage(auth, data) { page = "main" }
             "update" -> UpdatePage { page = "main" }
+            "quality" -> QualityPage(auth, data) { page = "main" }
             else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("المزيد", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
                 Text(auth.user.fullName, color = p.mute, fontSize = 13.sp)
                 Spacer(Modifier.height(8.dp))
+                if (auth.user.role != "beneficiary") Item("جودة البيانات") { page = "quality" }
                 if (auth.user.role != "beneficiary") Item("النسخ الاحتياطي والاستعادة") { page = "backup" }
                 Item("التحديثات") { page = "update" }
                 Item("تسجيل الخروج", danger = true) { onLogout() }

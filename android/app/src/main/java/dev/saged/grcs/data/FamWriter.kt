@@ -46,7 +46,7 @@ class FamWriter(private val cache: FamCache) {
                         continue
                     }
                     val fid = res.persons.firstOrNull { it.optString("familyId").isNotEmpty() }?.optString("familyId") ?: r?.fid.orEmpty()
-                    puts += Fs.Put(docId, camp, fid, res.persons.size, JSONArray(res.persons).toString(), res.del.toString(), r?.f.orEmpty(), userId, r?.updateTime)
+                    puts += Fs.Put(docId, camp, fid, res.persons.size, JSONArray(res.persons).toString(), res.del.toString(), famRecord(r?.f.orEmpty(), fid, camp, res.persons), userId, r?.updateTime)
                     built[docId] = res
                 }
                 if (puts.isEmpty()) break
@@ -74,5 +74,15 @@ class FamWriter(private val cache: FamCache) {
             if (todo.isNotEmpty()) allOk = false
         }
         return allOk
+    }
+
+    /** سجل الأسرة f كما يبنيه الويب (ensureFamily): يُحدَّث عدد الأفراد والاسم والجوال ويُحفظ باقي الحقول. */
+    private fun famRecord(old: String, fid: String, camp: String, persons: List<JSONObject>): String {
+        if (fid.isEmpty()) return old
+        val f = runCatching { JSONObject(old) }.getOrNull() ?: JSONObject().put("id", fid).put("campId", camp).put("createdAt", Clock.now())
+        val head = persons.firstOrNull { it.optBoolean("isFamilyHead") }
+        f.put("campId", camp).put("memberCount", persons.size).put("hasPhone", persons.any { it.optString("phone").isNotEmpty() })
+        if (head != null) f.put("headName", head.optString("fullName"))
+        return f.toString()
     }
 }

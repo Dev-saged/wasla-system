@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.DataRepo
+import dev.saged.grcs.ui.ben.BenHome
 import dev.saged.grcs.ui.camps.CampsScreen
 import dev.saged.grcs.ui.home.HomeScreen
 import dev.saged.grcs.ui.messages.MessagesScreen
@@ -87,7 +88,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
                 }
             },
             label = "dest",
-        ) { i -> when (i) { 0 -> HomeScreen(auth, data, onLogout); 1 -> CampsScreen(auth, data); 2 -> PeopleScreen(auth, data); 3 -> MessagesScreen(auth, data); 4 -> MoreScreen(auth, data, onLogout); else -> Placeholder(Dest.entries[i]) } }
+        ) { i -> if (auth.user.role == "beneficiary" && i != 3 && i != 4) BenHome(auth, data) else when (i) { 0 -> HomeScreen(auth, data, onLogout); 1 -> CampsScreen(auth, data); 2 -> PeopleScreen(auth, data); 3 -> MessagesScreen(auth, data); 4 -> MoreScreen(auth, data, onLogout); else -> Placeholder(Dest.entries[i]) } }
         NavBar(sel) { sel = it }
     }
 }

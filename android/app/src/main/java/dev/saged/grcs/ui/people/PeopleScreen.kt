@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.saged.grcs.auth.AuthState
+import dev.saged.grcs.data.Aid
 import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.data.Merge
 import dev.saged.grcs.ui.components.QChip
@@ -117,7 +118,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
         val fk = open
         when {
             ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }) }
-            fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, { open = null }, { edit = it }, { remove(it) }) { h -> data.credentials(auth, h.optString("nationalId"), camp) }
+            fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, auth.user.id, { open = null }, { edit = it }, { remove(it) }, { o -> save(o, fk) }) { h -> data.credentials(auth, h.optString("nationalId"), camp) }
             else -> Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -176,9 +177,10 @@ private fun TopBar(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun FamilyScreen(f: Fam?, canWrite: Boolean, onBack: () -> Unit, onEdit: (JSONObject) -> Unit, onDelete: (JSONObject) -> Unit, loadCreds: (JSONObject) -> Pair<String, String>?) {
+private fun FamilyScreen(f: Fam?, canWrite: Boolean, uid: String, onBack: () -> Unit, onEdit: (JSONObject) -> Unit, onDelete: (JSONObject) -> Unit, onSave: (JSONObject) -> Unit, loadCreds: (JSONObject) -> Pair<String, String>?) {
     val scope = rememberCoroutineScope()
     var creds by remember { mutableStateOf<String?>(null) }
+    var aidFor by remember { mutableStateOf<JSONObject?>(null) }
     val p = LocalPalette.current
     var confirm by remember { mutableStateOf<JSONObject?>(null) }
     Column(Modifier.fillMaxSize()) {
@@ -197,11 +199,22 @@ private fun FamilyScreen(f: Fam?, canWrite: Boolean, onBack: () -> Unit, onEdit:
                         if (m.optBoolean("hasDisability")) add("إعاقة")
                     }
                     Text(tags.joinToString(" · "), color = p.mute, fontSize = 12.sp)
+                    if (m.optBoolean("isFamilyHead")) Aid.requests(m).sortedByDescending { it.optLong("updatedAt") }.forEach { r ->
+                        Column(Modifier.fillMaxWidth().padding(top = 8.dp).background(p.surface2, RoundedCornerShape(12.dp)).padding(10.dp)) {
+                            Text((Aid.reqTypes.firstOrNull { it.first == r.optString("type") }?.second ?: r.optString("type")) + " — " + (Aid.reqStatus[r.optString("status")] ?: r.optString("status")), color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            if (r.optString("details").isNotEmpty()) Text(r.optString("details"), color = p.mute, fontSize = 12.sp)
+                            if (canWrite && r.optString("status") in listOf("pending", "approved")) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                val next = if (r.optString("status") == "pending") listOf("approved" to "قبول", "rejected" to "رفض") else listOf("done" to "تم التسليم")
+                                next.forEach { (st, l) -> Text(l, color = p.pri, fontSize = 13.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { onSave(Aid.setRequestStatus(m, r.optString("id"), st, uid)) }.padding(vertical = 12.dp, horizontal = 8.dp)) }
+                            }
+                        }
+                    }
                     if (canWrite) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (m.optBoolean("isFamilyHead") && m.optString("nationalId").isNotEmpty()) Text("بيانات الدخول", color = p.pri, fontSize = 13.sp,
                             modifier = Modifier.heightIn(min = 44.dp).clickable {
                                 scope.launch { creds = withContext(Dispatchers.IO) { loadCreds(m) }?.let { "اسم المستخدم: ${it.first}\nكلمة المرور: ${it.second}" } ?: "لا تتوفر بيانات دخول لهذه الأسرة" }
                             }.padding(vertical = 12.dp, horizontal = 8.dp))
+                        Text("مساعدة", color = p.pri, fontSize = 13.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { aidFor = m }.padding(vertical = 12.dp, horizontal = 8.dp))
                         Text("تعديل", color = p.pri, fontSize = 13.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { onEdit(m) }.padding(vertical = 12.dp, horizontal = 8.dp))
                         Text("حذف", color = p.danger, fontSize = 13.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { confirm = m }.padding(vertical = 12.dp, horizontal = 8.dp))
                     }
@@ -217,6 +230,7 @@ private fun FamilyScreen(f: Fam?, canWrite: Boolean, onBack: () -> Unit, onEdit:
             contentAlignment = Alignment.Center,
         ) { Text("إضافة فرد", color = p.onPri, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
     }
+    aidFor?.let { m -> AidDialog(m, uid, { aidFor = null }) { o -> onSave(o); aidFor = null } }
     creds?.let { t ->
         Box(Modifier.fillMaxSize().background(p.ink.copy(alpha = .5f)).clickable { creds = null }, contentAlignment = Alignment.Center) {
             Column(Modifier.padding(32.dp).background(p.surface, RoundedCornerShape(20.dp)).padding(20.dp)) {

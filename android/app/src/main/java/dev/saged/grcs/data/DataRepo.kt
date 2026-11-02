@@ -47,6 +47,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
             st = auth.restore() ?: throw e
             f(st.idToken)
         }
+        if (st.user.role == "beneficiary") return benSync(st)
         runCatching { withToken { Fs.get("config/app", it) } }.getOrNull()?.let { secV = Fs.intField(it, "secV") }
         for (c in cache.campsWithPending()) runCatching { withToken { t -> writer.push(c, t, st.user.id) } }
         val camps = withToken { campsOf(st, it) }
@@ -69,6 +70,17 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
             cache.setMeta("cleared_$id", Fs.intField(main, "clearedAt").toString())
         }
         return st to camps.map { summary(it.first, it.second) }
+    }
+
+    /** المستفيد لا يستعلم المجموعة: يقرأ مستندات أسرته المختومة بالرمز فقط. */
+    private fun benSync(st: AuthState): Pair<AuthState, List<CampSummary>> {
+        val camp = st.user.campId
+        val fams = auth.claims(st.idToken)?.optJSONArray("fams")?.let { a -> (0 until a.length()).map { a.optString(it) } }.orEmpty().filter { it.isNotEmpty() }
+        runCatching { writer.push(camp, st.idToken, st.user.id) }
+        val docs = Fs.famBatchGet(camp, fams, st.idToken).values.toList()
+        cache.put(camp, docs)
+        cache.setMeta("camps", org.json.JSONObject().put(camp, camp).toString())
+        return st to listOf(summary(camp, camp))
     }
 
     private fun summary(id: String, name: String): CampSummary {
