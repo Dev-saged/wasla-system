@@ -21,6 +21,7 @@ object Stats {
     private fun time(p: JSONObject) = p.optLong("updatedAt", 0).takeIf { it != 0L } ?: p.optLong("createdAt", 0)
 
     fun ageOf(p: JSONObject) = age(p)
+    fun ageOfDob(d: String): Int? = if (d.isEmpty()) null else age(JSONObject().put("birthDate", d))
 
     private fun age(p: JSONObject): Int? {
         val bd = p.optString("birthDate")
