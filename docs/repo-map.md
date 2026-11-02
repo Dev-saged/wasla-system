@@ -63,3 +63,6 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - native 2.1 export: data/Export.kt (xlsx hand-built zip RTL, csv BOM, pdf PdfDocument landscape) + ui/more/ExportPage.kt; saves to Documents/تصدير <BACKUP_DIR> (separate from backups list); share via ACTION_SEND on API29+.
 - native 2.2 trash: data/Trash.kt (same trash/{tid} gzip+b64 parts as web, 30d TTL; person delete saves first; restore re-stamps persons) + ui/more/TrashPage.kt.
 - native 2.3 audit: data/Audit.kt (writes camps/{c}/activityLogs same fields as web on person save/delete + trash restore; list newest 100) + ui/more/AuditPage.kt. Phase 2 complete.
+- native 3.1: data/Query.kt (AND-groups OR'd; fields gender/age/relation/marital/flag/tier/score/shelter/famsize; 15 category presets; saved queries in meta 'queries') + ui/more/QueryPage.kt (category counts, builder, export result).
+- native 3.2 duplicates: data/Similar.kt (dupScore port; same-family pairs, both without nid, score>=0.9; ignore set in meta) + ui/more/SimilarPage.kt (delete one -> trash).
+- native 3.3 rapid entry: ui/more/RapidPage.kt (relation chips, nid/no-id, family context, undo last, nid duplicate + cross-camp check). Phase 3 complete.

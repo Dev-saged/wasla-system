@@ -76,17 +76,23 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             "export" -> ExportPage(auth, data) { page = "main" }
             "trash" -> TrashPage(auth, data) { page = "main" }
             "audit" -> AuditPage(auth, data) { page = "main" }
+            "query" -> QueryPage(auth, data) { page = "main" }
+            "similar" -> SimilarPage(auth, data) { page = "main" }
+            "rapid" -> RapidPage(auth, data) { page = "main" }
             "aidrep" -> AidReportPage(auth, data) { page = "main" }
             else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("المزيد", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)
                 Text(auth.user.fullName, color = p.mute, fontSize = 13.sp)
                 Text("استهلاك هذا الجهاز اليوم: ${Usage.reads()} قراءة · ${Usage.writes()} كتابة (الحد المجاني للمشروع كله: 50,000 / 20,000)", color = p.mute, fontSize = 11.sp)
                 Spacer(Modifier.height(8.dp))
+                if (auth.user.role != "beneficiary") Item("إدخال سريع") { page = "rapid" }
                 if (auth.user.role != "beneficiary") Item("استيراد كشف Excel") { page = "import" }
                 if (auth.user.role != "beneficiary") Item("مؤشر الهشاشة") { page = "vuln" }
                 if (auth.user.role != "beneficiary") Item("جودة البيانات") { page = "quality" }
                 if (auth.user.role == "admin" || auth.user.role == "delegate") Item("سلة المحذوفات") { page = "trash" }
                 if (auth.user.role == "admin" || auth.user.role == "delegate") Item("سجل النشاط") { page = "audit" }
+                if (auth.user.role != "beneficiary") Item("الفئات والاستعلامات") { page = "query" }
+                if (auth.user.role != "beneficiary") Item("الأسماء المتشابهة") { page = "similar" }
                 if (auth.user.role != "beneficiary") Item("تصدير البيانات") { page = "export" }
                 if (auth.user.role != "beneficiary") Item("تقرير المساعدات") { page = "aidrep" }
                 if (auth.user.role != "beneficiary") Item("النسخ الاحتياطي والاستعادة") { page = "backup" }

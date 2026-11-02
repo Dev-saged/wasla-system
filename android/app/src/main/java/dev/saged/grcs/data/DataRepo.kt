@@ -15,6 +15,10 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     private val accounts = Accounts(cache)
     val backups = Backups(ctx)
     val export = Export(ctx)
+    fun savedQueries() = Query.loadSaved(cache)
+    fun saveQueries(l: List<Saved>) = Query.saveAll(cache, l)
+    fun similar(camp: String) = Similar.find(people.persons(camp), Similar.ignored(cache))
+    fun ignoreSimilar(a: JSONObject, b: JSONObject) = Similar.ignore(cache, a, b)
     val trash by lazy { Trash(this) }
     val transfer by lazy { Transfer(this) }
     private var secV = 2L

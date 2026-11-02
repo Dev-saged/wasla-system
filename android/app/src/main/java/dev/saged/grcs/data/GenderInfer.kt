@@ -8,7 +8,7 @@ object GenderInfer {
     private var female = emptySet<String>(); private var male = emptySet<String>()
     private var compound = emptySet<String>(); private var marked = emptySet<String>()
 
-    private fun key(s: String) = s.replace(Regex("[\\u064B-\\u065F\\u0670\\u0640\\u200e\\u200f\\ufeff]"), "").replace(Regex("[إأآٱ]"), "ا").replace('ى', 'ي').replace('ة', 'ه')
+    fun key(s: String) = s.replace(Regex("[\\u064B-\\u065F\\u0670\\u0640\\u200e\\u200f\\ufeff]"), "").replace(Regex("[إأآٱ]"), "ا").replace('ى', 'ي').replace('ة', 'ه')
         .replace(Regex("[/\\-_,،]"), " ").replace(Regex("\\s+"), " ").trim().lowercase()
         .replace('ؤ', 'و').replace('ئ', 'ي').replace(Regex("(^|\\s)(عبد|ابو)\\s+"), "$1$2").replace(Regex("\\s+"), " ").trim()
 
