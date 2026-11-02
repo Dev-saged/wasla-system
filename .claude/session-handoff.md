@@ -15,3 +15,4 @@
 
 ## Next step
 - Device test vs web. Gaps vs web: horizontal/tree import templates, camp create/delete (admin), vulnerability tiers view, family transfer, staff view of beneficiary threads, offline message outbox, permissions PDF with QR, global quota (needs Worker). PR #5 (web name removal v3.6.1) awaits merge by owner. No Release until verified.
+- Done: admin camp create/rename. Remaining gaps: horizontal import templates, offline msg outbox, permissions PDF, super-admin panel, tier chips, aid reports.

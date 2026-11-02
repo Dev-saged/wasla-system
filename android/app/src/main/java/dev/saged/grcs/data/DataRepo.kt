@@ -88,6 +88,43 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         return CampSummary(id, name, Stats.compute(people.persons(id)))
     }
 
+    /** إدارة المخيمات (للأدمن): إنشاء مخيم بنفس حقول الويب. */
+    fun createCamp(st: AuthState, name: String): String? {
+        val n = name.trim(); if (n.isEmpty() || st.user.role != "admin") return null
+        val id = java.util.UUID.randomUUID().toString(); val now = System.currentTimeMillis()
+        val ok = runCatching {
+            Fs.set("camps/$id", mapOf("id" to id, "name" to n, "region" to "", "supervisor" to "", "supervisorPhone" to "", "deputy" to "", "deputyPhone" to "",
+                "dataEntry" to "", "dataEntryPhone" to "", "createdAt" to now, "lastUpdated" to now, "totalFamilies" to 0), st.idToken)
+            Fs.pulse("g", null, st.idToken)
+        }.isSuccess
+        if (ok) putCampName(id, n)
+        return if (ok) id else null
+    }
+
+    /** إعادة التسمية: المستند + اسم المخيم في حسابات المخيم (كما propagateCampName). */
+    fun renameCamp(st: AuthState, id: String, name: String): Boolean {
+        val n = name.trim(); if (n.isEmpty() || st.user.role != "admin") return false
+        val ok = runCatching {
+            Fs.patch("camps/$id", mapOf("name" to n, "lastUpdated" to System.currentTimeMillis()), st.idToken)
+            Fs.pulse("g", null, st.idToken)
+        }.isSuccess
+        if (!ok) return false
+        putCampName(id, n)
+        runCatching {
+            Fs.queryEq("users", listOf("campId" to id), st.idToken, 500).forEach { d ->
+                val uid = d.getString("id")
+                Fs.patch("users/$uid", mapOf("campName" to n), st.idToken)
+            }
+            Fs.pulse("u", null, st.idToken)
+        }
+        return true
+    }
+
+    private fun putCampName(id: String, n: String) {
+        val m = cache.meta("camps")?.let { runCatching { org.json.JSONObject(it) }.getOrNull() } ?: org.json.JSONObject()
+        cache.setMeta("camps", m.put(id, n).toString())
+    }
+
     fun autoBackup(camp: String, name: String) {
         runCatching { backups.autoDaily(cache, camp, name, people.persons(camp)) }
     }

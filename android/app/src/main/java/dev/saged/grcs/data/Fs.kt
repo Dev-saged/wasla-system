@@ -211,9 +211,9 @@ object Fs {
     }
 
     /** استعلام تساوي على مجموعة جذرية؛ يعيد حقول المستندات كنصوص/قيم مبسّطة. */
-    fun queryEq(collection: String, eq: List<Pair<String, String>>, token: String): List<JSONObject> {
+    fun queryEq(collection: String, eq: List<Pair<String, String>>, token: String, limit: Int = 5): List<JSONObject> {
         val filters = JSONArray(eq.map { (k, v) -> JSONObject().put("fieldFilter", JSONObject().put("field", JSONObject().put("fieldPath", k)).put("op", "EQUAL").put("value", enc(v))) })
-        val sq = JSONObject().put("from", JSONArray().put(JSONObject().put("collectionId", collection))).put("limit", 5)
+        val sq = JSONObject().put("from", JSONArray().put(JSONObject().put("collectionId", collection))).put("limit", limit)
         sq.put("where", if (filters.length() == 1) filters.getJSONObject(0) else JSONObject().put("compositeFilter", JSONObject().put("op", "AND").put("filters", filters)))
         val r = Http.postJson("${Backend.FIRESTORE}:runQuery", JSONObject().put("structuredQuery", sq), token, 30_000)
         if (r.code !in 200..299) throw FsException(r.code)

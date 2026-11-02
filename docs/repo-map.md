@@ -45,3 +45,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - versionCode base raised to 1000 so the native build always installs over the old WebToApp APK (a lower code would be refused as a downgrade).
 - android vulnerability: `data/Vuln.kt` (same rules/weights/cuts as web VULN_RULES; admin weights read from config/vulnWeights; shelter uses shelterType only, no free-text inference) + `ui/more/VulnPage.kt`.
 - android transfer: `data/Transfer.kt` + `ui/people/TransferDialog.kt` (admin only; plan blocks on nid/family-id conflicts; writes dest first, removes source only after dest is pushed; moves beneficiary user/creds/nationalIds; activityLogs entry in both camps).
+- native: camp admin (create/rename) — DataRepo.createCamp/renameCamp + CampsScreen dialog; rename propagates campName to users; camp delete/clear intentionally not implemented (risky, web only).
