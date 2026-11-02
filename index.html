@@ -1726,7 +1726,7 @@ circle.ea-acc{fill:var(--teal);stroke:none}
 </div>
 <script type="module">
 /* ===================== إعدادات عامة ===================== */
-const APP_VERSION = '3.6.1';
+const APP_VERSION = '3.6.2';
 const DB_NAME = 'grcs_db';
 const DB_VERSION = 8;
 const STORES = ['persons','families','camps','users','messages','changelog','syncQueue','savedExports'];
@@ -13275,17 +13275,12 @@ async function openVulnWeightsEditor(){
 const PUSH_CONFIG = {
   workerUrl: 'https://grcs-push.dev-mr07.workers.dev'
 };
-// مفتاح مشترك بسيط يحمي نقطة إرسال الإشعارات من الاستخدام العشوائي — نفس مستوى ثقة apiKey أعلاه
-// (سقف الضرر محدود: إرسال إشعارات مزعجة فقط، لا وصول لأي بيانات — بعكس مفتاح Firebase Admin)
-const PUSH_ADMIN_KEY = 'ct1bI32rxn5UehMKbXIXMiRQ3xCaTp8lgRcoyx60EI4';
 /* loadFirebaseMessagingSDK removed — WebToApp handles FCM natively */
 /* registerForPushNotifications removed — WebToApp handles FCM token registration natively via /register */
 async function sendPushNotification(title, message){
   if(!PUSH_CONFIG.workerUrl) throw new Error('لم يُضبط رابط سيرفر الإشعارات بعد');
-  // رمز دخول الأدمن يثبت الصلاحية؛ المفتاح القديم يُرسل فقط لخادم لم يُحدَّث بعد
-  const headers = {'Content-Type':'application/json'};
-  if(await Auth.ensure()) headers.Authorization = 'Bearer ' + Auth.idToken;
-  else headers['X-Admin-Key'] = PUSH_ADMIN_KEY;
+  if(!(await Auth.ensure())) throw new Error('سجّل الدخول كأدمن لإرسال الإشعارات');
+  const headers = {'Content-Type':'application/json', Authorization:'Bearer ' + Auth.idToken};
   const res = await fetch(`${PUSH_CONFIG.workerUrl}/push`, {method:'POST', headers, body: JSON.stringify({title, message})});
   let data;
   try{ data = await res.json(); }catch{ data = {}; }
