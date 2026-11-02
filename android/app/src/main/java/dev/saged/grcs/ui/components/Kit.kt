@@ -324,3 +324,11 @@ fun SearchBox(value: String, onChange: (String) -> Unit, hint: String, modifier:
         }
     }
 }
+
+/** مظهر البطاقة كمعدِّل: ظل + زاوية 16 + سطح. */
+@Composable
+fun Modifier.qcard(): Modifier = cardShadow().clip(CardShape).background(LocalPalette.current.surface)
+
+/** زر إجراء صغير بصيغة الشريحة القديمة (نص، أساسي؟، إجراء). */
+@Composable
+fun QAct(text: String, primary: Boolean, onClick: () -> Unit) = Btn(text, onClick, kind = if (primary) BtnKind.Primary else BtnKind.Outline, small = true)

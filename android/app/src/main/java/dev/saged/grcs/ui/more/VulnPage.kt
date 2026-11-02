@@ -1,6 +1,7 @@
 package dev.saged.grcs.ui.more
 
 import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.qcard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -62,7 +63,7 @@ fun VulnPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         }
         LazyColumn(Modifier.weight(1f).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(all.filter { it.result.tier == tier }.take(300), key = { it.head.optString("id") }) { f ->
-                Column(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(16.dp)).padding(14.dp)) {
+                Column(Modifier.fillMaxWidth().qcard().padding(14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(f.head.optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                         Text("${f.result.score}", color = color(f.result.tier), fontFamily = GrcsFonts.display, fontSize = 22.sp)

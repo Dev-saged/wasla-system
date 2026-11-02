@@ -1,6 +1,8 @@
 package dev.saged.grcs.ui.more
 
 import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.qcard
+import dev.saged.grcs.ui.components.QAct
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -78,12 +80,12 @@ fun QueryPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Query.fields.forEach { f -> QChip(f.label, fieldK == f.k) { fieldK = if (fieldK == f.k) null else f.k; vMin = ""; vMax = "" } } }
             fieldK?.let { k ->
                 val f = Query.fields.first { it.k == k }
-                Column(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(16.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.fillMaxWidth().qcard().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (f.range) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { QField("من", vMin, { vMin = it.filter(Char::isDigit) }, Modifier.weight(1f)); QField("إلى", vMax, { vMax = it.filter(Char::isDigit) }, Modifier.weight(1f)) }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            QChip("و (تضييق)", true) { addCond(Cond(k, min = vMin, max = vMax), false) }
-                            QChip("أو (مجموعة جديدة)", false) { addCond(Cond(k, min = vMin, max = vMax), true) }
+                            QAct("و (تضييق)", true) { addCond(Cond(k, min = vMin, max = vMax), false) }
+                            QAct("أو (مجموعة جديدة)", false) { addCond(Cond(k, min = vMin, max = vMax), true) }
                         }
                     } else {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { f.options.forEach { (v, l) ->
@@ -96,12 +98,12 @@ fun QueryPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             if (groups.isNotEmpty()) {
                 groups.forEachIndexed { gi, g -> Text((if (gi > 0) "أو  " else "") + g.joinToString("  و  ") { Query.describe(it) }, color = p.ink, fontSize = 12.sp) }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    QChip("مسح الشروط", false) { groups = emptyList(); result = null; title = "" }
-                    QChip("شرط بديل (أو)", false) { groups = groups + listOf(emptyList()) }
+                    QAct("مسح الشروط", false) { groups = emptyList(); result = null; title = "" }
+                    QAct("شرط بديل (أو)", false) { groups = groups + listOf(emptyList()) }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     QField("اسم للحفظ", saveName, { saveName = it }, Modifier.weight(1f))
-                    QChip("حفظ", true) { if (saveName.isNotBlank()) { saved = saved.filter { it.name != saveName.trim() } + Saved(saveName.trim(), groups.filter { it.isNotEmpty() }); data.saveQueries(saved); title = saveName.trim(); saveName = ""; note = "تم حفظ الاستعلام" } }
+                    QAct("حفظ", true) { if (saveName.isNotBlank()) { saved = saved.filter { it.name != saveName.trim() } + Saved(saveName.trim(), groups.filter { it.isNotEmpty() }); data.saveQueries(saved); title = saveName.trim(); saveName = ""; note = "تم حفظ الاستعلام" } }
                 }
                 if (note.isNotEmpty()) Text(note, color = p.mute, fontSize = 12.sp)
             }
@@ -111,14 +113,14 @@ fun QueryPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 Text("${r.persons.size} فرد · ${r.families} أسرة", color = p.pri, fontFamily = GrcsFonts.display, fontSize = 22.sp)
                 if (r.persons.isNotEmpty()) {
                     var msg by remember(r) { mutableStateOf("") }
-                    QChip("تصدير النتيجة (Excel)", false) {
+                    QAct("تصدير النتيجة (Excel)", false) {
                         scope.launch { val e = withContext(Dispatchers.IO) { data.export.run("xlsx", camp, (title.ifEmpty { "استعلام" }) + "-" + (camps.firstOrNull { it.first == camp }?.second ?: camp), r.persons, false) }
                             msg = if (e.ok) "حُفظ: ${e.name}" else "تعذّر الحفظ" }
                     }
                     if (msg.isNotEmpty()) Text(msg, color = p.mute, fontSize = 12.sp)
                 }
                 r.persons.take(100).forEach { x ->
-                    Column(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(14.dp)).padding(12.dp)) {
+                    Column(Modifier.fillMaxWidth().qcard().padding(12.dp)) {
                         Text(x.optString("fullName"), color = p.ink, fontSize = 14.sp)
                         Text(listOfNotNull(dev.saged.grcs.data.Stats.ageOf(x)?.let { "$it سنة" }, x.optString("nationalId").takeIf { it.isNotEmpty() }, x.optString("phone").takeIf { it.isNotEmpty() }).joinToString(" · "), color = p.mute, fontSize = 11.sp)
                     }

@@ -1,6 +1,8 @@
 package dev.saged.grcs.ui.more
 
 import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.qcard
+import dev.saged.grcs.ui.components.QAct
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -75,12 +77,12 @@ fun SimilarPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             else Text("${pairs!!.size} زوج محتمل — راجع كل زوج قبل الحذف", color = p.pri, fontSize = 13.sp)
             pairs?.take(80)?.forEach { pr ->
                 val keepA = Similar.keepFirst(pr)
-                Column(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(16.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.fillMaxWidth().qcard().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Side(pr.a, keepA); Side(pr.b, !keepA)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        QChip("احذف الأول", false) { drop(pr.a) }
-                        QChip("احذف الثاني", false) { drop(pr.b) }
-                        QChip("ليسا مكررين", false) { data.ignoreSimilar(pr.a, pr.b); rev++ }
+                        QAct("احذف الأول", false) { drop(pr.a) }
+                        QAct("احذف الثاني", false) { drop(pr.b) }
+                        QAct("ليسا مكررين", false) { data.ignoreSimilar(pr.a, pr.b); rev++ }
                     }
                 }
             }

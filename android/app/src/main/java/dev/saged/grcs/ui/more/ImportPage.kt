@@ -1,6 +1,10 @@
 package dev.saged.grcs.ui.more
 
 import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.qcard
+import dev.saged.grcs.ui.components.Btn
+import dev.saged.grcs.ui.components.BtnKind
+import dev.saged.grcs.ui.icons.QIcons
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -78,16 +82,14 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id; prev = null } } }
             Text("صف لكل شخص. أعمدة معروفة: الاسم، رقم الهوية، الجوال، تاريخ الميلاد، الجنس، الحالة الاجتماعية، هوية رب الأسرة (للأفراد التابعين).", color = p.mute, fontSize = 12.sp)
-            Box(Modifier.fillMaxWidth().heightIn(min = 52.dp).background(p.surface2, RoundedCornerShape(16.dp)).clickable { pick.launch(arrayOf("*/*")) }, contentAlignment = Alignment.Center) {
-                Text(if (busy) "جارٍ القراءة…" else "اختيار ملف", color = p.pri, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            }
+            Btn(if (busy) "جارٍ القراءة…" else "اختيار ملف", { pick.launch(arrayOf("*/*")) }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Import)
             prev?.let { r ->
-                Column(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(16.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(Modifier.fillMaxWidth().qcard().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("سيُضاف ${r.toAdd.size} فرداً (${r.headCount} أسرة/رب أسرة)", color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Text("مكرر بالهوية (سيُتخطى): ${r.skippedExisting} · صفوف غير صالحة: ${r.skippedInvalid}", color = p.mute, fontSize = 12.sp)
                     r.mapped.forEach { Text(it, color = p.mute, fontSize = 11.sp) }
                 }
-                if (r.toAdd.isNotEmpty()) Box(Modifier.fillMaxWidth().heightIn(min = 52.dp).background(p.pri, RoundedCornerShape(16.dp)).clickable(enabled = !busy) {
+                if (r.toAdd.isNotEmpty()) Btn("تأكيد الإضافة", {
                     scope.launch {
                         busy = true
                         withContext(Dispatchers.IO) {
@@ -97,7 +99,7 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                         }
                         msg = "تمت إضافة ${r.toAdd.size} فرداً"; prev = null; busy = false
                     }
-                }, contentAlignment = Alignment.Center) { Text("تأكيد الإضافة", color = p.onPri, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+                }, Modifier.fillMaxWidth(), enabled = !busy, icon = QIcons.Check)
             }
             msg?.let { Text(it, color = p.ok, fontSize = 13.sp) }
         }

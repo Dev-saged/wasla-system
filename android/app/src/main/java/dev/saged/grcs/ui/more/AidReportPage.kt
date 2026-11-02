@@ -1,6 +1,7 @@
 package dev.saged.grcs.ui.more
 
 import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.qcard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,7 +53,7 @@ fun AidReportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             }
             if (rows.isEmpty()) Text("لا مساعدات مسجّلة في هذه الفترة", color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(top = 12.dp))
             rows.forEach { r ->
-                Row(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(16.dp)).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().qcard().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(r.label, color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                         Text("${r.people} مستفيد", color = p.mute, fontSize = 12.sp)

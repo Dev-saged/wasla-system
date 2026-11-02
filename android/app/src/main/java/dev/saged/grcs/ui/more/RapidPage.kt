@@ -1,6 +1,7 @@
 package dev.saged.grcs.ui.more
 
 import dev.saged.grcs.ui.components.AppHeader
+import dev.saged.grcs.ui.components.QAct
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -109,13 +110,13 @@ fun RapidPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             QField("الجوال", phone, { phone = it }, type = KeyboardType.Phone)
             if (msg.isNotEmpty()) Text(msg, color = p.mute, fontSize = 12.sp)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QChip(if (busy) "جارٍ الحفظ…" else "حفظ والتالي", true) { if (!busy) save() }
-                if (last != null) QChip("تراجع عن الأخير", false) {
+                QAct(if (busy) "جارٍ الحفظ…" else "حفظ والتالي", true) { if (!busy) save() }
+                if (last != null) QAct("تراجع عن الأخير", false) {
                     val l = last!!; last = null
                     scope.launch { withContext(Dispatchers.IO) { data.people.delete(camp, l); data.afterSave(auth, camp, l, true); data.pushNow(auth, camp) }; count = maxOf(0, count - 1); msg = "تم التراجع"
                         if (l.optBoolean("isFamilyHead")) { famId = ""; famName = ""; rel = "head" } }
                 }
-                if (famId.isNotEmpty()) QChip("أسرة جديدة", false) { famId = ""; famName = ""; rel = "head"; reset() }
+                if (famId.isNotEmpty()) QAct("أسرة جديدة", false) { famId = ""; famName = ""; rel = "head"; reset() }
             }
         }
     }
