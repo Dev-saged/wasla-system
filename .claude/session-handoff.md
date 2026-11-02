@@ -1,7 +1,7 @@
 # session-handoff
 
 ## Where we stopped
-- Branch feature/native-foundation: phases 1-5b done (writes ported, People screen) (native login + read-only Firestore sync + real Home stats via existing Worker, Keystore session, login screen; debug builds; untested on device). Native app builds (tests + debug OK): cobalt "Compass" palette, "Dawn" adaptive icon (+monochrome tent, legacy PNGs), opening screen, 5-item nav shell with placeholder screens, Lalezar/IBM Plex fonts.
+- Branch feature/native-foundation: phases 1-6a done (+messages) (writes ported, People screen) (native login + read-only Firestore sync + real Home stats via existing Worker, Keystore session, login screen; debug builds; untested on device). Native app builds (tests + debug OK): cobalt "Compass" palette, "Dawn" adaptive icon (+monochrome tent, legacy PNGs), opening screen, 5-item nav shell with placeholder screens, Lalezar/IBM Plex fonts.
 - Prototypes and brand sources live in prototype/ (home-b.html, brand/gen.py, brand/vd.py). Web app untouched.
 
 ## Decisions made this session
@@ -14,4 +14,4 @@
 - Name of previous regional admin still present in web files (index.html x5, manifest.json, README.md): separate small branch.
 
 ## Next step
-- Phase 6: messages, requests/aid, classification, import (Excel) and quality modules; then super-admin, backups folder, self-update. No Release until verified on device against web.
+- Phase 7: classification/quality/aid-requests, Excel import, camps management for admin (create camp, clearedAt), super-admin quota panel, device backups folder, self-update. No Release until verified on device against web.

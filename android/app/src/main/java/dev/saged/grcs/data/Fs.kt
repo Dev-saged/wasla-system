@@ -148,6 +148,40 @@ object Fs {
             .put("updateMask", JSONObject().put("fieldPaths", JSONArray(fields.keys.toList())))), token)
     }
 
+    /** مؤشر التغييرات sync/pulse: يزيد عدّاد المخيم ليعلم الآخرون (الويب يعتمد عليه). c=الأسر، m=الرسائل، u=الحسابات، g=العامة. */
+    fun pulse(scope: String, key: String?, token: String) {
+        val path = if (key == null) scope else scope + ".`" + key.replace("\\", "\\\\").replace("`", "\\`") + "`"
+        val w = JSONObject().put("transform", JSONObject().put("document", fullName("sync/pulse")).put("fieldTransforms",
+            JSONArray().put(JSONObject().put("fieldPath", path).put("increment", JSONObject().put("integerValue", "1")))))
+        commitRaw(JSONArray().put(w), token)
+    }
+
+    /** كتابة مع ختم وقت الخادم في حقل (st للرسائل). */
+    fun setWithServerTime(path: String, fields: Map<String, Any?>, timeField: String, token: String) {
+        val f = JSONObject(); fields.forEach { (k, v) -> f.put(k, enc(v)) }
+        commitRaw(JSONArray().put(JSONObject().put("update", JSONObject().put("name", fullName(path)).put("fields", f))
+            .put("updateTransforms", JSONArray().put(JSONObject().put("fieldPath", timeField).put("setToServerValue", "REQUEST_TIME")))), token)
+    }
+
+    /** آخر رسائل مجموعة (الأحدث أولاً) بحقول مبسّطة. */
+    fun recentMessages(parent: String, coll: String, token: String, limit: Int = 100): List<JSONObject> {
+        val sq = JSONObject().put("from", JSONArray().put(JSONObject().put("collectionId", coll))).put("limit", limit)
+            .put("orderBy", JSONArray().put(JSONObject().put("field", JSONObject().put("fieldPath", "timestamp")).put("direction", "DESCENDING")))
+        val r = Http.postJson("${Backend.FIRESTORE}${if (parent.isEmpty()) "" else "/$parent"}:runQuery", JSONObject().put("structuredQuery", sq), token, 30_000)
+        if (r.code !in 200..299) throw FsException(r.code)
+        val out = ArrayList<JSONObject>()
+        val arr = r.array ?: return out
+        for (i in 0 until arr.length()) {
+            val doc = arr.getJSONObject(i).optJSONObject("document") ?: continue
+            val f = doc.optJSONObject("fields") ?: continue
+            val o = JSONObject().put("id", doc.getString("name").substringAfterLast('/'))
+            for (k in listOf("text", "senderId", "senderName", "threadId", "campId")) o.put(k, Fs.stringField(f, k))
+            o.put("timestamp", intField(f, "timestamp"))
+            out += o
+        }
+        return out
+    }
+
     fun delete(path: String, token: String) {
         commitRaw(JSONArray().put(JSONObject().put("delete", fullName(path))), token)
     }

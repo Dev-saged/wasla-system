@@ -68,6 +68,7 @@ class FamWriter(private val cache: FamCache) {
                     for (lp in local.values) if (Merge.personDocId(lp) == docId) cache.donePend(camp, lp.optString("id"), pendSnap[lp.optString("id")] ?: -1)
                     for (t in tombList) if (res.del.has(t.id) || (t.doc.ifEmpty { docOf[t.id] }) == docId) cache.doneTomb(camp, t.id, t.at)
                 }
+                if (done.isNotEmpty()) runCatching { Fs.pulse("c", camp, token) }
                 todo = retry
             }
             if (todo.isNotEmpty()) allOk = false

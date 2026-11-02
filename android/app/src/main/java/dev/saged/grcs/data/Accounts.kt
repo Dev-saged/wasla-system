@@ -71,6 +71,7 @@ class Accounts(private val cache: FamCache) {
                 "fullName" to head.optString("fullName"), "familyId" to famId)
             head.optString("phone").takeIf { it.isNotEmpty() }?.let { m["phone"] = it }
             Fs.patch("users/${found.getString("id")}", m, token)
+            runCatching { Fs.pulse("u", camp, token) }
             return
         }
         val id = java.util.UUID.randomUUID().toString()
@@ -84,5 +85,6 @@ class Accounts(private val cache: FamCache) {
             "pwUpdatedAt" to now), token)
         Fs.set("creds/$id", mapOf("uid" to id, "pw" to defaultPw, "username" to nid, "role" to "beneficiary", "campId" to camp,
             "fullName" to head.optString("fullName"), "updatedAt" to now, "by" to ""), token)
+        runCatching { Fs.pulse("u", camp, token) }
     }
 }
