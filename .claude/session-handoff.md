@@ -1,19 +1,17 @@
 # session-handoff
 
 ## Where we stopped
-- Branch feature/native-foundation: phase 1 of the native rebuild (android/ skeleton, BrandConfig, theme, contrast test, CI workflow). Web app untouched.
-- Signing key verified: p12 cert SHA-256 82:D0:04:7D:...:CD:90 equals the installed APK. Key and password are not in the repo.
+- Branch feature/native-foundation: phases 1-7b done (+import, usage counter) (+aid/requests, beneficiary home, quality) (+messages, backups, updates, camps) (writes ported, People screen) (native login + read-only Firestore sync + real Home stats via existing Worker, Keystore session, login screen; debug builds; untested on device). Native app builds (tests + debug OK): cobalt "Compass" palette, "Dawn" adaptive icon (+monochrome tent, legacy PNGs), opening screen, 5-item nav shell with placeholder screens, Lalezar/IBM Plex fonts.
+- Prototypes and brand sources live in prototype/ (home-b.html, brand/gen.py, brand/vd.py). Web app untouched.
 
 ## Decisions made this session
-- Native app keeps applicationId com.w2a.xihi, minSdk 23, targetSdk 36; installs over the WebToApp build.
-- Repo is public: secrets only in Actions (KEYSTORE_BASE64, SIGNING_STORE_PASSWORD). Release publish is manual (workflow_dispatch) until cutover.
-- Old app reads releases/latest of this repo and opens the first .apk asset; the native Release must be the only asset.
-- Firestore: role in claims, fine permissions read only when needed; people stored in chunked docs (~500) to stay on Spark.
-- Name of previous regional admin removed everywhere (web index.html, manifest.json, README.md, native).
+- Home direction B (Compass); badge/icon model 2 "Dawn", primary colorway; mono icon = tent with door.
+- Brand art is original vector (no stock assets from the reference PSDs).
+- Repo is public: secrets only in Actions; Release publish stays manual until phases 3-6 are done.
 
 ## Open issues
-- Add the two Actions secrets, then run the workflow to confirm the fingerprint check passes in CI.
-- Phase 2: three home directions and three icon directions, stop for choice.
+- Opening screen and icon are verified on desktop renders only, not on a device/emulator.
+- Name of previous regional admin still present in web files (index.html x5, manifest.json, README.md): separate small branch.
 
 ## Next step
-- Merge phase 1 after CI is green, then phase 2 (visual prototype).
+- Device test vs web. Gaps vs web: horizontal/tree import templates, camp create/delete (admin), vulnerability tiers view, family transfer, staff view of beneficiary threads, offline message outbox, permissions PDF with QR, global quota (needs Worker). PR #5 (web name removal v3.6.1) awaits merge by owner. No Release until verified.

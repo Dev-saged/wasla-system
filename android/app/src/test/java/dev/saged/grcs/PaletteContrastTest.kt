@@ -26,4 +26,11 @@ class PaletteContrastTest {
         check("ok/surface", p.ok, p.surface)
         check("warn/surface", p.warn, p.surface)
     }
+
+    @Test
+    fun openingTextReadable() {
+        val o = BrandConfig.Opening
+        assertTrue(OklchMath.contrast(o.text, o.skyTop) >= 4.5)
+        assertTrue(OklchMath.contrast(o.text, o.ground) >= 4.5)
+    }
 }
