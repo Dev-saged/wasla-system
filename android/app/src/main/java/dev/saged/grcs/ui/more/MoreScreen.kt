@@ -72,7 +72,7 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             "import" -> ImportPage(auth, data) { page = "main" }
             "vuln" -> VulnPage(auth, data) { page = "main" }
             "quality" -> QualityPage(auth, data) { page = "main" }
-            "staff" -> StaffPage(auth) { page = "main" }
+            "staff" -> StaffPage(auth, data) { page = "main" }
             "aidrep" -> AidReportPage(auth, data) { page = "main" }
             else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("المزيد", color = p.ink, fontFamily = GrcsFonts.display, fontSize = 24.sp)

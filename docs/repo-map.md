@@ -53,3 +53,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - native: Messages.broadcast (per-camp, all beneficiaries, Fs.setMany batch) + button in BenList.
 - native import: horizontal family-tree sheets (Importer.horizontal; head+wife+numbered children, add-only, skips existing nids); auto-detected by repeating child columns.
 - native admin: data/Staff.kt + ui/more/StaffPage.kt (list delegates/dataentry/admins, enable/disable, reset password -> users salt/verifier + creds); admin-only item in More.
+- native admin: Staff.create (delegate/dataentry/admin; username uniqueness via query; creds doc) in StaffPage.
