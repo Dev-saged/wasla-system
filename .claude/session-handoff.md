@@ -1,15 +1,6 @@
-# Session handoff — GRCS native (feature/native-foundation)
-## State
-- Native app v4.0.0 builds (assembleDebug OK). All stages pushed. No tests run, nothing tested on device (user's instruction). No Release published.
-- Done: login, sync, People CRUD, merge/pulse, ben accounts, messages (+outbox, staff->ben threads), backups, update check, camps (admin create/rename), aid + requests, quality, vulnerability (+shelter inference, tier chips), import (flat), transfer, aid report, ben cascade delete.
-## Decisions
-- Reuse Worker login; REST only; Release only by manual dispatch after user verifies.
-- Camp delete/clear not in native (risky) — web only.
-## Open
-- unread badges only on beneficiary lists (camp rows skipped to save reads); global quota panel (needs Worker); role dashboards (staff accounts page + create done).
-- CI status of final commits not re-verified; PR #5 (web name removal) awaits owner merge.
-## Plan
-- docs/NATIVE-PLAN.md: phases 2-5. Phases 2-3 DONE (export, trash, audit, categories+queries, duplicates, rapid entry). Next: phase 4 (camp info, transfer log, sync diag), then 5 (camp delete/clear, import fingerprints, settings+quota).
-## Next
-- Continue gaps above, then user tests: install debug APK from Actions, compare Home numbers with web, CRUD a person and confirm on web, backup/restore, beneficiary login+request.
-- Security: move PUSH_ADMIN_KEY from Worker source to a Cloudflare Secret.
+# Handoff — native GRCS (branch feature/native-ui)
+State: v4.1.0 UI-fidelity phase U1–U6 coded; assembleDebug passes. Not tested on device (by request: no tests/screens).
+Done: web palette+Cairo, Kit components, role tabs, Home, Settings cards, People, Messages, Accounts (tabs/search), Camps, BenHome, Login, theme toggle.
+Decisions: every screen owns its AppHeader; status bar icons always light; Palette API unchanged (fields added).
+Open: sub-pages (vuln/quality/query/similar/rapid/trash/audit/import/export/aid) still QChip layout; no nav unread badge; beneficiary settings has no data tools.
+Next: user installs APK from CI artifact of this branch and reports on-device issues; then merge to main; then phases 4–5 (camp info, transfer log, sync diagnostics, camp delete/clear, import fingerprints, quota panel).

@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -141,11 +142,15 @@ fun HeaderBtn(icon: ImageVector, desc: String, onClick: () -> Unit) {
 
 /** بطاقة إحصاء: حافة ملوّنة في البداية، مربع أيقونة، رقم كبير يعدّ تصاعدياً، تسمية وسطر فرعي. */
 @Composable
-fun KpiCard(label: String, value: Int, color: Color, icon: ImageVector, modifier: Modifier = Modifier, sub: String? = null, onClick: (() -> Unit)? = null) {
+fun KpiCard(label: String, value: Int, color: Color, icon: ImageVector, modifier: Modifier = Modifier, sub: String? = null, index: Int = 0, onClick: (() -> Unit)? = null) {
     val p = LocalPalette.current
     val reduce = rememberReduceMotion()
     val n by animateIntAsState(value, tween(if (reduce) 0 else 800), label = "kpi")
-    val m = modifier.cardShadow().clip(CardShape).background(p.surface).let { if (onClick != null) it.clickable(onClick = onClick) else it }
+    val enter = remember { androidx.compose.animation.core.Animatable(if (reduce) 1f else 0f) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (!reduce) { kotlinx.coroutines.delay(index * 45L); enter.animateTo(1f, tween(420, easing = androidx.compose.animation.core.CubicBezierEasing(.2f, .8f, .2f, 1f))) }
+    }
+    val m = modifier.graphicsLayer { alpha = enter.value; translationY = (1f - enter.value) * 24f }.cardShadow().clip(CardShape).background(p.surface).let { if (onClick != null) it.clickable(onClick = onClick) else it }
     Row(m.height(IntrinsicSize.Min)) {
         Box(Modifier.width(4.dp).fillMaxHeight().background(color))
         Column(Modifier.weight(1f).padding(14.dp)) {

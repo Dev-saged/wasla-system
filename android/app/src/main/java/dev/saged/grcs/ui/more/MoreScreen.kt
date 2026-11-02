@@ -44,6 +44,8 @@ import dev.saged.grcs.ui.components.ConnState
 import dev.saged.grcs.ui.components.Hair
 import dev.saged.grcs.ui.components.MenuRow
 import dev.saged.grcs.ui.components.SettingCard
+import dev.saged.grcs.ui.components.SegTabs
+import dev.saged.grcs.ui.theme.ThemePref
 import dev.saged.grcs.ui.icons.QIcons
 import androidx.compose.foundation.layout.widthIn
 import dev.saged.grcs.BuildConfig
@@ -161,6 +163,9 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
                 }
                 if (role == "admin") SettingCard("الإدارة", QIcons.Key) {
                     MenuRow(QIcons.Key, "حسابات الطاقم", "مناديب ومدخلو بيانات") { go("staff") }
+                }
+                SettingCard("المظهر", QIcons.Moon) {
+                    SegTabs(listOf("تلقائي", "فاتح", "ليلي"), ThemePref.mode, { ThemePref.set(it) })
                 }
                 SettingCard("حول التطبيق", QIcons.Info) {
                     MenuRow(QIcons.Sync, "التحديثات", "الإصدار ${BuildConfig.VERSION_NAME}") { go("update") }

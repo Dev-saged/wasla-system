@@ -31,7 +31,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
+        dev.saged.grcs.ui.theme.ThemePref.init(applicationContext)
         setContent {
             GrcsTheme {
                 val repo = remember { AuthRepo(SessionStore(applicationContext)) }

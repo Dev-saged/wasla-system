@@ -154,9 +154,9 @@ private class K(val label: String, val value: Int, val color: Color, val icon: I
 @Composable
 private fun Grid(items: List<K>) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        items.chunked(2).forEach { row ->
+        items.chunked(2).forEachIndexed { ri, row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEach { KpiCard(it.label, it.value, it.color, it.icon, Modifier.weight(1f)) }
+                row.forEachIndexed { ci, it -> KpiCard(it.label, it.value, it.color, it.icon, Modifier.weight(1f), index = ri * 2 + ci) }
                 if (row.size == 1) Box(Modifier.weight(1f))
             }
         }
