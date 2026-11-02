@@ -14,6 +14,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     private val writer = FamWriter(cache)
     private val accounts = Accounts(cache)
     val backups = Backups(ctx)
+    val transfer by lazy { Transfer(this) }
     private var secV = 2L
 
     init { Clock.init(ctx); Usage.init(ctx) }

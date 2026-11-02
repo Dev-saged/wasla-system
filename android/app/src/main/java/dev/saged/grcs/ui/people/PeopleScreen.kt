@@ -73,6 +73,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
     var edit by remember { mutableStateOf<JSONObject?>(null) }
     var pending by remember { mutableIntStateOf(0) }
     var nidErr by remember { mutableStateOf<String?>(null) }
+    var openTransfer by remember { mutableStateOf(false) }
     var rev by remember { mutableIntStateOf(0) }
     val canWrite = auth.user.role != "beneficiary"
 
@@ -118,7 +119,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
         val fk = open
         when {
             ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }) }
-            fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, auth.user.id, { open = null }, { edit = it }, { remove(it) }, { o -> save(o, fk) }) { h -> data.credentials(auth, h.optString("nationalId"), camp) }
+            fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, auth.user.id, { open = null }, { edit = it }, { remove(it) }, { o -> save(o, fk) }, if (auth.user.role == "admin" && camps.size > 1) ({ openTransfer = true }) else null) { h -> data.credentials(auth, h.optString("nationalId"), camp) }
             else -> Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -148,6 +149,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo) {
                 ) { Text("أسرة جديدة", color = p.onPri, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
             }
         }
+        if (openTransfer) TransferDialog(auth, data, camp, camps, open.orEmpty()) { openTransfer = false; open = null; rev++ }
     }
 }
 
@@ -177,7 +179,7 @@ private fun TopBar(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun FamilyScreen(f: Fam?, canWrite: Boolean, uid: String, onBack: () -> Unit, onEdit: (JSONObject) -> Unit, onDelete: (JSONObject) -> Unit, onSave: (JSONObject) -> Unit, loadCreds: (JSONObject) -> Pair<String, String>?) {
+private fun FamilyScreen(f: Fam?, canWrite: Boolean, uid: String, onBack: () -> Unit, onEdit: (JSONObject) -> Unit, onDelete: (JSONObject) -> Unit, onSave: (JSONObject) -> Unit, onTransfer: (() -> Unit)?, loadCreds: (JSONObject) -> Pair<String, String>?) {
     val scope = rememberCoroutineScope()
     var creds by remember { mutableStateOf<String?>(null) }
     var aidFor by remember { mutableStateOf<JSONObject?>(null) }
@@ -222,6 +224,8 @@ private fun FamilyScreen(f: Fam?, canWrite: Boolean, uid: String, onBack: () -> 
             }
             item { Spacer(Modifier.height(80.dp)) }
         }
+        if (onTransfer != null) Text("نقل الأسرة لمخيم آخر", color = p.acc, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.heightIn(min = 48.dp).clickable { onTransfer() }.padding(horizontal = 16.dp, vertical = 14.dp))
         if (canWrite) Box(
             Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 52.dp).background(p.pri, RoundedCornerShape(16.dp)).clickable {
                 val fid = f.head?.optString("familyId").orEmpty().ifEmpty { f.members.first().optString("familyId") }
