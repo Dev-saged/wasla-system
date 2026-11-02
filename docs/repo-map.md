@@ -29,3 +29,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 
 ## Open issues
 - (none)
+- prototype/home-directions.html: static prototype (3 home directions, 3 splash, 3 icon concepts); awaiting user choice, no logic.
