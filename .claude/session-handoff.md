@@ -1,7 +1,7 @@
 # session-handoff
 
 ## Where we stopped
-- Branch feature/native-foundation: phases 1-4a done (native login + read-only Firestore sync + real Home stats via existing Worker, Keystore session, login screen; debug builds; untested on device). Native app builds (tests + debug OK): cobalt "Compass" palette, "Dawn" adaptive icon (+monochrome tent, legacy PNGs), opening screen, 5-item nav shell with placeholder screens, Lalezar/IBM Plex fonts.
+- Branch feature/native-foundation: phases 1-4b done (writes ported) (native login + read-only Firestore sync + real Home stats via existing Worker, Keystore session, login screen; debug builds; untested on device). Native app builds (tests + debug OK): cobalt "Compass" palette, "Dawn" adaptive icon (+monochrome tent, legacy PNGs), opening screen, 5-item nav shell with placeholder screens, Lalezar/IBM Plex fonts.
 - Prototypes and brand sources live in prototype/ (home-b.html, brand/gen.py, brand/vd.py). Web app untouched.
 
 ## Decisions made this session
@@ -14,4 +14,4 @@
 - Name of previous regional admin still present in web files (index.html x5, manifest.json, README.md): separate small branch.
 
 ## Next step
-- Phase 4b: port write/merge (person-level merge by updatedAt, tombstones `d`, clearedAt, Clock, famDocId/fnv1a) faithfully from index.html ~10414-10735; then module screens. No Release until writes are safe. Verify on device: login, Home numbers vs web.
+- Phase 5: People/Families screens (list, search, family detail, add/edit/delete via People.save/delete + DataRepo.pushNow), then other modules. No Release until verified on device against web.

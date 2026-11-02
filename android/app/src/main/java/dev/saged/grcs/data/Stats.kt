@@ -35,7 +35,7 @@ object Stats {
     }
 
     fun persons(docs: List<Pair<String, String>>, clearedAt: Long): List<JSONObject> {
-        val out = ArrayList<JSONObject>()
+        val out = LinkedHashMap<String, JSONObject>()
         for ((j, d) in docs) {
             val arr = runCatching { JSONArray(j) }.getOrNull() ?: continue
             val del = runCatching { JSONObject(d.ifBlank { "{}" }) }.getOrDefault(JSONObject())
@@ -44,10 +44,11 @@ object Stats {
                 if (p.optString("id").isEmpty()) continue
                 if (clearedAt > 0 && time(p) <= clearedAt) continue
                 if (del.has(p.getString("id")) && time(p) <= del.optLong(p.getString("id"))) continue
-                out += p
+                val id = p.getString("id"); val ex = out[id]
+                if (ex == null || time(p) >= time(ex)) out[id] = p
             }
         }
-        return out
+        return out.values.toList()
     }
 
     fun compute(persons: List<JSONObject>): CampStats {

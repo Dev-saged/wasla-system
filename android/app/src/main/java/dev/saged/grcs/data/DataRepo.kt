@@ -9,6 +9,10 @@ class CampSummary(val id: String, val name: String, val stats: CampStats)
 /** مزامنة قراءة فقط: يسحب التغييرات الجديدة (u >= آخر مزامنة − 60ث) ثم يحسب المؤشرات محلياً. */
 class DataRepo(ctx: Context, private val auth: AuthRepo) {
     private val cache = FamCache(ctx)
+    val people = People(cache)
+    private val writer = FamWriter(cache)
+
+    init { Clock.init(ctx) }
 
     private fun campsOf(st: AuthState, token: String): List<Pair<String, String>> = when (st.user.role) {
         "admin" -> Fs.listCamps(token)
@@ -32,6 +36,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
             st = auth.restore() ?: throw e
             f(st.idToken)
         }
+        for (c in cache.campsWithPending()) runCatching { withToken { t -> writer.push(c, t, st.user.id) } }
         val camps = withToken { campsOf(st, it) }
         cache.setMeta("camps", org.json.JSONObject().apply { camps.forEach { put(it.first, it.second) } }.toString())
         var n = 0
@@ -54,9 +59,11 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     }
 
     private fun summary(id: String, name: String): CampSummary {
-        val cleared = cache.meta("cleared_$id")?.toLongOrNull() ?: 0L
-        return CampSummary(id, name, Stats.compute(Stats.persons(cache.docs(id), cleared)))
+        return CampSummary(id, name, Stats.compute(people.persons(id)))
     }
 
-    fun clear() = cache.clear()
+    fun clear() { if (!cache.hasPending()) cache.clear() }
+
+    /** رفع فوري لمخيم بعد تعديل (يعيد false إن تعذّر وبقي معلّقاً). */
+    fun pushNow(st: AuthState, camp: String): Boolean = runCatching { writer.push(camp, st.idToken, st.user.id) }.getOrDefault(false)
 }
