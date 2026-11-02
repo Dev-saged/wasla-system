@@ -15,6 +15,9 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -99,12 +102,16 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
         }
     }
     var openFam by remember { mutableStateOf<String?>(null) }
+    var newTrig by remember { mutableStateOf(0) }
+    var importing by remember { mutableStateOf(false) }
     val tab = tabs[sel.coerceIn(0, tabs.lastIndex)]
     val ben = auth.user.role == "beneficiary"
     BackHandler(sel != 0 && openCamp == null) { sel = 0 }
     Column(Modifier.fillMaxSize().background(p.bg)) {
+        Box(Modifier.weight(1f)) {
+        if (importing) { dev.saged.grcs.ui.more.ImportPage(auth, data) { importing = false }; return@Box }
         AnimatedContent(
-            tab, Modifier.weight(1f),
+            tab, Modifier.fillMaxSize(),
             transitionSpec = {
                 if (reduce) EnterTransition.None togetherWith ExitTransition.None else {
                     val dir = if (tabs.indexOf(targetState) > tabs.indexOf(initialState)) -1 else 1
@@ -115,14 +122,20 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             label = "dest",
         ) { t ->
             when (t) {
-                Tab.Home -> if (ben) BenHome(auth, data) else if (homeFilter != null) PeopleScreen(auth, data, startFilter = homeFilter) { homeFilter = null } else HomeScreen(auth, data, onLogout, { homeFilter = it }, { sel = tabs.indexOf(Tab.Camps).coerceAtLeast(0) })
-                Tab.Camps -> if (openCamp != null) PeopleScreen(auth, data, openCamp, startFamily = openFam) { openCamp = null; openFam = null } else CampsScreen(auth, data, { openCamp = it }) { c, f -> openFam = f; openCamp = c }
-                Tab.People -> PeopleScreen(auth, data)
+                Tab.Home -> if (ben) BenHome(auth, data) else if (homeFilter != null) PeopleScreen(auth, data, startFilter = homeFilter, newTrigger = newTrig) { homeFilter = null } else HomeScreen(auth, data, onLogout, { homeFilter = it }, { sel = tabs.indexOf(Tab.Camps).coerceAtLeast(0) })
+                Tab.Camps -> if (openCamp != null) PeopleScreen(auth, data, openCamp, startFamily = openFam, newTrigger = newTrig) { openCamp = null; openFam = null } else CampsScreen(auth, data, { openCamp = it }) { c, f -> openFam = f; openCamp = c }
+                Tab.People -> PeopleScreen(auth, data, newTrigger = newTrig)
                 Tab.Chat -> MessagesScreen(auth, data)
                 Tab.Accounts -> StaffPage(auth, data) { sel = 0 }
                 Tab.Export -> ExportPage(auth, data) { sel = 0 }
                 Tab.Settings -> MoreScreen(auth, data, onLogout)
             }
+        }
+        val field = auth.user.role == "delegate" || auth.user.role == "dataentry" || (auth.user.role == "admin" && openCamp != null)
+        if (field && !importing && (tab == Tab.Home || tab == Tab.People || (tab == Tab.Camps && openCamp != null))) Column(Modifier.align(Alignment.BottomStart).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.size(44.dp).shadow(4.dp, CircleShape).background(p.surface, CircleShape).border(1.5.dp, p.line, CircleShape).clickable { importing = true }, contentAlignment = Alignment.Center) { Icon(QIcons.Import, "استيراد Excel", tint = p.ink, modifier = Modifier.size(20.dp)) }
+            Box(Modifier.size(56.dp).shadow(8.dp, CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.pri)), CircleShape).clickable { if (tab == Tab.Home) { homeFilter = null; sel = tabs.indexOf(Tab.People).coerceAtLeast(0) }; newTrig++ }, contentAlignment = Alignment.Center) { Icon(QIcons.Plus, "إضافة فرد", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(26.dp)) }
+        }
         }
         NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null }
     }

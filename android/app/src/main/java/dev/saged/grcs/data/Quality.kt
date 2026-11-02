@@ -36,29 +36,60 @@ object Quality {
         return ""
     }
 
+    class Rule(val key: String, val label: String, val head: Boolean, val test: (JSONObject, Ctx) -> Boolean)
+    class Ctx(val dup: Set<String>, val heads: Map<String, JSONObject>)
+
+    private fun cf(p: JSONObject, vararg ks: String): String { val c = p.optJSONObject("customFields") ?: return ""; return ks.firstNotNullOfOrNull { c.optString(it).takeIf { v -> v.isNotEmpty() } }.orEmpty() }
+    private fun phone2(p: JSONObject) = p.optString("phone2").ifEmpty { cf(p, "هاتف إضافي", "الجوال 2", "رقم التواصل 2") }
+    private fun shelter(p: JSONObject) = p.optString("shelterType").ifEmpty { p.optString("livingSituation") }
+    private val adult = listOf("wife", "husband")
+
+    val rules: List<Rule> = listOf(
+        Rule("nophone", "أسر بلا هاتف", true) { p, _ -> p.optString("phone").isEmpty() },
+        Rule("nophone2", "أسر بلا هاتف إضافي", true) { p, _ -> phone2(p).isEmpty() },
+        Rule("noaddress", "أسر بلا عنوان", true) { p, _ -> p.optString("address").isEmpty() },
+        Rule("noshelter", "أسر بلا نوع مأوى", true) { p, _ -> shelter(p).isEmpty() },
+        Rule("childnodob", "أطفال بلا تاريخ ميلاد", false) { p, _ -> !p.optBoolean("isFamilyHead") && p.optString("relation") in listOf("son", "daughter", "child", "orphan") && noDob(p) },
+        Rule("adultnodob", "بالغون بلا تاريخ ميلاد", false) { p, _ -> (p.optBoolean("isFamilyHead") || p.optString("relation") in adult) && noDob(p) },
+        Rule("noid", "أفراد بلا رقم هوية", false) { p, _ -> nid(p).isEmpty() },
+        Rule("badid", "أرقام هوية غير صحيحة", false) { p, _ -> nidStatus(p.optString("nationalId")).let { it == "invalid" || it == "format" } },
+        Rule("nogender", "أفراد بلا جنس محدد", false) { p, _ -> p.optString("gender").let { it.isEmpty() || it == "unknown" } },
+        Rule("dupid", "هويات مكررة داخل المخيم", false) { p, c -> nid(p).let { it.isNotEmpty() && it in c.dup } },
+        Rule("suspectdob", "تواريخ ميلاد مشبوهة", false) { p, c -> dobWhy(p, c.heads[p.optString("familyId")]).isNotEmpty() },
+        Rule("stalenoid", "مواليد بلا هوية تجاوزوا السنتين", false) { p, _ -> nid(p).isEmpty() && p.optBoolean("noIdYet") && (Stats.ageOf(p) ?: 0) >= 2 },
+    )
+
+    private fun noDob(p: JSONObject) = p.isNull("birthDate") || p.optString("birthDate").let { it.isEmpty() || it == "null" }
+
+    fun ctx(persons: List<JSONObject>) = Ctx(
+        persons.map { nid(it) }.filter { it.isNotEmpty() }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys,
+        persons.filter { it.optBoolean("isFamilyHead") }.associateBy { it.optString("familyId") })
+
+    fun match(key: String, p: JSONObject, c: Ctx): Boolean = rules.firstOrNull { it.key == key }?.let { (!it.head || p.optBoolean("isFamilyHead")) && it.test(p, c) } ?: false
+
+    /** عدّ كل قاعدة ونسبة الاكتمال العامة */
+    fun counts(persons: List<JSONObject>): Pair<Int, Map<String, Int>> {
+        val c = ctx(persons); val m = LinkedHashMap<String, Int>(); var checks = 0; var fails = 0
+        rules.forEach { m[it.key] = 0 }
+        for (p in persons) for (r in rules) {
+            if (r.head && !p.optBoolean("isFamilyHead")) continue
+            checks++
+            if (r.test(p, c)) { m[r.key] = m.getValue(r.key) + 1; fails++ }
+        }
+        return (if (checks == 0) 100 else Math.round((1 - fails.toDouble() / checks) * 100).toInt()) to m
+    }
+
     fun report(persons: List<JSONObject>): Pair<Int, List<Issue>> {
-        val dupIds = persons.map { nid(it) }.filter { it.isNotEmpty() }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
-        val heads = persons.filter { it.optBoolean("isFamilyHead") }.associateBy { it.optString("familyId") }
-        fun head(p: JSONObject) = heads[p.optString("familyId")]
-        val noId = persons.filter { nid(it).isEmpty() }
-        val dup = persons.filter { nid(it) in dupIds }
-        val bad = persons.filter { nidStatus(it.optString("nationalId")).let { s -> s == "invalid" || s == "format" } }
-        val dob = persons.filter { dobWhy(it, head(it)).isNotEmpty() }
-        val stale = noId.filter { it.optBoolean("noIdYet") && (Stats.ageOf(it) ?: 0) >= 2 }
-        val noGender = persons.filter { it.optString("gender").let { g -> g.isEmpty() || g == "unknown" } }
-        val childNoDob = persons.filter { !it.optBoolean("isFamilyHead") && it.optString("relation") in listOf("son", "daughter", "orphan") && it.optString("birthDate").isEmpty() }
-        val adultNoDob = persons.filter { (it.optBoolean("isFamilyHead") || it.optString("relation") in listOf("wife", "husband")) && it.optString("birthDate").isEmpty() }
-        val h = persons.filter { it.optBoolean("isFamilyHead") }
-        val headFails = h.count { it.optString("phone").isEmpty() } + h.count { it.optString("phone2").isEmpty() } + h.count { it.optString("address").isEmpty() } + h.count { it.optString("shelter").isEmpty() }
-        val checks = h.size * 4 + persons.size * 8
-        val fails = headFails + noId.size + bad.size + noGender.size + dup.size + dob.size + stale.size + childNoDob.size + adultNoDob.size
-        val pct = if (checks == 0) 100 else Math.round((1 - fails.toDouble() / checks) * 100).toInt().coerceIn(0, 100)
+        val pct = counts(persons).first
+        val c = ctx(persons)
+        fun of(k: String) = persons.filter { match(k, it, c) }
+        val heads = c.heads
         return pct to listOf(
-            Issue("dup", "هويات مكررة داخل المخيم", dup, "سجلات بنفس الهوية — راجعها وصحّح أو احذف المكرر", "تصحيح"),
-            Issue("noid", "أفراد بلا رقم هوية", noId, "ارفع الكشف الوطني من «مطابقة كشف وطني» ليقترح النظام الهويات تلقائياً", "إكمال"),
-            Issue("dob", "تواريخ ميلاد مشبوهة", dob, "مستقبلي، عمر مستحيل، أو فارق غير منطقي مع رب الأسرة", "تصحيح"),
-            Issue("bad", "أرقام هوية غير صحيحة", bad, "لا تجتاز خانة التحقق أو ليست 9 أرقام", "تصحيح"),
-            Issue("stale", "مواليد بلا هوية تجاوزوا السنتين", stale, "حُدّد «لا يوجد رقم هوية بعد» لكن عمرهم تجاوز سنتين — يُرجَّح أن هويتهم صدرت", "إكمال الهوية"),
+            Issue("dup", "هويات مكررة داخل المخيم", of("dupid"), "سجلات بنفس الهوية — راجعها وصحّح أو احذف المكرر", "تصحيح"),
+            Issue("noid", "أفراد بلا رقم هوية", of("noid"), "ارفع الكشف الوطني من «مطابقة كشف وطني» ليقترح النظام الهويات تلقائياً", "إكمال"),
+            Issue("dob", "تواريخ ميلاد مشبوهة", of("suspectdob"), "مستقبلي، عمر مستحيل، أو فارق غير منطقي مع رب الأسرة", "تصحيح"),
+            Issue("bad", "أرقام هوية غير صحيحة", of("badid"), "لا تجتاز خانة التحقق أو ليست 9 أرقام", "تصحيح"),
+            Issue("stale", "مواليد بلا هوية تجاوزوا السنتين", of("stalenoid"), "حُدّد «لا يوجد رقم هوية بعد» لكن عمرهم تجاوز سنتين — يُرجَّح أن هويتهم صدرت", "إكمال الهوية"),
         )
     }
 }

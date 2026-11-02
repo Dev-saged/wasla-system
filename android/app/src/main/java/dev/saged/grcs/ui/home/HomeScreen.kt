@@ -59,28 +59,36 @@ private val roleLabel = mapOf("admin" to "مسؤول النظام", "delegate" t
 private class Insight(
     val tiers: Map<String, Int>, val quality: Map<String, Int>, val counts: Map<String, Int> = emptyMap(),
     val criticalCamps: Int = 0, val critical: Map<String, Int> = emptyMap(), val pyramid: List<Pair<Int, Int>> = emptyList(),
+    val qpct: Int = 100, val qcounts: Map<String, Int> = emptyMap(), val sim: Int = 0, val mine: Int = 0, val today: Int = 0,
 )
 
 private val countKeys = listOf("orphan", "child", "preschool", "school", "youth", "mid")
 
-private fun insight(data: DataRepo, token: String, camps: List<CampSummary>): Insight {
+private fun insight(data: DataRepo, token: String, camps: List<CampSummary>, uid: String = ""): Insight {
     runCatching { Vuln.load(token) }
     val tiers = HashMap<String, Int>()
     val q = HashMap<String, Int>()
     val counts = HashMap<String, Int>(); val critical = HashMap<String, Int>(); var critCamps = 0
     val pyr = Array(17) { IntArray(2) }
+    var qp = 100; var qc: Map<String, Int> = emptyMap(); var sim = 0; var mine = 0; var today = 0
+    val day0 = java.util.Calendar.getInstance().apply { set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0) }.timeInMillis
     camps.forEach { c ->
         val ps = data.people.persons(c.id)
         if (ps.isEmpty()) return@forEach
         runCatching { Vuln.families(ps).forEach { f -> tiers[f.result.tier] = (tiers[f.result.tier] ?: 0) + 1 } }
         runCatching { q[c.id] = Quality.report(ps).first }
+        if (camps.size == 1) {
+            runCatching { Quality.counts(ps).let { qp = it.first; qc = it.second } }
+            runCatching { sim = data.similar(c.id).size }
+            ps.filter { it.optString("createdBy") == uid }.let { m -> mine = m.size; today = m.count { it.optLong("createdAt") >= day0 } }
+        }
         countKeys.forEach { k -> counts[k] = (counts[k] ?: 0) + dev.saged.grcs.data.PFilter.apply(k, ps).size }
         val st = c.stats
         critical[c.id] = st.infant + st.pregnant + st.chronic
         if (st.infant >= 50 || st.pregnant >= 30 || st.chronic >= 100) critCamps++
         ps.forEach { m -> dev.saged.grcs.data.Stats.ageOf(m)?.let { a -> val b = (a / 5).coerceAtMost(16); pyr[b][if (m.optString("gender") == "female") 1 else 0]++ } }
     }
-    return Insight(tiers, q, counts, critCamps, critical, pyr.map { it[0] to it[1] })
+    return Insight(tiers, q, counts, critCamps, critical, pyr.map { it[0] to it[1] }, qp, qc, sim, mine, today)
 }
 
 /** الرئيسية بتصميم الويب: ترويسة كحلية، بطاقات إحصاء بحافة ملوّنة، مؤشر الهشاشة، جودة البيانات لكل مخيم. */
@@ -91,7 +99,8 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
     var camps by remember { mutableStateOf(data.cached(auth0).let { l -> if (onlyCamp != null) l.filter { it.id == onlyCamp } else l }) }
     var sub by remember { mutableStateOf("") }
     var info by remember { mutableStateOf<dev.saged.grcs.data.CampInfo?>(null) }
-    androidx.compose.runtime.LaunchedEffect(onlyCamp) { if (onlyCamp != null) info = withContext(Dispatchers.IO) { runCatching { data.campInfo(auth0, onlyCamp) }.getOrNull() } }
+    val infoCamp = onlyCamp ?: if (auth0.user.role != "admin") camps.firstOrNull()?.id else null
+    androidx.compose.runtime.LaunchedEffect(infoCamp, camps.size) { if (infoCamp != null) info = withContext(Dispatchers.IO) { runCatching { data.campInfo(auth0, infoCamp) }.getOrNull() } }
     var ins by remember { mutableStateOf<Insight?>(null) }
     var busy by remember { mutableStateOf(true) }
     var pulled by remember { mutableIntStateOf(0) }
@@ -100,12 +109,12 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
 
     LaunchedEffect(tick) {
         busy = true; error = null; ConnState.state = Conn.Sync
-        withContext(Dispatchers.IO) { runCatching { insight(data, auth.idToken, camps) } }.getOrNull()?.let { ins = it }
+        withContext(Dispatchers.IO) { runCatching { insight(data, auth.idToken, camps, auth.user.id) } }.getOrNull()?.let { ins = it }
         try {
             val (st, list) = withContext(Dispatchers.IO) { data.sync(auth) { pulled = it } }
             auth = st; camps = if (onlyCamp != null) list.filter { it.id == onlyCamp } else list
             withContext(Dispatchers.IO) { list.forEach { data.autoBackup(it.id, it.name) } }
-            withContext(Dispatchers.IO) { runCatching { insight(data, st.idToken, list) } }.getOrNull()?.let { ins = it }
+            withContext(Dispatchers.IO) { runCatching { insight(data, st.idToken, list, auth.user.id) } }.getOrNull()?.let { ins = it }
             if (st.offline) { error = "دون اتصال — تُعرض آخر نسخة محفوظة"; ConnState.state = Conn.Off } else { ConnState.state = Conn.On; ConnState.lastSync = System.currentTimeMillis() }
         } catch (e: Exception) {
             error = "تعذّرت المزامنة — تُعرض آخر نسخة محفوظة"; ConnState.state = Conn.Off
@@ -118,10 +127,16 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
         "import" -> { dev.saged.grcs.ui.more.ImportPage(auth, data) { sub = "" }; return }
         "export" -> { dev.saged.grcs.ui.more.ExportPage(auth, data) { sub = "" }; return }
         "caminfo" -> { dev.saged.grcs.ui.more.CampInfoPage(auth, data) { sub = "" }; return }
+        "msg" -> { dev.saged.grcs.ui.messages.MessagesScreen(auth, data, onlyCamp, { sub = "" }); return }
+        "benmsg" -> { dev.saged.grcs.ui.messages.MessagesScreen(auth, data, "bl:$onlyCamp", { sub = "" }); return }
+        "rapid" -> { dev.saged.grcs.ui.more.RapidPage(auth, data) { sub = "" }; return }
+        "quality" -> { dev.saged.grcs.ui.more.QualityPage(auth, data) { sub = "" }; return }
+        "aid" -> { dev.saged.grcs.ui.more.AidScreen(auth, data) { sub = "" }; return }
+        "similar" -> { dev.saged.grcs.ui.more.SimilarPage(auth, data) { sub = "" }; return }
     }
     val t = camps.fold(CampStats.ZERO) { a, c -> a + c.stats }
     Column(Modifier.fillMaxSize()) {
-        AppHeader(if (onlyCamp != null) camps.firstOrNull()?.name ?: BrandConfig.NAME else if (auth.user.role == "admin") "كل المخيمات" else BrandConfig.NAME, "${auth.user.fullName} · ${roleLabel[auth.user.role] ?: auth.user.role}", onBack = onBack) {
+        AppHeader(if (onlyCamp != null || auth.user.role != "admin") camps.firstOrNull()?.name ?: BrandConfig.NAME else "كل المخيمات", "${auth.user.fullName} · ${roleLabel[auth.user.role] ?: auth.user.role}" + if (auth.user.role == "admin" && onlyCamp != null) " — عرض مخيم" else "", onBack = onBack) {
             HeaderBtn(QIcons.Sync, "مزامنة") { if (!busy) tick++ }
         }
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -153,13 +168,21 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
                         dev.saged.grcs.ui.components.Btn("تحميل كشف", { sub = "export" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
                     }
                     Spacer(Modifier.height(8.dp))
-                    dev.saged.grcs.ui.components.Btn("تعديل معلومات المخيم", { sub = "caminfo" }, Modifier.fillMaxWidth(), dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        dev.saged.grcs.ui.components.Btn("تعديل معلومات المخيم", { sub = "caminfo" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
+                        dev.saged.grcs.ui.components.Btn("مراسلة المندوب", { sub = "msg" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    dev.saged.grcs.ui.components.Btn("رسائل المستفيدين", { sub = "benmsg" }, Modifier.fillMaxWidth(), dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
                     Spacer(Modifier.height(12.dp))
                 }
-                if (camps.isEmpty() || t.total == 0 && !busy) {
+                if (auth.user.role == "dataentry") {
+                    dev.saged.grcs.ui.home.DataEntryBody(ins?.mine ?: 0, ins?.today ?: 0) { sub = "rapid" }
+                } else if (camps.isEmpty() || t.total == 0 && !busy) {
                     EmptyState(QIcons.Camp, "لا بيانات بعد", "ستظهر الأرقام فور اكتمال أول مزامنة")
                 } else {
                     val c = ins?.counts.orEmpty()
+                    val lastUpd = info?.lastUpdated?.takeIf { it > 0 }?.let { java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(it)) } ?: "—"
                     val admin = auth.user.role == "admin" && onlyCamp == null
                     val items = if (admin) listOf(
                         K("إجمالي المخيمات", camps.size, p.navy.takeIf { !p.dark } ?: p.blue, QIcons.Camp, "camps"), K("إجمالي الأفراد", t.total, p.tealL, QIcons.People, "all"),
@@ -182,11 +205,14 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
                         K("شباب 18-30", c["youth"] ?: 0, p.tealL, QIcons.Person, "youth"), K("بالغون 30-60", c["mid"] ?: 0, p.navy.takeIf { !p.dark } ?: p.blue, QIcons.Person, "mid"),
                         K("أرامل", t.widowed, p.gray, QIcons.Person, "widowed"), K("مطلّقات/ين", t.divorced, p.gray, QIcons.Person, "divorced"),
                         K("بلا رقم هوية", t.noId, p.danger, QIcons.IdCard, "noid"),
+                        K("آخر تحديث", 0, p.tealL, QIcons.Clock, "none", text = lastUpd),
                     )
                     Grid(items, t.total) { k -> if (k == "camps") onCamps() else if (k != "criticalCamps") onKpi(k) }
-                    ins?.let { if (it.tiers.isNotEmpty()) Risk(it.tiers, auth.user.role == "admin") }
-                    if (camps.size > 1 || ins?.quality?.isNotEmpty() == true) ins?.let { Quality(camps, it.quality) }
-                    if (auth.user.role == "admin" && camps.size > 1) ins?.let { HomeCharts(camps, it.critical) }
+                    if (admin) {
+                        ins?.let { if (it.tiers.isNotEmpty()) Risk(it.tiers, true) }
+                        if (camps.size > 1 || ins?.quality?.isNotEmpty() == true) ins?.let { Quality(camps, it.quality) }
+                        if (camps.size > 1) ins?.let { HomeCharts(camps, it.critical) }
+                    } else ins?.let { CampSections(it.tiers, it.qpct, it.qcounts, it.sim, t.male, t.female, t.infant, t.child, t.elderly, t.total, onKpi) { k -> sub = k } }
                     ins?.let { if (it.pyramid.any { b -> b.first + b.second > 0 }) Pyramid(it.pyramid, if (auth.user.role == "admin") "الهرم السكاني — كل المخيمات" else "الهرم السكاني") }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -195,7 +221,7 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
     }
 }
 
-private class K(val label: String, val value: Int, val color: Color, val icon: ImageVector, val key: String, val sub: String? = null)
+private class K(val label: String, val value: Int, val color: Color, val icon: ImageVector, val key: String, val sub: String? = null, val text: String? = null)
 
 private fun pct(a: Int, b: Int) = if (b == 0) "0%" else "${fa(Math.round(a * 100f / b))}%"
 
@@ -204,7 +230,7 @@ private fun Grid(items: List<K>, total: Int, onKpi: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         items.chunked(2).forEachIndexed { ri, row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEachIndexed { ci, it -> KpiCard(it.label, it.value, it.color, it.icon, Modifier.weight(1f), sub = it.sub, index = ri * 2 + ci, onClick = { onKpi(it.key) }) }
+                row.forEachIndexed { ci, it -> KpiCard(it.label, it.value, it.color, it.icon, Modifier.weight(1f), sub = it.sub, index = ri * 2 + ci, onClick = if (it.key == "none") null else ({ onKpi(it.key) }), text = it.text) }
                 if (row.size == 1) Box(Modifier.weight(1f))
             }
         }

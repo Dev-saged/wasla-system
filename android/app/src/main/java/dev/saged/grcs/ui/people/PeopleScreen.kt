@@ -79,7 +79,7 @@ private fun group(list: List<JSONObject>): List<Fam> =
 
 /** الأسر والأفراد: قائمة، تفصيل أسرة، إضافة/تعديل/حذف. التعديل محلي فوري ويُرفع في الخلفية. */
 @Composable
-fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, startFilter: String? = null, startFamily: String? = null, onExit: (() -> Unit)? = null) {
+fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, startFilter: String? = null, startFamily: String? = null, newTrigger: Int = 0, onExit: (() -> Unit)? = null) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
     val camps = remember { data.campList(auth) }
@@ -94,9 +94,11 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
     var pending by remember { mutableIntStateOf(0) }
     var nidErr by remember { mutableStateOf<String?>(null) }
     var openTransfer by remember { mutableStateOf(false) }
+    var cats by remember { mutableStateOf(false) }
     var rev by remember { mutableIntStateOf(0) }
     val canWrite = auth.user.role != "beneficiary"
 
+    LaunchedEffect(newTrigger) { if (newTrigger > 0 && auth.user.role != "beneficiary") edit = JSONObject().put("isFamilyHead", true).put("relation", "head") }
     LaunchedEffect(camp, rev) {
         if (camp.isEmpty()) return@LaunchedEffect
         persons = withContext(Dispatchers.IO) { data.people.persons(camp) }
@@ -152,6 +154,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
         val ed = edit
         val fk = open
         when {
+            cats -> dev.saged.grcs.ui.camps.CatsPage(auth, data) { cats = false }
             ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o, ex -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }, ex) }
             fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, auth.user.id, { open = null }, { edit = it }, { remove(it) }, { o -> save(o, fk) }, if (auth.user.role == "admin" && camps.size > 1) ({ openTransfer = true }) else null) { h -> data.credentials(auth, h.optString("nationalId"), camp) }
             else -> Column(Modifier.fillMaxSize()) {
@@ -166,8 +169,10 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
                 SearchBox(q, { q = it }, "بحث بالاسم أو الهوية أو الجوال")
                 Spacer(Modifier.height(8.dp))
                 androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (PFilter.chips.none { it.first == filter }) item { QChip(PFilter.label(filter), true) { } }
                     items(PFilter.chips, key = { it.first }) { (k, l) -> QChip(l, filter == k) { filter = k } }
                 }
+                Btn("كل التصنيفات والكشوفات", { cats = true }, Modifier.fillMaxWidth().padding(top = 8.dp), kind = BtnKind.Ghost, small = true, icon = QIcons.Camp)
                 Spacer(Modifier.height(6.dp))
                 val qq = normDigits(q)
                 val byFilter = remember(persons, filter) { PFilter.apply(filter, persons) }
@@ -195,7 +200,6 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
                     }
                     item { Spacer(Modifier.height(72.dp)) }
                 }
-                if (canWrite) Btn("أسرة جديدة", { edit = JSONObject().put("isFamilyHead", true).put("relation", "head") }, Modifier.fillMaxWidth().padding(vertical = 10.dp), icon = QIcons.Plus)
                 }
             }
         }

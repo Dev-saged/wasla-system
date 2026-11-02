@@ -142,7 +142,7 @@ fun HeaderBtn(icon: ImageVector, desc: String, onClick: () -> Unit) {
 
 /** بطاقة إحصاء: حافة ملوّنة في البداية، مربع أيقونة، رقم كبير يعدّ تصاعدياً، تسمية وسطر فرعي. */
 @Composable
-fun KpiCard(label: String, value: Int, color: Color, icon: ImageVector, modifier: Modifier = Modifier, sub: String? = null, index: Int = 0, onClick: (() -> Unit)? = null) {
+fun KpiCard(label: String, value: Int, color: Color, icon: ImageVector, modifier: Modifier = Modifier, sub: String? = null, index: Int = 0, onClick: (() -> Unit)? = null, text: String? = null) {
     val p = LocalPalette.current
     val reduce = rememberReduceMotion()
     val n by animateIntAsState(value, tween(if (reduce) 0 else 800), label = "kpi")
@@ -155,7 +155,7 @@ fun KpiCard(label: String, value: Int, color: Color, icon: ImageVector, modifier
         Box(Modifier.width(4.dp).fillMaxHeight().background(color))
         Column(Modifier.weight(1f).padding(14.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(fa(n), color = p.ink, fontFamily = GrcsFonts.display, fontSize = 26.sp, lineHeight = 30.sp)
+                if (text != null) Text(text, color = p.ink, fontFamily = GrcsFonts.display, fontSize = 15.sp, lineHeight = 30.sp, modifier = Modifier.weight(1f)) else Text(fa(n), color = p.ink, fontFamily = GrcsFonts.display, fontSize = 26.sp, lineHeight = 30.sp)
                 IconTile(icon, color)
             }
             Text(label, color = p.mute, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)

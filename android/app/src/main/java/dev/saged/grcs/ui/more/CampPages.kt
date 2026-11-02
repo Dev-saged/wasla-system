@@ -237,7 +237,7 @@ fun CampDangerPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Btn("إفراغ البيانات", { target = c.id to false; typed = "" }, Modifier.weight(1f), BtnKind.Outline, QIcons.Trash, small = true)
-                        Btn("حذف المخيم", { target = c.id to true; typed = "" }, Modifier.weight(1f), BtnKind.Danger, QIcons.Alert, small = true)
+                        if (auth.user.role == "admin") Btn("حذف المخيم", { target = c.id to true; typed = "" }, Modifier.weight(1f), BtnKind.Danger, QIcons.Alert, small = true)
                     }
                 }
             }

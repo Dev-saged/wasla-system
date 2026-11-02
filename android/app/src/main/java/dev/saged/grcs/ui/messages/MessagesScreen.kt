@@ -62,13 +62,14 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun MessagesScreen(auth: AuthState, data: DataRepo) {
+fun MessagesScreen(auth: AuthState, data: DataRepo, start: String? = null, onExit: (() -> Unit)? = null) {
     val p = LocalPalette.current
     val ben = auth.user.role == "beneficiary"
     val camps = remember { data.campList(auth) }
-    var thread by remember { mutableStateOf<String?>(if (ben) "ben" else null) }
+    var thread by remember { mutableStateOf<String?>(if (ben) "ben" else start) }
+    val back = { if (start != null && onExit != null) onExit() else thread = null }
     val repo = remember { Messages() }
-    BackHandler(thread != null && !ben) { thread = null }
+    BackHandler(thread != null && !ben) { back() }
     Box(Modifier.fillMaxSize()) {
         val t = thread
         if (t == null) Column(Modifier.fillMaxSize()) {
@@ -102,8 +103,8 @@ fun MessagesScreen(auth: AuthState, data: DataRepo) {
             }
             if (!(auth.user.role == "delegate" && camps.size == 1)) camps.forEach { (id, n) -> ThreadRow(n, "محادثة المندوبين والإدارة", QIcons.Camp, p.pri) { thread = id }; ThreadRow("مستفيدو $n", "محادثات الأسر", QIcons.People, p.purple) { thread = "bl:$id" } }
           }
-        } else if (t.startsWith("bl:")) BenList(auth, repo, t.removePrefix("bl:"), camps.firstOrNull { it.first == t.removePrefix("bl:") }?.second.orEmpty(), { thread = null }) { tid -> thread = "bt:${t.removePrefix("bl:")}:$tid" }
-        else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) thread = if (t.startsWith("bt:")) "bl:" + t.removePrefix("bt:").substringBefore(":") else null }
+        } else if (t.startsWith("bl:")) BenList(auth, repo, t.removePrefix("bl:"), camps.firstOrNull { it.first == t.removePrefix("bl:") }?.second.orEmpty(), { back() }) { tid -> thread = "bt:${t.removePrefix("bl:")}:$tid" }
+        else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) { if (t.startsWith("bt:")) thread = "bl:" + t.removePrefix("bt:").substringBefore(":") else back() } }
     }
 }
 

@@ -119,7 +119,7 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
         AppHeader("الإعدادات", auth.user.fullName)
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 640.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SettingCard("المزامنة", QIcons.Sync) {
+                if (role != "dataentry") SettingCard("المزامنة", QIcons.Sync) {
                     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("آخر مزامنة ناجحة", color = p.ink, fontSize = 13.sp)
                         Text(if (ConnState.lastSync == 0L) "لم تتم بعد" else fmt.format(Date(ConnState.lastSync)), color = p.mute, fontSize = 12.5.sp)
@@ -163,43 +163,30 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
                 if (adminDel) SettingCard("سجل التغييرات", QIcons.Clock) {
                     Btn("عرض سجل التغييرات", { go("audit") }, Modifier.fillMaxWidth(), BtnKind.Outline)
                 }
-                SettingCard("الاستجابة والمزامنة", QIcons.Bolt) {
+                if (role == "delegate") SettingCard("معلومات المخيم", QIcons.Camp) {
+                    Btn("عرض / تعديل معلومات المخيم", { go("caminfo") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                }
+                if (role == "delegate") SettingCard("إدارة بيانات المخيم", QIcons.Trash) {
+                    Text("مسح جميع بيانات الأفراد والمستفيدين تمهيداً لإعادة الاستيراد — حساب المندوب لن يتأثر", color = p.mute, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                    Btn("إفراغ جميع بيانات مخيمي", { go("danger") }, Modifier.fillMaxWidth(), BtnKind.Danger, QIcons.Trash)
+                }
+                if (staff) SettingCard("الاستجابة والمزامنة", QIcons.Bolt) {
                     ToggleRow("اهتزاز خفيف", "عند الضغط والنجاح والتنبيه", UiPrefs.haptic) { UiPrefs.updateHaptic(it) }
                     ToggleRow("صوت نقرة", "اختياري — يتوقف عند تفعيل «تقليل الحركة»", UiPrefs.click) { UiPrefs.updateClick(it) }
                     Spacer(Modifier.height(6.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Btn("تشخيص المزامنة", { go("diag") }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                        if (adminDel) Btn("سجل نقل الأسر بين المخيمات", { go("tlog") }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                        if (role == "admin") Btn("سجل نقل الأسر بين المخيمات", { go("tlog") }, Modifier.fillMaxWidth(), BtnKind.Outline)
                     }
                 }
                 SettingCard("المظهر", QIcons.Moon) {
                     SegTabs(listOf("تلقائي", "فاتح", "داكن"), ThemePref.mode, { ThemePref.set(it) })
                 }
-                if (staff) SettingCard("مؤشر الهشاشة", QIcons.Alert) {
+                if (role == "admin") SettingCard("مؤشر الهشاشة", QIcons.Alert) {
                     Text("أوزان العوامل وحدود التصنيف — تُطبَّق على الأسر بعد الحفظ", color = p.mute, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Btn("تعديل الأوزان والحدود", { go("vuln") }, Modifier.fillMaxWidth(), BtnKind.Outline)
                         Btn("منشئ الاستعلامات", { go("query") }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                    }
-                }
-                if (staff) SettingCard("أدوات البيانات", QIcons.Chart) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Btn("إدخال سريع", { go("rapid") }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                        Btn("المساعدات", { go("aid") }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                        Btn("تقرير المساعدات", { go("aidrep") }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                        Btn("جودة البيانات", { go("quality") }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                        Btn("الأسماء المتشابهة", { go("similar") }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                        Btn("استيراد كشف Excel", { go("import") }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                        Btn("تصدير البيانات", { go("export") }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                    }
-                }
-                if (adminDel) SettingCard("معلومات المخيم", QIcons.Camp) {
-                    Btn("معلومات المخيم", { go("caminfo") }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                }
-                if (role == "admin") SettingCard("إدارة النظام", QIcons.Key) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Btn("حسابات الطاقم", { go("staff") }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                        Btn("إفراغ وحذف المخيمات", { go("danger") }, Modifier.fillMaxWidth(), BtnKind.Danger)
                     }
                 }
                 SettingCard("الحساب", QIcons.Person) {

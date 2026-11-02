@@ -57,8 +57,18 @@ object PFilter {
             val ids = Vuln.families(persons).filter { it.result.tier == t }.map { it.head.optString("id") }.toHashSet()
             return persons.filter { it.optString("id") in ids }
         }
+        if (key.startsWith("q:")) {
+            val q = key.removePrefix("q:"); val c = Quality.ctx(persons)
+            return persons.filter { Quality.match(q, it, c) }
+        }
         return persons.filter { test(key, it) }
     }
+
+    fun label(key: String): String = labels[key] ?: when {
+        key.startsWith("q:") -> Quality.rules.firstOrNull { it.key == key.removePrefix("q:") }?.label
+        key.startsWith("tier:") -> Vuln.tiers.firstOrNull { it.first == key.removePrefix("tier:") }?.second?.let { "هشاشة: $it" }
+        else -> null
+    } ?: key
 
     /** مفتاح الفلتر لكل بطاقة إحصاء في الرئيسية. */
     val kpiKey = mapOf(
