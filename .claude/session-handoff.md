@@ -1,12 +1,19 @@
 # session-handoff
 
 ## Where we stopped
-- v3.6.0 built and tested (self-test 49/49, regression a1/f1/n1/p9/p11/b2n pass); PR feature/v3.6.0 awaiting review.
-
-## Next step
-- Merge PR, publish GitHub Release v3.6.0 with the APK, test on a real Android device (swipe, haptics, view transitions).
-- Run one real family transfer against the live Worker before relying on it.
+- Branch feature/native-foundation: phase 1 of the native rebuild (android/ skeleton, BrandConfig, theme, contrast test, CI workflow). Web app untouched.
+- Signing key verified: p12 cert SHA-256 82:D0:04:7D:...:CD:90 equals the installed APK. Key and password are not in the repo.
 
 ## Decisions made this session
-- Map idea cancelled. Family transfer is admin only and needs connectivity.
-- FORM import preview still uses the old design (open item).
+- Native app keeps applicationId com.w2a.xihi, minSdk 23, targetSdk 36; installs over the WebToApp build.
+- Repo is public: secrets only in Actions (KEYSTORE_BASE64, SIGNING_STORE_PASSWORD). Release publish is manual (workflow_dispatch) until cutover.
+- Old app reads releases/latest of this repo and opens the first .apk asset; the native Release must be the only asset.
+- Firestore: role in claims, fine permissions read only when needed; people stored in chunked docs (~500) to stay on Spark.
+- Name of previous regional admin removed everywhere (web index.html, manifest.json, README.md, native).
+
+## Open issues
+- Add the two Actions secrets, then run the workflow to confirm the fingerprint check passes in CI.
+- Phase 2: three home directions and three icon directions, stop for choice.
+
+## Next step
+- Merge phase 1 after CI is green, then phase 2 (visual prototype).

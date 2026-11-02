@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>اتجاهات منظومة المخيمات</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=El+Messiri:wght@500;600;700&family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+/* التخطيط: لوحة مقارنة؛ كل اتجاه إطار هاتف بنظام ألوانه (فاتح/داكن عبر light-dark) */
+:root{
+  --pg-bg:oklch(.975 .006 250);--pg-surface:oklch(1 0 0);--pg-ink:oklch(.22 .03 250);
+  --pg-mute:oklch(.45 .03 250);--pg-line:oklch(.9 .008 250);--pg-pri:oklch(.45 .12 250);--pg-onpri:oklch(.99 0 0);
+  --f-board:"IBM Plex Sans Arabic","Noto Sans Arabic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --pg-bg:oklch(.17 .02 250);--pg-surface:oklch(.22 .025 250);--pg-ink:oklch(.95 .01 250);
+  --pg-mute:oklch(.74 .025 250);--pg-line:oklch(.32 .025 250);--pg-pri:oklch(.78 .1 250);--pg-onpri:oklch(.17 .02 250);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --pg-bg:oklch(.17 .02 250);--pg-surface:oklch(.22 .025 250);--pg-ink:oklch(.95 .01 250);
+  --pg-mute:oklch(.74 .025 250);--pg-line:oklch(.32 .025 250);--pg-pri:oklch(.78 .1 250);--pg-onpri:oklch(.17 .02 250);color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-ink);font-family:var(--f-board);line-height:1.6;
+  padding-block:24px 72px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin-inline:auto}
+h1,h2,h3,p{margin:0}
+h1{font-size:clamp(1.6rem,4vw,2.4rem);line-height:1.25;text-wrap:balance}
+h2{font-size:clamp(1.25rem,2.6vw,1.6rem);text-wrap:balance}
+.lead{color:var(--pg-mute);max-width:62ch;margin-top:8px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:20px}
+.chip{appearance:none;border:1px solid var(--pg-line);background:var(--pg-surface);color:var(--pg-ink);font:inherit;font-size:.9rem;
+  min-height:44px;padding:0 16px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.chip:hover{border-color:var(--pg-pri)}
+.chip:focus-visible,.seg button:focus-visible{outline:3px solid var(--pg-pri);outline-offset:2px}
+.chip[aria-pressed="true"]{background:var(--pg-pri);color:var(--pg-onpri);border-color:var(--pg-pri)}
+section.blk{margin-top:48px;scroll-margin-top:16px}
+.blk>header{display:flex;flex-direction:column;gap:4px;margin-bottom:20px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:28px;align-items:start;justify-items:center}
+.cap{width:100%;max-width:360px;display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.cap b{font-size:1.05rem}.cap span{color:var(--pg-mute);font-size:.88rem}
+.fig{width:100%;display:flex;flex-direction:column;align-items:center}
+.n{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;display:inline-block}
+
+/* ===== إطار الهاتف ===== */
+.ph{width:100%;max-width:360px;height:740px;position:relative;overflow:hidden;border-radius:34px;
+  border:1px solid var(--line);background:var(--bg);color:var(--ink);font-family:var(--f-body);
+  color-scheme:light dark;isolation:isolate;box-shadow:0 18px 40px -22px oklch(.2 .05 250/.5)}
+.ph[data-mode="dark"]{color-scheme:dark}.ph[data-mode="light"]{color-scheme:light}
+.ph.sp{height:640px}
+.ph svg{display:block}
+.ph .ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ph *{min-width:0}
+@media (prefers-reduced-motion:reduce){.ph *,.ph *::before,.ph *::after{animation:none!important;transition:none!important}}
+
+/* ---------- الاتجاه أ: نسيج (داكن، تطريز، ألكسندريا) ---------- */
+.dA{
+  --f-body:"Alexandria","Noto Sans Arabic",system-ui,sans-serif;--f-disp:"Alexandria","Noto Sans Arabic",sans-serif;
+  --bg:light-dark(oklch(.965 .012 135),oklch(.17 .035 158));
+  --surface:light-dark(oklch(.995 .004 135),oklch(.22 .04 158));
+  --surface2:light-dark(oklch(.935 .02 135),oklch(.27 .045 158));
+  --ink:light-dark(oklch(.23 .04 158),oklch(.95 .015 120));
+  --mute:light-dark(oklch(.46 .04 158),oklch(.74 .035 150));
+  --line:light-dark(oklch(.88 .02 135),oklch(.33 .04 158));
+  --pri:light-dark(oklch(.46 .11 150),oklch(.84 .17 130));
+  --onpri:light-dark(oklch(.985 .01 135),oklch(.18 .04 150));
+  --acc:light-dark(oklch(.52 .12 75),oklch(.82 .15 80));
+  --danger:light-dark(oklch(.5 .2 25),oklch(.74 .17 25));
+  --warn:light-dark(oklch(.5 .13 70),oklch(.82 .14 85));
+}
+.dA .glow{position:absolute;inset:-20% -30% auto auto;width:420px;height:420px;border-radius:50%;
+  background:radial-gradient(closest-side,light-dark(oklch(.9 .08 135/.6),oklch(.5 .14 140/.35)),transparent);
+  animation:drift 14s ease-in-out infinite alternate;z-index:-1}
+@keyframes drift{to{transform:translate(-40px,60px)}}
+.dA .top{display:flex;align-items:center;justify-content:space-between;padding:22px 18px 10px}
+.who{display:flex;align-items:center;gap:10px}
+.av{width:40px;height:40px;border-radius:14px;background:var(--surface2);display:grid;place-items:center;color:var(--pri);flex:none}
+.who b{display:block;font-size:.92rem;line-height:1.3}.who small{color:var(--mute);font-size:.72rem}
+.sync{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;color:var(--mute);border:1px solid var(--line);
+  border-radius:999px;padding:6px 10px;background:var(--surface)}
+.sync i{width:7px;height:7px;border-radius:50%;background:var(--pri);box-shadow:0 0 0 3px light-dark(oklch(.46 .11 150/.2),oklch(.84 .17 130/.2))}
+.dA .hero{margin:6px 16px 0;padding:16px;border-radius:24px;background:var(--surface);border:1px solid var(--line);
+  display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;position:relative;overflow:hidden}
+.dA .band{height:12px;margin:0 16px;border-radius:0 0 8px 8px;opacity:.9}
+.ring{position:relative;width:92px;height:92px;flex:none}
+.ring svg{width:92px;height:92px;direction:ltr}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:1.1rem;font-family:var(--f-disp)}
+.hero h3{font-family:var(--f-disp);font-size:1.7rem;line-height:1.1;font-weight:700}
+.hero p{color:var(--mute);font-size:.8rem;margin-top:4px}
+.delta{display:inline-flex;gap:4px;align-items:center;margin-top:8px;font-size:.74rem;color:var(--pri);font-weight:600}
+.kp3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px 0}
+.dA .kp{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:10px 10px 9px;display:flex;flex-direction:column;gap:2px;
+  transition:transform .2s cubic-bezier(.2,.8,.2,1),border-color .2s}
+.dA .kp:hover{transform:translateY(-2px);border-color:var(--pri)}
+.kp b{font-size:1.15rem;font-family:var(--f-disp);font-weight:700;line-height:1.2}
+.kp span{font-size:.7rem;color:var(--mute);line-height:1.35}
+.sec{display:flex;align-items:baseline;justify-content:space-between;padding:14px 18px 6px}
+.sec h4{margin:0;font-size:.86rem;font-weight:700}.sec a{font-size:.74rem;color:var(--pri);text-decoration:none;min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:flex-end;margin-block:-14px}
+.rows{padding:0 16px;display:flex;flex-direction:column;gap:8px}
+.dA .row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 12px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.row b{font-size:.84rem}.row small{color:var(--mute);font-size:.7rem}
+.bd{font-size:.68rem;font-weight:700;border-radius:999px;padding:3px 9px;align-self:center;grid-row:span 2;display:inline-flex;gap:5px;align-items:center;
+  border:1px solid currentColor}
+.bd.crit{color:var(--danger)}.bd.high{color:var(--warn)}.bd.mid{color:var(--pri)}
+.bd::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.bd.crit::before{border-radius:1px;transform:rotate(45deg)}
+.dA .nav{position:absolute;inset:auto 14px 14px 14px;display:grid;grid-template-columns:repeat(5,1fr);padding:6px;border-radius:24px;
+  background:light-dark(oklch(1 0 0/.85),oklch(.22 .04 158/.85));backdrop-filter:blur(14px);border:1px solid var(--line)}
+.dA .nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:52px;border-radius:18px;
+  color:var(--mute);font-size:.64rem;text-decoration:none;transition:background .2s,color .2s}
+.dA .nav a:hover{color:var(--ink)}.dA .nav a:focus-visible{outline:2px solid var(--pri)}
+.dA .nav a[aria-current]{background:var(--pri);color:var(--onpri);font-weight:700}
+
+/* ---------- الاتجاه ب: بوصلة (فاتح، بيانات، IBM Plex) ---------- */
+.dB{
+  --f-body:"IBM Plex Sans Arabic","Noto Sans Arabic",system-ui,sans-serif;--f-disp:"IBM Plex Sans Arabic","Noto Sans Arabic",sans-serif;
+  --bg:light-dark(oklch(.975 .006 250),oklch(.17 .03 255));
+  --surface:light-dark(oklch(1 0 0),oklch(.22 .035 255));
+  --surface2:light-dark(oklch(.955 .01 250),oklch(.27 .04 255));
+  --ink:light-dark(oklch(.22 .045 255),oklch(.95 .01 250));
+  --mute:light-dark(oklch(.46 .035 255),oklch(.74 .03 255));
+  --line:light-dark(oklch(.9 .01 250),oklch(.33 .035 255));
+  --pri:light-dark(oklch(.48 .16 262),oklch(.78 .12 255));
+  --onpri:light-dark(oklch(.99 .005 250),oklch(.18 .04 255));
+  --acc:light-dark(oklch(.55 .15 50),oklch(.8 .15 60));
+  --danger:light-dark(oklch(.5 .2 25),oklch(.74 .17 25));
+  --warn:light-dark(oklch(.5 .13 70),oklch(.82 .14 85));
+  --ok:light-dark(oklch(.46 .12 160),oklch(.78 .14 160));
+}
+.dB .top{display:flex;align-items:center;justify-content:space-between;padding:22px 16px 8px}
+.dB .tabs{display:flex;gap:4px;padding:0 16px;border-bottom:1px solid var(--line)}
+.dB .tabs a{padding:10px 10px 11px;font-size:.8rem;color:var(--mute);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px;min-height:44px;display:inline-flex;align-items:center}
+.dB .tabs a[aria-current]{color:var(--ink);border-color:var(--pri);font-weight:600}
+.dB .big{display:grid;grid-template-columns:1fr 112px;gap:10px;align-items:end;padding:14px 16px 4px}
+.dB .big small{color:var(--mute);font-size:.74rem}
+.dB .big b{display:block;font-size:2.6rem;line-height:1.05;font-weight:700;letter-spacing:-.01em}
+.dB .big p{font-size:.76rem;color:var(--ok);font-weight:600;margin-top:2px}
+.spark{width:112px;height:56px;direction:ltr}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;margin:10px 16px 0;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tile{background:var(--surface);padding:9px 12px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 8px}
+.tile span{font-size:.74rem;color:var(--mute)}.tile b{font-size:1.15rem;font-weight:600}
+.tile i{grid-column:1/-1;height:3px;border-radius:2px;background:var(--surface2);margin-top:6px;overflow:hidden;display:block}
+.tile i::after{content:"";display:block;height:100%;width:var(--w);background:var(--pri);border-radius:2px;animation:grow .9s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{width:0}}
+.dB .rows{padding:0 16px;gap:0;border:1px solid var(--line);margin:0 16px;border-radius:12px;overflow:hidden;background:var(--surface)}
+.dB .row{display:grid;grid-template-columns:4px 1fr auto;gap:2px 12px;padding:9px 12px 9px 12px;border-top:1px solid var(--line);align-items:center;margin-inline:-16px;padding-inline:16px}
+.dB .row:first-child{border-top:0}
+.dB .row::before{content:"";grid-row:span 2;width:4px;align-self:stretch;border-radius:2px;background:var(--sev)}
+.dB .row .bd{grid-row:span 2}
+.dB .nav{position:absolute;inset:auto 0 0 0;display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);padding:0 6px 10px}
+.dB .nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;color:var(--mute);font-size:.64rem;text-decoration:none;position:relative}
+.dB .nav a[aria-current]{color:var(--pri);font-weight:600}
+.dB .nav a[aria-current]::before{content:"";position:absolute;top:0;inset-inline:22%;height:3px;border-radius:0 0 3px 3px;background:var(--pri)}
+.dB .nav a:focus-visible{outline:2px solid var(--pri)}
+
+/* ---------- الاتجاه ج: أفق (بحر وغروب، المسيري) ---------- */
+.dC{
+  --f-body:"Almarai","Noto Sans Arabic",system-ui,sans-serif;--f-disp:"El Messiri","Noto Naskh Arabic",serif;
+  --bg:light-dark(oklch(.97 .012 205),oklch(.18 .045 250));
+  --surface:light-dark(oklch(.995 .004 205),oklch(.24 .05 250));
+  --surface2:light-dark(oklch(.94 .02 205),oklch(.29 .055 250));
+  --ink:light-dark(oklch(.24 .05 245),oklch(.96 .01 205));
+  --mute:light-dark(oklch(.46 .05 245),oklch(.76 .04 225));
+  --line:light-dark(oklch(.89 .02 205),oklch(.35 .05 250));
+  --pri:light-dark(oklch(.45 .1 210),oklch(.8 .12 200));
+  --onpri:light-dark(oklch(.99 .005 205),oklch(.18 .045 240));
+  --acc:light-dark(oklch(.52 .15 40),oklch(.8 .14 55));
+  --danger:light-dark(oklch(.5 .2 25),oklch(.74 .17 25));
+  --warn:light-dark(oklch(.5 .13 70),oklch(.82 .14 85));
+}
+.dC .sky{position:absolute;inset:0 0 auto 0;height:330px;z-index:-1;
+  background:linear-gradient(180deg,oklch(.32 .1 268) 0%,oklch(.42 .11 235) 46%,oklch(.58 .1 205) 78%,oklch(.74 .1 80) 100%);
+  border-radius:0 0 40px 40px}
+.dC .sun{position:absolute;inset-inline-start:34px;top:216px;width:70px;height:70px;border-radius:50%;
+  background:radial-gradient(circle,oklch(.92 .12 80),oklch(.78 .16 55));animation:rise 5s ease-in-out infinite alternate;z-index:-1}
+@keyframes rise{to{transform:translateY(-8px);filter:brightness(1.08)}}
+.dC .top{display:flex;align-items:center;justify-content:space-between;padding:22px 18px 6px;color:oklch(.98 .01 205)}
+.dC .top .who small{color:oklch(.9 .03 220)}.dC .top .av{background:oklch(1 0 0/.16);color:oklch(.98 .01 205)}
+.dC .sync{background:oklch(1 0 0/.14);border-color:oklch(1 0 0/.3);color:oklch(.97 .01 205)}
+.dC .sync i{background:oklch(.85 .15 150);box-shadow:none}
+.dC .hero{padding:12px 20px 0;color:oklch(.99 .005 205);position:relative;height:196px}
+.dC .hero small{font-size:.8rem;color:oklch(.92 .03 215)}
+.dC .hero b{display:block;font-family:var(--f-disp);font-size:3.3rem;line-height:1.05;font-weight:700}
+.dC .hero p{font-size:.84rem;color:oklch(.95 .02 215);margin-top:2px}
+.dC .tents{position:absolute;inset-inline-end:0;bottom:0;width:62%}
+.dC .sheet{margin:0 14px;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:14px 14px 6px;
+  box-shadow:0 16px 30px -24px oklch(.2 .08 250/.6)}
+.dC .kp3{padding:0;gap:8px}
+.dC .kp{background:var(--surface2);border-radius:20px;padding:11px 11px 10px;display:flex;flex-direction:column;gap:2px}
+.dC .kp b{font-family:var(--f-disp);font-size:1.3rem}
+.dC .sec{padding:12px 4px 6px}
+.dC .rows{padding:0}
+.dC .row{display:grid;grid-template-columns:36px 1fr auto;gap:0 10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.dC .row:first-child{border-top:0}
+.dC .row .tk{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:var(--surface2);color:var(--acc);grid-row:span 2}
+.dC .row .bd{grid-row:span 2}
+.dC .nav{position:absolute;inset:auto 0 0 0;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 10px 14px;background:var(--bg)}
+.dC .nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:48px;color:var(--mute);font-size:.64rem;text-decoration:none}
+.dC .nav a[aria-current]{color:var(--ink);font-weight:800}
+.dC .nav a[aria-current] .pill{background:var(--acc);color:var(--bg)}
+.dC .nav .pill{width:48px;height:28px;border-radius:14px;display:grid;place-items:center;transition:background .2s}
+.dC .nav a:focus-visible{outline:2px solid var(--pri);border-radius:12px}
+
+/* ---------- شاشات الافتتاح ---------- */
+.sp .stage{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:0 28px 72px}
+.sp .title{font-family:var(--f-disp);font-size:2rem;line-height:1.25;font-weight:700;text-wrap:balance}
+.sp .tag{color:var(--mute);font-size:.86rem}
+.sp .credit{position:absolute;inset:auto 0 22px 0;text-align:center;font-size:.72rem;color:var(--mute);line-height:1.7}
+.sp .credit b{color:var(--ink);font-weight:600}
+.sp .load{position:absolute;inset:auto 64px 78px 64px;height:3px;border-radius:2px;background:var(--line);overflow:hidden}
+.sp .load::after{content:"";display:block;height:100%;width:60%;background:var(--pri);border-radius:2px;animation:slide 2.2s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes slide{from{transform:translateX(120%)}to{transform:translateX(-120%)}}
+.dC.sp{background:linear-gradient(180deg,oklch(.3 .1 270),oklch(.42 .11 235) 52%,oklch(.6 .1 205) 80%,oklch(.76 .1 80));color:oklch(.99 .005 205);border-color:transparent}
+.dC.sp .tag,.dC.sp .credit{color:oklch(.93 .03 215)}.dC.sp .credit b{color:oklch(.99 .005 205)}
+.dC.sp .load{background:oklch(1 0 0/.25)}.dC.sp .load::after{background:oklch(.9 .12 80)}
+
+/* ---------- لوحة الأيقونات ---------- */
+.icard{width:100%;background:var(--pg-surface);border:1px solid var(--pg-line);border-radius:20px;padding:20px;display:grid;gap:20px}
+.icard h3{font-size:1.1rem}.icard p{color:var(--pg-mute);font-size:.9rem}
+.irow{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end}
+.ic{position:relative;overflow:hidden;flex:none;display:block}
+.ic svg{width:100%;height:100%;display:block}
+.m-circle{border-radius:50%}.m-squircle{border-radius:30%}.m-square{border-radius:10%}
+.lab{font-size:.74rem;color:var(--pg-mute);text-align:center;margin-top:6px}
+.cell{display:flex;flex-direction:column;align-items:center}
+.strip{display:flex;gap:14px;padding:16px;border-radius:18px;align-items:center;flex-wrap:wrap;justify-content:center}
+.strip.dk{background:oklch(.2 .02 250)}.strip.lt{background:oklch(.93 .015 230)}
+.dec{width:52px;height:52px;border-radius:30%;display:grid;place-items:center}
+.strip.dk .dec{background:oklch(.34 .02 250)}.strip.lt .dec{background:oklch(.82 .015 230)}
+.dec i{display:block;background:oklch(.62 .01 250)}
+.mono{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:oklch(.86 .05 230);color:oklch(.3 .08 250)}
+.mono svg{width:100%;height:100%}
+.guide{position:relative}.guide::after{content:"";position:absolute;inset:18.5%;border:1px dashed oklch(1 0 0/.7);border-radius:50%;pointer-events:none}
+.note{margin-top:28px;padding:16px;border:1px solid var(--pg-line);border-radius:16px;background:var(--pg-surface);color:var(--pg-mute);font-size:.9rem}
+.note b{color:var(--pg-ink)}
+</style>
+
+</head>
+<body>
+<main class="wrap" dir="rtl" lang="ar">
+<header>
+  <h1>منظومة إدارة المخيمات: ثلاثة اتجاهات بصرية</h1>
+  <p class="lead">كل اتجاه يعرض شاشة الافتتاح والرئيسية والأيقونة، والبيانات تجريبية. اختر اتجاهاً واحداً للرئيسية واتجاهاً للأيقونة، ثم أبني عليه بقية الشاشات دون إعادة بناء القشرة.</p>
+  <nav class="bar" aria-label="الأقسام">
+    <a class="chip" href="#splash">الافتتاح</a><a class="chip" href="#home">الرئيسية</a><a class="chip" href="#icons">الأيقونة</a>
+  </nav>
+  <div class="bar" role="group" aria-label="مظهر الإطارات">
+    <button class="chip" type="button" data-set="default" aria-pressed="true">المظهر الافتراضي لكل اتجاه</button>
+    <button class="chip" type="button" data-set="light" aria-pressed="false">كلها فاتحة</button>
+    <button class="chip" type="button" data-set="dark" aria-pressed="false">كلها داكنة</button>
+  </div>
+</header>
+
+<!-- رموز مشتركة: أيقونات الواجهة (24×24) والأيقونات المرسومة للتطبيق (108×108) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="u-home" viewBox="0 0 24 24"><path d="M3.5 11 12 4l8.5 7M6 9.5V20h12V9.5M10 20v-5.5h4V20"/></symbol>
+    <symbol id="u-camp" viewBox="0 0 24 24"><path d="M12 4 3.5 19.5h17L12 4ZM12 19.5l-3-5.5a3.4 3.4 0 0 1 6 0l-3 5.5ZM2 21h20"/></symbol>
+    <symbol id="u-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.4-3.6 3-5.6 6-5.6s5.6 2 6 5.6M16 5.2a3 3 0 0 1 0 5.6M18.4 14.9c1.4.9 2.3 2.4 2.6 4.6"/></symbol>
+    <symbol id="u-chat" viewBox="0 0 24 24"><path d="M4 5.5h16v10H12l-4.5 4v-4H4v-10ZM8 9.5h8M8 12.5h5"/></symbol>
+    <symbol id="u-more" viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="6" height="6" rx="1.6"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.6"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.6"/><path d="M16.5 13.5v6M13.5 16.5h6"/></symbol>
+    <symbol id="u-flag" viewBox="0 0 24 24"><path d="M6 21V4M6 5h11l-2.2 3.6L17 12H6"/></symbol>
+    <symbol id="u-user" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.6"/><path d="M5 20c.6-3.8 3.4-5.8 7-5.8s6.4 2 7 5.8"/></symbol>
+    <symbol id="u-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="oklch(.3 .07 160)"/><stop offset="1" stop-color="oklch(.17 .04 165)"/></linearGradient>
+    <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="oklch(.3 .1 270)"/><stop offset=".62" stop-color="oklch(.46 .11 230)"/><stop offset="1" stop-color="oklch(.7 .1 150)"/></linearGradient>
+
+    <symbol id="i1-bg" viewBox="0 0 108 108"><rect width="108" height="108" fill="url(#g1)"/></symbol>
+    <symbol id="i1-fg" viewBox="0 0 108 108"><path fill="oklch(.86 .16 128)" fill-rule="evenodd" d="M54.0,22.0 L59.0,42.0 L76.6,31.4 L66.0,49.0 L86.0,54.0 L66.0,59.0 L76.6,76.6 L59.0,66.0 L54.0,86.0 L49.0,66.0 L31.4,76.6 L42.0,59.0 L22.0,54.0 L42.0,49.0 L31.4,31.4 L49.0,42.0 Z M54,47.5 L60.5,54 L54,60.5 L47.5,54 Z"/></symbol>
+    <symbol id="i1-mono" viewBox="0 0 108 108"><path fill="currentColor" fill-rule="evenodd" d="M54.0,22.0 L59.0,42.0 L76.6,31.4 L66.0,49.0 L86.0,54.0 L66.0,59.0 L76.6,76.6 L59.0,66.0 L54.0,86.0 L49.0,66.0 L31.4,76.6 L42.0,59.0 L22.0,54.0 L42.0,49.0 L31.4,31.4 L49.0,42.0 Z M54,47.5 L60.5,54 L54,60.5 L47.5,54 Z"/></symbol>
+
+    <symbol id="i2-bg" viewBox="0 0 108 108"><rect width="108" height="108" fill="oklch(.42 .17 262)"/></symbol>
+    <symbol id="i2-fg" viewBox="0 0 108 108"><path fill="oklch(.97 .01 250)" fill-rule="evenodd" d="M54 24 L84 80 H24 Z M46 80 V65 a8 8 0 0 1 16 0 V80 Z M54 40 L58.5 45 L54 50 L49.5 45 Z"/><path d="M22 84.5h64" stroke="oklch(.8 .15 60)" stroke-width="3.4" stroke-linecap="round"/></symbol>
+    <symbol id="i2-mono" viewBox="0 0 108 108"><path fill="currentColor" fill-rule="evenodd" d="M54 24 L84 80 H24 Z M46 80 V65 a8 8 0 0 1 16 0 V80 Z M54 40 L58.5 45 L54 50 L49.5 45 Z"/><path d="M22 84.5h64" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></symbol>
+
+    <symbol id="i3-bg" viewBox="0 0 108 108"><rect width="108" height="108" fill="url(#g3)"/></symbol>
+    <symbol id="i3-fg" viewBox="0 0 108 108"><path d="M46 66 A16 16 0 0 1 78 66 Z" fill="oklch(.84 .15 65)"/><path d="M22 77 L36 57 L50 77 Z M68 77 L76 65 L84 77 Z" fill="oklch(.97 .015 200)"/><path d="M22 79.5h64" stroke="oklch(.97 .015 200)" stroke-width="3" stroke-linecap="round"/></symbol>
+    <symbol id="i3-mono" viewBox="0 0 108 108"><path d="M46 66 A16 16 0 0 1 78 66 Z M22 77 L36 57 L50 77 Z M68 77 L76 65 L84 77 Z" fill="currentColor"/><path d="M22 79.5h64" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+
+    <symbol id="mark-tent" viewBox="0 0 108 108"><path fill="currentColor" fill-rule="evenodd" d="M54 24 L84 80 H24 Z M46 80 V65 a8 8 0 0 1 16 0 V80 Z M54 40 L58.5 45 L54 50 L49.5 45 Z"/></symbol>
+  </defs>
+</svg>
+
+<!-- ============ الافتتاح ============ -->
+<section class="blk" id="splash">
+  <header><h2>شاشة الافتتاح</h2><p class="lead">أول ما يراه المستخدم: الاسم بخط واضح، ورسم يخص المخيم، وبياناتي صغيرة أسفل الشاشة.</p></header>
+  <div class="cols">
+    <div class="fig">
+      <div class="cap"><b>أ. نسيج</b><span>غابة داكنة وتطريز، الخط: الإسكندرية</span></div>
+      <div class="ph sp dA" data-mode="dark" data-default="dark">
+        <div class="glow"></div>
+        <svg viewBox="0 0 360 640" width="360" height="640" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+          <defs>
+            <pattern id="tzA" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M11,2 L12.6,8.2 L18.4,5.6 L15.2,11 L21,12.6 L15.2,14.2 L18.4,19.6 L12.6,16.6 L11,21 L9.4,16.6 L3.6,19.6 L6.8,14.2 L1,12.6 L6.8,11 L3.6,5.6 L9.4,8.2 Z" fill="none" stroke="var(--pri)" stroke-width=".9"/></pattern>
+            <linearGradient id="fadeA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#fff" stop-opacity=".0"/></linearGradient>
+            <mask id="mA"><rect width="360" height="640" fill="url(#fadeA)"/></mask>
+          </defs>
+          <rect width="360" height="640" fill="url(#tzA)" opacity=".22" mask="url(#mA)"/>
+        </svg>
+        <div class="stage">
+          <div style="width:112px;height:112px;border-radius:34px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;color:var(--pri)">
+            <svg viewBox="0 0 108 108" width="78" height="78" aria-hidden="true"><use href="#i1-mono"/></svg>
+          </div>
+          <h3 class="title">منظومة إدارة المخيمات</h3>
+          <p class="tag">سجل واحد لكل أسرة، في كل مخيم</p>
+        </div>
+        <div class="load" aria-hidden="true"></div>
+        <p class="credit"><b>تطوير: المهندس ساجد العبادلة</b><br>صُنع بكل حب من فلسطين — غزة</p>
+      </div>
+    </div>
+
+    <div class="fig">
+      <div class="cap"><b>ب. بوصلة</b><span>ورق أبيض وشبكة خرائط، الخط: IBM Plex العربي</span></div>
+      <div class="ph sp dB" data-mode="light" data-default="light">
+        <svg viewBox="0 0 360 640" width="360" height="640" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+          <defs><pattern id="gB" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="var(--line)" stroke-width="1"/></pattern>
+          <radialGradient id="vB"><stop offset=".25" stop-color="#fff" stop-opacity="1"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+          <mask id="mB"><rect width="360" height="640" fill="url(#vB)"/></mask></defs>
+          <rect width="360" height="640" fill="url(#gB)" mask="url(#mB)"/>
+          <g transform="translate(180 250)" fill="none" stroke="var(--pri)" stroke-width="1.2" opacity=".5"><circle r="118"/><circle r="84" stroke-dasharray="3 6"/><path d="M0-118V-98M0 98V118M-118 0H-98M98 0H118"/></g>
+        </svg>
+        <div class="stage">
+          <div style="width:112px;height:112px;border-radius:28px;background:var(--pri);display:grid;place-items:center;color:var(--onpri)">
+            <svg viewBox="0 0 108 108" width="82" height="82" aria-hidden="true"><use href="#i2-mono"/></svg>
+          </div>
+          <h3 class="title">منظومة إدارة المخيمات</h3>
+          <p class="tag">أرقام دقيقة تصل لكل مخيم في وقتها</p>
+        </div>
+        <div class="load" aria-hidden="true"></div>
+        <p class="credit"><b>تطوير: المهندس ساجد العبادلة</b><br>صُنع بكل حب من فلسطين — غزة</p>
+      </div>
+    </div>
+
+    <div class="fig">
+      <div class="cap"><b>ج. أفق</b><span>بحر وغروب وخيام على الخط، الخط: المسيري</span></div>
+      <div class="ph sp dC" data-mode="light" data-default="light">
+        <svg viewBox="0 0 360 640" width="360" height="640" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+          <circle cx="180" cy="372" r="46" fill="oklch(.84 .15 65)"/>
+          <path d="M0 410 Q90 396 180 410 T360 410 V640 H0Z" fill="oklch(.3 .09 245)" opacity=".55"/>
+          <path d="M-10 436 L52 372 L112 436Z M96 436 L142 392 L188 436Z M246 436 L296 380 L350 436Z" fill="oklch(.2 .06 255)"/>
+          <path d="M0 436H360" stroke="oklch(.2 .06 255)" stroke-width="3"/>
+        </svg>
+        <div class="stage" style="justify-content:flex-start;padding-top:128px">
+          <h3 class="title">منظومة إدارة المخيمات</h3>
+          <p class="tag">نكتب كل اسم كما يستحق</p>
+        </div>
+        <div class="load" aria-hidden="true"></div>
+        <p class="credit"><b>تطوير: المهندس ساجد العبادلة</b><br>صُنع بكل حب من فلسطين — غزة</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ الرئيسية ============ -->
+<section class="blk" id="home">
+  <header><h2>الرئيسية للإدارة العامة</h2><p class="lead">وظيفة واحدة: حالة المخيمات الآن وأين نتدخل. الباقي في الشريط السفلي، وحدّه خمسة عناصر.</p></header>
+  <div class="cols">
+
+    <!-- أ -->
+    <div class="fig">
+      <div class="cap"><b>أ. نسيج</b><span>بطاقة حلقة التقدم، شبكة أرقام، شريط تطريز</span></div>
+      <div class="ph dA" data-mode="dark" data-default="dark">
+        <div class="glow"></div>
+        <div class="top">
+          <div class="who"><span class="av"><svg class="ico"><use href="#u-user"/></svg></span><div><b>مدير النظام</b><small>الإدارة العامة</small></div></div>
+          <span class="sync"><i></i>مزامَن قبل دقيقتين</span>
+        </div>
+        <div class="hero">
+          <div class="ring"><svg viewBox="0 0 92 92" aria-hidden="true"><circle cx="46" cy="46" r="38" fill="none" stroke="var(--surface2)" stroke-width="9"/><circle cx="46" cy="46" r="38" fill="none" stroke="var(--pri)" stroke-width="9" stroke-linecap="round" stroke-dasharray="186 239" transform="rotate(-90 46 46)"/></svg><b><span class="n">78%</span></b></div>
+          <div><h3><span class="n">4,832</span> أسرة</h3><p>مسجّلة في <span class="n">21</span> مخيماً</p><span class="delta"><svg class="ico" style="width:16px;height:16px"><use href="#u-up"/></svg><span class="n">+62</span> هذا الأسبوع</span></div>
+        </div>
+        <svg class="band" viewBox="0 0 328 12" preserveAspectRatio="none" width="328" height="12" style="width:calc(100% - 32px)" aria-hidden="true"><defs><pattern id="bA" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M6,1 L7.2,4.8 L11,6 L7.2,7.2 L6,11 L4.8,7.2 L1,6 L4.8,4.8 Z" fill="var(--acc)"/></pattern></defs><rect width="328" height="12" fill="url(#bA)"/></svg>
+        <div class="kp3">
+          <div class="kp"><b class="n">22,190</b><span>أفراد</span></div>
+          <div class="kp"><b class="n">214</b><span>حوامل</span></div>
+          <div class="kp"><b class="n">388</b><span>رضّع</span></div>
+          <div class="kp"><b class="n">97</b><span>أيتام</span></div>
+          <div class="kp"><b class="n">1,206</b><span>أمراض مزمنة</span></div>
+          <div class="kp"><b class="n">143</b><span>ذوو إعاقة</span></div>
+        </div>
+        <div class="sec"><h4>مخيمات تحتاج متابعة</h4><a href="#home">عرض الكل</a></div>
+        <div class="rows">
+          <div class="row"><b>مخيم الصمود</b><span class="bd crit">حرجة</span><small><span class="n">412</span> أسرة · هشاشة <span class="n">82</span></small></div>
+          <div class="row"><b>مخيم الشاطئ</b><span class="bd high">عالية</span><small><span class="n">366</span> أسرة · هشاشة <span class="n">74</span></small></div>
+          <div class="row"><b>مخيم الأمل</b><span class="bd mid">متوسطة</span><small><span class="n">289</span> أسرة · هشاشة <span class="n">61</span></small></div>
+        </div>
+        <nav class="nav" aria-label="التنقل">
+          <a href="#home" aria-current="page"><svg class="ico"><use href="#u-home"/></svg>الرئيسية</a>
+          <a href="#home"><svg class="ico"><use href="#u-camp"/></svg>المخيمات</a>
+          <a href="#home"><svg class="ico"><use href="#u-people"/></svg>الأفراد</a>
+          <a href="#home"><svg class="ico"><use href="#u-chat"/></svg>الرسائل</a>
+          <a href="#home"><svg class="ico"><use href="#u-more"/></svg>المزيد</a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ب -->
+    <div class="fig">
+      <div class="cap"><b>ب. بوصلة</b><span>أرقام كبيرة، جدول مؤشرات، شرائط خطورة</span></div>
+      <div class="ph dB" data-mode="light" data-default="light">
+        <div class="top">
+          <div class="who"><span class="av" style="border-radius:50%"><svg class="ico"><use href="#u-user"/></svg></span><div><b>مدير النظام</b><small>الإدارة العامة</small></div></div>
+          <span class="sync"><i></i>مزامَن قبل دقيقتين</span>
+        </div>
+        <div class="tabs" role="tablist"><a href="#home" aria-current="page">نظرة عامة</a><a href="#home">التصنيفات</a><a href="#home">الطلبات</a><a href="#home">النشاط</a></div>
+        <div class="big">
+          <div><small>أسر مسجّلة في 21 مخيماً</small><b class="n">4,832</b><p><span class="n">+62</span> هذا الأسبوع · <span class="n">78%</span> من المستهدف</p></div>
+          <svg class="spark" viewBox="0 0 112 56" aria-hidden="true"><defs><linearGradient id="spB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--pri)" stop-opacity=".28"/><stop offset="1" stop-color="var(--pri)" stop-opacity="0"/></linearGradient></defs>
+            <path d="M2 46 L18 40 L34 42 L50 30 L66 33 L82 20 L98 14 L110 8 V56 H2Z" fill="url(#spB)"/><path d="M2 46 L18 40 L34 42 L50 30 L66 33 L82 20 L98 14 L110 8" fill="none" stroke="var(--pri)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="110" cy="8" r="3.4" fill="var(--pri)"/></svg>
+        </div>
+        <div class="tiles">
+          <div class="tile"><span>أفراد</span><b class="n">22,190</b><i style="--w:92%"></i></div>
+          <div class="tile"><span>أمراض مزمنة</span><b class="n">1,206</b><i style="--w:54%"></i></div>
+          <div class="tile"><span>رضّع</span><b class="n">388</b><i style="--w:34%"></i></div>
+          <div class="tile"><span>حوامل</span><b class="n">214</b><i style="--w:22%"></i></div>
+          <div class="tile"><span>ذوو إعاقة</span><b class="n">143</b><i style="--w:16%"></i></div>
+          <div class="tile"><span>أيتام</span><b class="n">97</b><i style="--w:10%"></i></div>
+        </div>
+        <div class="sec"><h4>مخيمات تحتاج متابعة</h4><a href="#home">عرض الكل</a></div>
+        <div class="rows">
+          <div class="row" style="--sev:var(--danger)"><b>مخيم الصمود</b><span class="bd crit">حرجة</span><small><span class="n">412</span> أسرة · هشاشة <span class="n">82</span></small></div>
+          <div class="row" style="--sev:var(--warn)"><b>مخيم الشاطئ</b><span class="bd high">عالية</span><small><span class="n">366</span> أسرة · هشاشة <span class="n">74</span></small></div>
+          <div class="row" style="--sev:var(--pri)"><b>مخيم الأمل</b><span class="bd mid">متوسطة</span><small><span class="n">289</span> أسرة · هشاشة <span class="n">61</span></small></div>
+        </div>
+        <nav class="nav" aria-label="التنقل">
+          <a href="#home" aria-current="page"><svg class="ico"><use href="#u-home"/></svg>الرئيسية</a>
+          <a href="#home"><svg class="ico"><use href="#u-camp"/></svg>المخيمات</a>
+          <a href="#home"><svg class="ico"><use href="#u-people"/></svg>الأفراد</a>
+          <a href="#home"><svg class="ico"><use href="#u-chat"/></svg>الرسائل</a>
+          <a href="#home"><svg class="ico"><use href="#u-more"/></svg>المزيد</a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ج -->
+    <div class="fig">
+      <div class="cap"><b>ج. أفق</b><span>سماء وبحر، ورقة بيضاء ترتفع فوقهما</span></div>
+      <div class="ph dC" data-mode="light" data-default="light">
+        <div class="sky"></div><div class="sun"></div>
+        <div class="top">
+          <div class="who"><span class="av"><svg class="ico"><use href="#u-user"/></svg></span><div><b>مدير النظام</b><small>الإدارة العامة</small></div></div>
+          <span class="sync"><i></i>مزامَن قبل دقيقتين</span>
+        </div>
+        <div class="hero">
+          <small>أسر مسجّلة</small>
+          <b class="n">4,832</b>
+          <p>في <span class="n">21</span> مخيماً · <span class="n">+62</span> هذا الأسبوع</p>
+          <svg class="tents" viewBox="0 0 220 70" aria-hidden="true"><path d="M20 70 L74 14 L128 70Z M104 70 L152 26 L200 70Z" fill="oklch(.22 .07 262)" opacity=".85"/><path d="M0 70H220" stroke="oklch(.22 .07 262)" stroke-width="3"/></svg>
+        </div>
+        <div class="sheet">
+          <div class="kp3">
+            <div class="kp"><b class="n">22,190</b><span>أفراد</span></div>
+            <div class="kp"><b class="n">214</b><span>حوامل</span></div>
+            <div class="kp"><b class="n">388</b><span>رضّع</span></div>
+            <div class="kp"><b class="n">97</b><span>أيتام</span></div>
+            <div class="kp"><b class="n">1,206</b><span>أمراض مزمنة</span></div>
+            <div class="kp"><b class="n">143</b><span>ذوو إعاقة</span></div>
+          </div>
+          <div class="sec"><h4>مخيمات تحتاج متابعة</h4><a href="#home">عرض الكل</a></div>
+          <div class="rows">
+            <div class="row"><span class="tk"><svg class="ico"><use href="#u-camp"/></svg></span><b>مخيم الصمود</b><span class="bd crit">حرجة</span><small><span class="n">412</span> أسرة · هشاشة <span class="n">82</span></small></div>
+            <div class="row"><span class="tk"><svg class="ico"><use href="#u-camp"/></svg></span><b>مخيم الشاطئ</b><span class="bd high">عالية</span><small><span class="n">366</span> أسرة · هشاشة <span class="n">74</span></small></div>
+          </div>
+        </div>
+        <nav class="nav" aria-label="التنقل">
+          <a href="#home" aria-current="page"><span class="pill"><svg class="ico"><use href="#u-home"/></svg></span>الرئيسية</a>
+          <a href="#home"><span class="pill"><svg class="ico"><use href="#u-camp"/></svg></span>المخيمات</a>
+          <a href="#home"><span class="pill"><svg class="ico"><use href="#u-people"/></svg></span>الأفراد</a>
+          <a href="#home"><span class="pill"><svg class="ico"><use href="#u-chat"/></svg></span>الرسائل</a>
+          <a href="#home"><span class="pill"><svg class="ico"><use href="#u-more"/></svg></span>المزيد</a>
+        </nav>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ الأيقونة ============ -->
+<section class="blk" id="icons">
+  <header><h2>أيقونة التطبيق</h2>
+  <p class="lead">وفق دليل أندرويد: كل طبقة 108×108 dp، والمنطقة الآمنة 66×66 dp في الوسط، وطبقة أحادية اللون للأيقونات المتناسقة مع الخلفية. الخط المنقط على الأيقونة الكبيرة هو حد المنطقة الآمنة.</p></header>
+  <div class="cols" style="justify-items:stretch">
+
+    <article class="icard">
+      <div><h3>١. نجمة الخيام</h3><p>مخيم مرئي من أعلى: ثماني خيام تتجه للخارج على شكل نجمة تطريز، وفناء مفتوح في الوسط.</p></div>
+      <div class="irow">
+        <div class="cell"><div class="ic m-circle guide" style="width:132px;height:132px"><svg viewBox="0 0 108 108"><use href="#i1-bg"/><use href="#i1-fg"/></svg></div><span class="lab">دائري، كبير</span></div>
+        <div class="cell"><div class="ic m-squircle" style="width:96px;height:96px"><svg viewBox="0 0 108 108"><use href="#i1-bg"/><use href="#i1-fg"/></svg></div><span class="lab">مربع مدوّر</span></div>
+        <div class="cell"><div class="ic m-square" style="width:72px;height:72px"><svg viewBox="0 0 108 108"><use href="#i1-bg"/><use href="#i1-fg"/></svg></div><span class="lab">مربع</span></div>
+        <div class="cell"><div class="ic m-circle" style="width:48px;height:48px"><svg viewBox="0 0 108 108"><use href="#i1-bg"/><use href="#i1-fg"/></svg></div><span class="lab">48</span></div>
+        <div class="cell"><div class="ic m-circle" style="width:24px;height:24px"><svg viewBox="0 0 108 108"><use href="#i1-bg"/><use href="#i1-fg"/></svg></div><span class="lab">24</span></div>
+        <div class="cell"><div class="mono"><svg viewBox="0 0 108 108"><use href="#i1-mono"/></svg></div><span class="lab">أحادية</span></div>
+      </div>
+      <div class="strip dk"><div class="dec"><i style="width:22px;height:22px;border-radius:50%"></i></div><div class="ic m-squircle" style="width:52px;height:52px"><svg viewBox="0 0 108 108"><use href="#i1-bg"/><use href="#i1-fg"/></svg></div><div class="dec"><i style="width:24px;height:6px;border-radius:3px;box-shadow:0 -9px 0 oklch(.62 .01 250),0 9px 0 oklch(.62 .01 250)"></i></div><div class="dec"><i style="width:20px;height:20px;border-radius:5px;transform:rotate(45deg)"></i></div></div>
+      <div class="strip lt"><div class="dec"><i style="width:22px;height:22px;border-radius:50%"></i></div><div class="ic m-squircle" style="width:52px;height:52px"><svg viewBox="0 0 108 108"><use href="#i1-bg"/><use href="#i1-fg"/></svg></div><div class="dec"><i style="width:24px;height:6px;border-radius:3px;box-shadow:0 -9px 0 oklch(.62 .01 250),0 9px 0 oklch(.62 .01 250)"></i></div><div class="dec"><i style="width:20px;height:20px;border-radius:5px;transform:rotate(45deg)"></i></div></div>
+    </article>
+
+    <article class="icard">
+      <div><h3>٢. الخيمة والباب</h3><p>خيمة واحدة بباب مقوّس ومعين تطريز، وأرض مرسومة بخط برتقالي. أبسط الثلاثة وأوضحها بالحجم الصغير.</p></div>
+      <div class="irow">
+        <div class="cell"><div class="ic m-circle guide" style="width:132px;height:132px"><svg viewBox="0 0 108 108"><use href="#i2-bg"/><use href="#i2-fg"/></svg></div><span class="lab">دائري، كبير</span></div>
+        <div class="cell"><div class="ic m-squircle" style="width:96px;height:96px"><svg viewBox="0 0 108 108"><use href="#i2-bg"/><use href="#i2-fg"/></svg></div><span class="lab">مربع مدوّر</span></div>
+        <div class="cell"><div class="ic m-square" style="width:72px;height:72px"><svg viewBox="0 0 108 108"><use href="#i2-bg"/><use href="#i2-fg"/></svg></div><span class="lab">مربع</span></div>
+        <div class="cell"><div class="ic m-circle" style="width:48px;height:48px"><svg viewBox="0 0 108 108"><use href="#i2-bg"/><use href="#i2-fg"/></svg></div><span class="lab">48</span></div>
+        <div class="cell"><div class="ic m-circle" style="width:24px;height:24px"><svg viewBox="0 0 108 108"><use href="#i2-bg"/><use href="#i2-fg"/></svg></div><span class="lab">24</span></div>
+        <div class="cell"><div class="mono"><svg viewBox="0 0 108 108"><use href="#i2-mono"/></svg></div><span class="lab">أحادية</span></div>
+      </div>
+      <div class="strip dk"><div class="dec"><i style="width:22px;height:22px;border-radius:50%"></i></div><div class="ic m-squircle" style="width:52px;height:52px"><svg viewBox="0 0 108 108"><use href="#i2-bg"/><use href="#i2-fg"/></svg></div><div class="dec"><i style="width:24px;height:6px;border-radius:3px;box-shadow:0 -9px 0 oklch(.62 .01 250),0 9px 0 oklch(.62 .01 250)"></i></div><div class="dec"><i style="width:20px;height:20px;border-radius:5px;transform:rotate(45deg)"></i></div></div>
+      <div class="strip lt"><div class="dec"><i style="width:22px;height:22px;border-radius:50%"></i></div><div class="ic m-squircle" style="width:52px;height:52px"><svg viewBox="0 0 108 108"><use href="#i2-bg"/><use href="#i2-fg"/></svg></div><div class="dec"><i style="width:24px;height:6px;border-radius:3px;box-shadow:0 -9px 0 oklch(.62 .01 250),0 9px 0 oklch(.62 .01 250)"></i></div><div class="dec"><i style="width:20px;height:20px;border-radius:5px;transform:rotate(45deg)"></i></div></div>
+    </article>
+
+    <article class="icard">
+      <div><h3>٣. الأفق</h3><p>شمس تغرب خلف خيمتين على خط البحر. الأكثر دفئاً، وتناسب اتجاه «أفق» للرئيسية.</p></div>
+      <div class="irow">
+        <div class="cell"><div class="ic m-circle guide" style="width:132px;height:132px"><svg viewBox="0 0 108 108"><use href="#i3-bg"/><use href="#i3-fg"/></svg></div><span class="lab">دائري، كبير</span></div>
+        <div class="cell"><div class="ic m-squircle" style="width:96px;height:96px"><svg viewBox="0 0 108 108"><use href="#i3-bg"/><use href="#i3-fg"/></svg></div><span class="lab">مربع مدوّر</span></div>
+        <div class="cell"><div class="ic m-square" style="width:72px;height:72px"><svg viewBox="0 0 108 108"><use href="#i3-bg"/><use href="#i3-fg"/></svg></div><span class="lab">مربع</span></div>
+        <div class="cell"><div class="ic m-circle" style="width:48px;height:48px"><svg viewBox="0 0 108 108"><use href="#i3-bg"/><use href="#i3-fg"/></svg></div><span class="lab">48</span></div>
+        <div class="cell"><div class="ic m-circle" style="width:24px;height:24px"><svg viewBox="0 0 108 108"><use href="#i3-bg"/><use href="#i3-fg"/></svg></div><span class="lab">24</span></div>
+        <div class="cell"><div class="mono"><svg viewBox="0 0 108 108"><use href="#i3-mono"/></svg></div><span class="lab">أحادية</span></div>
+      </div>
+      <div class="strip dk"><div class="dec"><i style="width:22px;height:22px;border-radius:50%"></i></div><div class="ic m-squircle" style="width:52px;height:52px"><svg viewBox="0 0 108 108"><use href="#i3-bg"/><use href="#i3-fg"/></svg></div><div class="dec"><i style="width:24px;height:6px;border-radius:3px;box-shadow:0 -9px 0 oklch(.62 .01 250),0 9px 0 oklch(.62 .01 250)"></i></div><div class="dec"><i style="width:20px;height:20px;border-radius:5px;transform:rotate(45deg)"></i></div></div>
+      <div class="strip lt"><div class="dec"><i style="width:22px;height:22px;border-radius:50%"></i></div><div class="ic m-squircle" style="width:52px;height:52px"><svg viewBox="0 0 108 108"><use href="#i3-bg"/><use href="#i3-fg"/></svg></div><div class="dec"><i style="width:24px;height:6px;border-radius:3px;box-shadow:0 -9px 0 oklch(.62 .01 250),0 9px 0 oklch(.62 .01 250)"></i></div><div class="dec"><i style="width:20px;height:20px;border-radius:5px;transform:rotate(45deg)"></i></div></div>
+    </article>
+  </div>
+  <p class="note"><b>بعد اختيارك</b> أعرض ثلاثة تطويرات للاتجاه المختار، ثم أطبّق المعتمد على الأيقونة وشاشة الافتتاح وشعار الدخول. أسماء المخيمات والأرقام هنا تجريبية.</p>
+</section>
+</main>
+
+<script>
+(function(){
+  var frames=[].slice.call(document.querySelectorAll('.ph'));
+  var btns=[].slice.call(document.querySelectorAll('[data-set]'));
+  btns.forEach(function(b){
+    b.addEventListener('click',function(){
+      var m=b.getAttribute('data-set');
+      frames.forEach(function(f){f.setAttribute('data-mode',m==='default'?f.getAttribute('data-default'):m)});
+      btns.forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

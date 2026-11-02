@@ -1,0 +1,18 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/captures/
+.kotlin/
+*.apk
+*.aab
+
+# المفاتيح لا تُرفع أبداً: المستودع عام، وأسرارها في GitHub Actions
+/keystore.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
