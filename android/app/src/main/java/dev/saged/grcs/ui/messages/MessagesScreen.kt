@@ -125,14 +125,14 @@ private fun BenList(auth: AuthState, repo: Messages, camp: String, campName: Str
     var rows by remember { mutableStateOf<List<Triple<String, String, String>>?>(null) }
     LaunchedEffect(camp) { rows = withContext(Dispatchers.IO) { runCatching { repo.benThreads(auth, camp) }.getOrDefault(emptyList()) } }
     Column(Modifier.fillMaxSize()) {
-      AppHeader("مستفيدو $campName", "", conn = null, onBack = onBack)
+      AppHeader("رسائل مستفيدي $campName", "", conn = null, onBack = onBack)
       Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         var bc by remember { mutableStateOf(false) }
         var bcText by remember { mutableStateOf("") }
         var bcBusy by remember { mutableStateOf(false) }
         var bcMsg by remember { mutableStateOf("") }
         val sc = rememberCoroutineScope()
-        if (!bc) Btn("رسالة جماعية لكل المستفيدين", { bc = true; bcMsg = "" }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Broadcast)
+        if (!bc) Btn("رسالة جماعية لكل مستفيدي هذا المخيم", { bc = true; bcMsg = "" }, Modifier.fillMaxWidth(), BtnKind.Primary, QIcons.Broadcast)
         else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             QField("نص الرسالة", bcText, { bcText = it }, multiline = true)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -147,7 +147,7 @@ private fun BenList(auth: AuthState, repo: Messages, camp: String, campName: Str
             }
         }
         if (bcMsg.isNotEmpty()) Text(bcMsg, color = p.mute, fontSize = 12.sp)
-        if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp) else if (rows!!.isEmpty()) Text("لا محادثات بعد", color = p.mute, fontSize = 13.sp)
+        if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp) else if (rows!!.isEmpty()) dev.saged.grcs.ui.components.EmptyState(QIcons.Chat, "لا توجد رسائل من المستفيدين بعد", "ستظهر هنا أي رسالة يرسلها مستفيد لإدارة المخيم")
         rows?.forEach { (tid, name, last) ->
             val un = repo.unread[tid] ?: 0
             ThreadRow(name, last, QIcons.Person, p.pri, un) { onOpen(tid) }
