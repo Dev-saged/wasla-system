@@ -111,6 +111,8 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
     val role = auth.user.role
     val staff = role != "beneficiary"
     val adminDel = role == "admin" || role == "delegate"
+    var cleaning by remember { mutableStateOf(false) }
+    var askLogout by remember { mutableStateOf(false) }
     var syncing by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf<String?>(null) }
     val pending = remember(syncing) { data.campList(auth).sumOf { data.people.pendingCount(it.first) } }
@@ -142,7 +144,6 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
                         }
                     }, Modifier.fillMaxWidth(), enabled = !syncing, icon = QIcons.Sync)
                     msg?.let { Text(it, color = if (it.startsWith("اكتملت")) p.ok else p.warn, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp)) }
-                    Text("استهلاك هذا الجهاز اليوم: ${Usage.reads()} قراءة · ${Usage.writes()} كتابة", color = p.mute, fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
                 }
                 if (staff) SettingCard("النسخ الاحتياطية", QIcons.Backup) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -179,6 +180,11 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
                         if (role == "admin") Btn("سجل نقل الأسر بين المخيمات", { go("tlog") }, Modifier.fillMaxWidth(), BtnKind.Outline)
                     }
                 }
+                if (role == "admin") SettingCard("صيانة قاعدة البيانات", QIcons.Trash) {
+                    Text("يفحص الفهرس الوطني (nationalIds) ويحذف أي مدخل يعود لمخيم لم يعد موجوداً — يعالج بقايا مخيمات محذوفة سابقاً", color = p.mute, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                    Btn(if (cleaning) "جارٍ الفحص..." else "تنظيف الفهرس الوطني الآن", { if (!cleaning) { cleaning = true; scope.launch { val n = withContext(Dispatchers.IO) { dev.saged.grcs.data.Maintenance.cleanNationalIndex(auth, data.campList(auth).map { it.first }.toSet()) }; cleaning = false; msg = if (n < 0) "تعذّر إتمام التنظيف — تحقق من الاتصال وحاول مجدداً" else if (n > 0) "تم تنظيف $n مدخل يتيم من الفهرس الوطني" else "الفهرس الوطني نظيف بالفعل — لا يوجد مدخلات يتيمة" } } }, Modifier.fillMaxWidth(), BtnKind.Outline)
+                    msg?.let { Text(it, color = p.mute, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp)) }
+                }
                 SettingCard("المظهر", QIcons.Moon) {
                     SegTabs(listOf("تلقائي", "فاتح", "داكن"), ThemePref.mode, { ThemePref.set(it) })
                 }
@@ -200,8 +206,9 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
                     }
                     Spacer(Modifier.height(8.dp))
                     Btn("تغيير كلمة المرور", { go("changepw") }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Key)
+                    Spacer(Modifier.height(8.dp))
+                    Btn("تسجيل الخروج", { askLogout = true }, Modifier.fillMaxWidth(), BtnKind.Danger, QIcons.Logout)
                 }
-                Btn("تسجيل الخروج", onLogout, Modifier.fillMaxWidth(), BtnKind.Danger, QIcons.Logout)
                 Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("منظومة مخيمات النزوح", color = p.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Text("تطوير: ${BrandConfig.Dev.NAME}", color = p.mute, fontSize = 11.sp)
@@ -210,6 +217,11 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
             }
         }
     }
+    if (askLogout) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { askLogout = false }, title = { Text("تسجيل الخروج") }, text = { Text("هل تريد تسجيل الخروج من التطبيق؟") },
+        confirmButton = { androidx.compose.material3.TextButton({ askLogout = false; onLogout() }) { Text("خروج", color = p.danger) } },
+        dismissButton = { androidx.compose.material3.TextButton({ askLogout = false }) { Text("إلغاء") } },
+    )
 }
 
 @Composable
