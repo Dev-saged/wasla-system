@@ -95,10 +95,18 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
     var nidErr by remember { mutableStateOf<String?>(null) }
     var openTransfer by remember { mutableStateOf(false) }
     var cats by remember { mutableStateOf(false) }
+    var allMode by remember { mutableStateOf(auth.user.role == "admin" && startCamp == null && startFilter != null) }
+    var fromAll by remember { mutableStateOf(false) }
+    var infos by remember { mutableStateOf<Map<String, dev.saged.grcs.data.CampInfo>>(emptyMap()) }
+    var allList by remember { mutableStateOf<List<JSONObject>?>(null) }
     var rev by remember { mutableIntStateOf(0) }
     val canWrite = auth.user.role != "beneficiary"
 
     LaunchedEffect(newTrigger) { if (newTrigger > 0 && auth.user.role != "beneficiary") edit = JSONObject().put("isFamilyHead", true).put("relation", "head") }
+    LaunchedEffect(allMode) {
+        if (allMode) infos = withContext(Dispatchers.IO) { camps.mapNotNull { c -> runCatching { c.first to data.campInfo(auth, c.first) }.getOrNull() }.toMap() }
+        if (allMode) allList = withContext(Dispatchers.IO) { camps.flatMap { (cid, _) -> data.people.persons(cid).map { x -> x.put("campId", cid) } } }
+    }
     LaunchedEffect(camp, rev) {
         if (camp.isEmpty()) return@LaunchedEffect
         persons = withContext(Dispatchers.IO) { data.people.persons(camp) }
@@ -148,7 +156,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
     }
 
     val fams = remember(persons) { group(persons) }
-    BackHandler(edit != null || open != null) { if (edit != null) edit = null else open = null }
+    BackHandler(edit != null || open != null) { if (edit != null) edit = null else { open = null; if (fromAll) { fromAll = false; allMode = true } } }
 
     Box(Modifier.fillMaxSize()) {
         val ed = edit
@@ -156,7 +164,41 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
         when {
             cats -> dev.saged.grcs.ui.camps.CatsPage(auth, data) { cats = false }
             ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o, ex -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }, ex) }
-            fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, auth.user.role, auth.user.id, { open = null }, { edit = it }, { remove(it) }, { o -> save(o, fk) }, if (auth.user.role == "admin" && camps.size > 1) ({ openTransfer = true }) else null, { h -> data.credentials(auth, h.optString("nationalId"), camp) }) { m -> withContext(Dispatchers.IO) { dev.saged.grcs.data.Audit.list(auth, camp, 300).filter { it.targetName == m.optString("fullName") }.take(10) } }
+            fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, auth.user.role, auth.user.id, { open = null; if (fromAll) { fromAll = false; allMode = true } }, { edit = it }, { remove(it) }, { o -> save(o, fk) }, if (auth.user.role == "admin" && camps.size > 1) ({ openTransfer = true }) else null, { h -> data.credentials(auth, h.optString("nationalId"), camp) }) { m -> withContext(Dispatchers.IO) { dev.saged.grcs.data.Audit.list(auth, camp, 300).filter { it.targetName == m.optString("fullName") }.take(10) } }
+            allMode -> Column(Modifier.fillMaxSize()) {
+                val matched = remember(allList, filter) { allList?.let { PFilter.apply(filter, it) } }
+                AppHeader(PFilter.label(filter), if (matched == null) "جارٍ التحميل..." else "${matched.size} سجل — كل المخيمات", onBack = onExit)
+                Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) {
+                    Spacer(Modifier.height(12.dp))
+                    Btn("تحميل كشف هذا التصنيف (كل المخيمات)", {
+                        scope.launch {
+                            val r = withContext(Dispatchers.IO) { data.export.custom("xlsx", "كل المخيمات", matched.orEmpty(), filter, false, data.export.defaultCols + listOf("phone2", "shelter")) }
+                            exportNote = if (r.ok) "تم حفظ ${r.count} سجل: ${r.name}" else "تعذّر الحفظ"
+                        }
+                    }, Modifier.fillMaxWidth(), icon = QIcons.Export, enabled = matched != null)
+                    if (exportNote.isNotEmpty()) Text(exportNote, color = p.mute, fontSize = 11.5.sp)
+                    Spacer(Modifier.height(8.dp))
+                    if (matched != null && matched.isEmpty()) EmptyState(QIcons.People, "لا يوجد سجلات بهذا التصنيف", "جرّب تصنيفاً آخر من الرئيسية")
+                    LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(matched.orEmpty().take(300), key = { it.optString("id") }) { m ->
+                            val cid = m.optString("campId"); val inf = infos[cid]
+                            val fem = m.optString("gender") == "female"; val mal = m.optString("gender") == "male"
+                            val gc = if (fem) p.pregnant else if (mal) p.blue else p.gray
+                            QCard(Modifier, { camp = cid; fromAll = true; allMode = false; open = famKeyOf(m, emptyList()) }, 12.dp) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Box(Modifier.size(42.dp).clip(CircleShape).background(gc.copy(alpha = .16f)), contentAlignment = Alignment.Center) { androidx.compose.material3.Icon(if (fem) QIcons.Female else if (mal) QIcons.Male else QIcons.Person, null, Modifier.size(22.dp), tint = gc) }
+                                    Column(Modifier.weight(1f)) {
+                                        Text(m.optString("fullName").ifEmpty { "—" }, color = p.ink, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                        Text((m.optString("nationalId").takeIf { it.isNotEmpty() }?.let { "$it · " } ?: "") + m.optString("phone").ifEmpty { "بلا هاتف" }, color = p.mute, fontSize = 12.sp)
+                                        Text((camps.firstOrNull { it.first == cid }?.second ?: cid) + " · " + (inf?.supervisor?.ifEmpty { null } ?: "—") + (inf?.supervisorPhone?.takeIf { it.isNotEmpty() }?.let { " — $it" } ?: ""), color = p.mute, fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                        item { Spacer(Modifier.height(72.dp)) }
+                    }
+                }
+            }
             else -> Column(Modifier.fillMaxSize()) {
                 AppHeader("الأفراد", (camps.firstOrNull { it.first == camp }?.second ?: "") + if (pending > 0) " · معلّق $pending" else "", onBack = onExit)
                 Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) {
