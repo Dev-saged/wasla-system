@@ -61,4 +61,39 @@ object Staff {
             null
         } catch (e: Exception) { "تعذّر الإنشاء — تحقق من الاتصال" }
     }
+    /** تعديل حساب (openEditUserModal): يعيد null عند النجاح أو رسالة الخطأ. */
+    fun update(st: AuthState, u: JSONObject, fullName: String, username: String, phone: String, role: String, campId: String, campName: String): String? {
+        if (st.user.role != "admin") return "للإدارة فقط"
+        val un = username.trim().lowercase()
+        if (fullName.isBlank() || un.isEmpty()) return "الاسم واسم المستخدم مطلوبان"
+        if (role != "admin" && campId.isEmpty()) return "اختر المخيم"
+        val id = u.getString("id")
+        return try {
+            if (un != u.optString("username") && Fs.queryEq("users", listOf("username" to un), st.idToken, 2).any { it.optString("id") != id }) return "اسم المستخدم مستخدم بالفعل"
+            val camp = if (role == "admin") "HQ" else campId
+            Fs.patch("users/$id", mapOf("fullName" to fullName.trim(), "username" to un, "phone" to phone.trim(), "role" to role, "campId" to camp,
+                "campName" to if (role == "admin") "المركز الرئيسي" else campName), st.idToken)
+            Audit.log(st, camp, "update_user", id, fullName.trim())
+            runCatching { Fs.pulse("u", null, st.idToken) }
+            null
+        } catch (e: Exception) { "تعذّر الحفظ" }
+    }
+
+    /** حذف حساب (deleteUserAccount): طاقم المخيم يحذف معه حسابات مستفيديه. يعيد عدد المستفيدين المحذوفين أو -1 عند الفشل. */
+    fun delete(st: AuthState, u: JSONObject): Int {
+        val id = u.getString("id")
+        if (st.user.role != "admin" || id == st.user.id) return -1
+        return try {
+            val staff = u.optString("role") in listOf("delegate", "dataentry") && u.optString("campId").isNotEmpty()
+            val bens = if (staff) beneficiaries(st, u.optString("campId")) else emptyList()
+            val paths = (listOf(id) + bens.map { it.getString("id") }).flatMap { listOf("users/$it", "creds/$it") }
+            Fs.deleteMany(paths, st.idToken)
+            Audit.log(st, u.optString("campId"), "update_user", id, u.optString("fullName"), "deleted")
+            runCatching { Fs.pulse("u", null, st.idToken) }
+            bens.size
+        } catch (e: Exception) { -1 }
+    }
+
+    /** كلمة المرور المحفوظة للعرض عند الأدمن (creds/{id}) أو null إن لم تُفعَّل. */
+    fun password(st: AuthState, id: String): String? = runCatching { Fs.get("creds/$id", st.idToken)?.let { Fs.stringField(it, "pw") }?.takeIf { it.isNotEmpty() } }.getOrNull()
 }

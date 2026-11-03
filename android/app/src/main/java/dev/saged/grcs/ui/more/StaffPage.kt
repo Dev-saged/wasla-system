@@ -55,6 +55,17 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
     var pwFor by remember { mutableStateOf<String?>(null) }
     var pw by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
+    var editFor by remember { mutableStateOf<String?>(null) }
+    var eName by remember { mutableStateOf("") }
+    var eUser by remember { mutableStateOf("") }
+    var ePhone by remember { mutableStateOf("") }
+    var eRole by remember { mutableStateOf("delegate") }
+    var eCamp by remember { mutableStateOf("") }
+    var delFor by remember { mutableStateOf<String?>(null) }
+    var logFor by remember { mutableStateOf<String?>(null) }
+    var logRows by remember { mutableStateOf<List<dev.saged.grcs.data.AuditEntry>?>(null) }
+    var clearFor by remember { mutableStateOf<JSONObject?>(null) }
+    var showPw by remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
     val camps = remember { data.campList(auth) }
     var adding by remember { mutableStateOf(false) }
     var tab by remember { mutableStateOf(0) }
@@ -105,13 +116,54 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
                 QCard { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(u.optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                        Pill(if (active) "نشط" else "معطّل", if (active) p.success else p.danger)
+                        Pill(if (active) "مفعّل" else "معطّل", if (active) p.success else p.gray)
                     }
                     Text((Staff.roles.firstOrNull { it.first == u.optString("role") }?.second ?: "مستفيد") + " · " + u.optString("username") +
                         (u.optString("campName").takeIf { it.isNotEmpty() }?.let { " · $it" } ?: "") + if (active) "" else " · معطّل", color = if (active) p.mute else p.danger, fontSize = 12.sp)
+                    run {
+                        val pwShown = showPw[id]
+                        if (showPw.containsKey(id)) Text(if (pwShown != null) "كلمة المرور: $pwShown" else "لم يُفعَّل بعد", color = if (pwShown != null) p.ink else p.warn, fontSize = 12.sp)
+                        else Text("إظهار كلمة المرور", color = p.pri, fontSize = 12.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { scope.launch { val v = withContext(Dispatchers.IO) { Staff.password(auth, id) }; showPw = showPw + (id to v) } }.padding(vertical = 12.dp))
+                    }
                     if (id != auth.user.id) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Btn(if (active) "تعطيل" else "تفعيل", { scope.launch { note = if (withContext(Dispatchers.IO) { Staff.setActive(auth, u, !active) }) "تم" else "تعذّر التنفيذ"; rev++ } }, kind = if (active) BtnKind.Danger else BtnKind.Primary, icon = QIcons.Lock, small = true)
-                        Btn("كلمة مرور جديدة", { pwFor = if (pwFor == id) null else id; pw = "" }, kind = BtnKind.Outline, icon = QIcons.Key, small = true)
+                        Btn("تعديل", { editFor = if (editFor == id) null else id; eName = u.optString("fullName"); eUser = u.optString("username"); ePhone = u.optString("phone"); eRole = u.optString("role"); eCamp = u.optString("campId") }, kind = BtnKind.Outline, icon = QIcons.Edit, small = true)
+                        Btn("كلمة المرور", { pwFor = if (pwFor == id) null else id; pw = "" }, kind = BtnKind.Outline, icon = QIcons.Key, small = true)
+                        Btn(if (active) "تعطيل" else "تفعيل", { scope.launch { note = if (withContext(Dispatchers.IO) { Staff.setActive(auth, u, !active) }) "تم" else "تعذّر التنفيذ"; rev++ } }, kind = if (active) BtnKind.Danger else BtnKind.Primary, small = true)
+                        Btn("حذف", { delFor = if (delFor == id) null else id }, kind = BtnKind.Danger, icon = QIcons.Trash, small = true)
+                    }
+                    if (u.optString("role") in listOf("delegate", "dataentry")) Btn("سجل النشاط", {
+                        if (logFor == id) logFor = null else { logFor = id; logRows = null; scope.launch { logRows = withContext(Dispatchers.IO) { runCatching { dev.saged.grcs.data.Audit.list(auth, u.optString("campId"), 300).filter { it.userName == u.optString("fullName") } }.getOrDefault(emptyList()) } } }
+                    }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Clock, small = true)
+                    if (u.optString("role") == "delegate" && u.optString("campId").isNotEmpty()) Btn("إفراغ كل مستفيدي ${u.optString("campName").ifEmpty { "هذا المخيم" }} (لإعادة الاستيراد)", { clearFor = u }, Modifier.fillMaxWidth(), BtnKind.Danger, QIcons.Trash, small = true)
+                    if (editFor == id) {
+                        if (u.optString("role") != "beneficiary") FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Staff.roles.forEach { (r, l) -> QChip(l, eRole == r) { eRole = r } } }
+                        if (eRole != "admin") FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (cid, n) -> QChip(n, eCamp == cid) { eCamp = cid } } }
+                        QField("الاسم الكامل", eName, { eName = it }); QField("اسم المستخدم", eUser, { eUser = it }); QField("رقم الهاتف", ePhone, { ePhone = it })
+                        Btn("حفظ التعديلات", { scope.launch {
+                            val err = withContext(Dispatchers.IO) { Staff.update(auth, u, eName, eUser, ePhone, eRole, eCamp, camps.firstOrNull { it.first == eCamp }?.second.orEmpty()) }
+                            note = err ?: "تم حفظ التعديلات بنجاح"; if (err == null) { editFor = null; rev++ }
+                        } }, small = true, icon = QIcons.Check)
+                    }
+                    if (delFor == id) {
+                        Text("سيتم حذف حساب «${u.optString("fullName")}» نهائياً" + if (u.optString("role") in listOf("delegate", "dataentry")) " ومعه حسابات مستفيدي مخيمه. بيانات الأفراد نفسها تبقى كما هي." else ". بيانات مخيمه تبقى كما هي.", color = p.danger, fontSize = 12.sp)
+                        Btn("حذف نهائي", { scope.launch { val n = withContext(Dispatchers.IO) { Staff.delete(auth, u) }; note = if (n < 0) "تعذّر الحذف" else if (n > 0) "تم حذف الحساب و$n حساب مستفيد تابع له" else "تم حذف الحساب بنجاح"; delFor = null; rev++ } }, kind = BtnKind.Danger, small = true)
+                    }
+                    if (logFor == id) {
+                        val lr = logRows
+                        if (lr == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 12.sp)
+                        else {
+                            val now = System.currentTimeMillis(); val day = 86_400_000L
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                listOf("اليوم" to lr.count { now - it.at < day }, "هذا الأسبوع" to lr.count { now - it.at < 7 * day }, "الإجمالي" to lr.size).forEach { (l, n) -> Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("$n", color = p.ink, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold); Text(l, color = p.mute, fontSize = 11.sp) } }
+                            }
+                            if (lr.isEmpty()) Text("لا يوجد نشاط مسجَّل لهذا الحساب بعد", color = p.mute, fontSize = 12.sp)
+                            else {
+                                Text("حسب نوع الإجراء", color = p.mute, fontSize = 12.sp)
+                                lr.groupingBy { it.action }.eachCount().forEach { (a, n) -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(dev.saged.grcs.data.Audit.labels[a] ?: a, color = p.ink, fontSize = 13.sp); Text("$n", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold) } }
+                                Text("آخر 30 إجراء", color = p.mute, fontSize = 12.sp)
+                                lr.take(30).forEach { e -> Text((dev.saged.grcs.data.Audit.labels[e.action] ?: e.action) + (if (e.targetName.isNotEmpty()) " · ${e.targetName}" else "") + " · " + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date(e.at)), color = p.mute, fontSize = 12.sp) }
+                            }
+                        }
                     }
                     if (pwFor == id) {
                         QField("كلمة المرور (6 أحرف على الأقل)", pw, { pw = it })
@@ -120,5 +172,15 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
                 } }
             }
         }
+    }
+    clearFor?.let { u ->
+        val cid = u.optString("campId"); val cname = u.optString("campName").ifEmpty { cid }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { clearFor = null },
+            title = { Text("إفراغ بيانات المخيم") },
+            text = { Text("سيتم حذف جميع الأفراد وحسابات المستفيدين في مخيم «$cname» من هذا الجهاز ومن قاعدة البيانات المركزية، وتُحفظ نسخة احتياطية وسلة محذوفات.") },
+            confirmButton = { androidx.compose.material3.TextButton({ clearFor = null; scope.launch { note = withContext(Dispatchers.IO) { data.wipeCamp(auth, cid, cname, false) } ?: "تم إفراغ «$cname»"; rev++ } }) { Text("إفراغ نهائياً", color = p.danger) } },
+            dismissButton = { androidx.compose.material3.TextButton({ clearFor = null }) { Text("إلغاء") } },
+        )
     }
 }

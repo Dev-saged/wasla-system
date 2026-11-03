@@ -82,3 +82,4 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - web-fidelity R5 (v5.4.0): BenHome rebuilt per screen-beneficiary (no bottom nav), PFields (phone2 in customFields, livingSituation), Login per web card.
 - R6: docs/web-spec/INDEX.md (extract.py) = جرد آلي لـindex.html: 22 شاشة بأسطرها، 579 دالة، أسطر شروط الدور؛ هو المرجع للمطابقة شاشة بشاشة.
 - R6: ui/people/PersonDetail.kt = نافذة تفاصيل الفرد بترتيب openPersonDetail (شارات، هشاشة، حساب الدخول، صفوف، طلبات، مساعدات، أفراد الأسرة، سجل التعديلات، أزرار بالدور)؛ حذف رب الأسرة يحذف أفراده كالويب. ناقص: زر التصنيفات الفردي.
+- R6: StaffPage = تعديل/حذف حساب، سجل النشاط، إفراغ مستفيدي مخيم المندوب، إظهار كلمة المرور/«لم يُفعَّل بعد» كالويب (Staff.update/delete/password). ناقص: نسخة السلة للحساب المحذوف.
