@@ -115,7 +115,7 @@ fun MessagesScreen(auth: AuthState, data: DataRepo, start: String? = null, onExi
             if (!(auth.user.role == "delegate" && camps.size == 1)) camps.forEach { (id, n) -> val sm = sums[id]; val benOnly = sm != null && sm.unread == 0 && sm.benUnread > 0; ThreadRow(n, if (benOnly) "${sm!!.benUnread} رسالة جديدة من المستفيدين" else sm?.last ?: none, QIcons.Camp, p.pri, (sm?.unread ?: 0) + (sm?.benUnread ?: 0)) { thread = if (benOnly) "bl:$id" else id } }
           }
         } else if (t.startsWith("bl:")) BenList(auth, repo, t.removePrefix("bl:"), camps.firstOrNull { it.first == t.removePrefix("bl:") }?.second.orEmpty(), { back() }) { tid -> thread = "bt:${t.removePrefix("bl:")}:$tid" }
-        else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t) { if (!ben) { if (t.startsWith("bt:")) thread = "bl:" + t.removePrefix("bt:").substringBefore(":") else back() } else back() }
+        else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t, onBenList = if (!ben && t != "global" && !t.startsWith("bt:")) ({ thread = "bl:$t" }) else null) { if (!ben) { if (t.startsWith("bt:")) thread = "bl:" + t.removePrefix("bt:").substringBefore(":") else back() } else back() }
     }
 }
 
@@ -173,7 +173,7 @@ private fun ThreadRow(title: String, sub: String, icon: androidx.compose.ui.grap
 }
 
 @Composable
-private fun Chat(auth: AuthState, thread: String, title: String, hasBack: Boolean = true, onBack: () -> Unit) {
+private fun Chat(auth: AuthState, thread: String, title: String, hasBack: Boolean = true, onBenList: (() -> Unit)? = null, onBack: () -> Unit) {
     val p = LocalPalette.current
     val repo = remember { Messages() }
     val scope = rememberCoroutineScope()
@@ -200,16 +200,16 @@ private fun Chat(auth: AuthState, thread: String, title: String, hasBack: Boolea
     }
 
     Column(Modifier.fillMaxSize().imePadding()) {
-        AppHeader(title, "", conn = null, onBack = if (ben && !hasBack) null else onBack)
+        AppHeader(title, "", conn = null, onBack = if (ben && !hasBack) null else onBack) { if (onBenList != null) dev.saged.grcs.ui.components.HeaderBtn(QIcons.People, "رسائل المستفيدين", onBenList) }
         LazyColumn(Modifier.weight(1f).padding(horizontal = 12.dp), state = listState, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (msgs.isEmpty()) item { Text("لا توجد رسائل بعد", color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(24.dp)) }
+            if (msgs.isEmpty()) item { dev.saged.grcs.ui.components.EmptyState(QIcons.Chat, "لا توجد رسائل بعد", "ابدأ المحادثة الآن") }
             items(msgs, key = { it.getString("id") }) { m ->
                 val out = m.optString("senderId") == auth.user.id
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = if (out) Arrangement.Start else Arrangement.End) {
                     Column(Modifier.fillMaxWidth(.82f).then(if (out) Modifier else Modifier.cardShadow()).background(if (out) p.pri else p.surface, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = if (out) 4.dp else 16.dp, bottomEnd = if (out) 16.dp else 4.dp)).padding(horizontal = 12.dp, vertical = 8.dp)) {
                         if (!out) Text(m.optString("senderName"), color = p.mute, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         Text(m.optString("text"), color = if (out) p.onPri else p.ink, fontSize = 15.sp)
-                        Text(fmt.format(Date(m.optLong("timestamp"))), color = (if (out) p.onPri else p.mute).copy(alpha = .75f), fontSize = 10.sp)
+                        Text(fmt.format(Date(m.optLong("timestamp"))) + if (out) " · مُستلمة" else "", color = (if (out) p.onPri else p.mute).copy(alpha = .75f), fontSize = 10.sp)
                     }
                 }
             }
