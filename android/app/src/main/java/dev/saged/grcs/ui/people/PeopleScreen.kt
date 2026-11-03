@@ -368,7 +368,7 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
     }
 
     Column(Modifier.fillMaxSize()) {
-        TopBar(if (isNew) (if (head) "أسرة جديدة" else "فرد جديد") else "تعديل", onBack)
+        TopBar(if (isNew) "إضافة فرد جديد" else "تعديل بيانات فرد", onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             FormCard("البيانات الأساسية") {
                 QField("الاسم الكامل *", name, { name = it })
@@ -377,7 +377,7 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
                     androidx.compose.material3.Checkbox(noId, { noId = it; if (it) nid = "" })
                     Text("لا يوجد رقم هوية بعد (مولود لم تصدر هويته)", color = p.mute, fontSize = 12.sp)
                 }
-                QField("تاريخ الميلاد (1990-05-21)", dob, { dob = it }, type = KeyboardType.Number)
+                dev.saged.grcs.ui.components.DateField("تاريخ الميلاد", dob, { dob = it })
                 val age = dobAge(normDigits(dob))
                 Text("العمر المحسوب: " + (age?.let { "$it سنة" } ?: "—"), color = p.mute, fontSize = 12.5.sp)
                 Text("الجنس", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -404,25 +404,23 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
             }
             if (head) {
                 FormCard("الزوج / الزوجة (اختياري)") {
-                    Text("", color = p.ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Spacer(Modifier.height(8.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         QField("الاسم الكامل", sName, { sName = it })
                         QField("رقم الهوية", sNid, { sNid = it }, type = KeyboardType.Number)
-                        QField("تاريخ الميلاد (1990-05-21)", sDob, { sDob = it }, type = KeyboardType.Number)
+                        dev.saged.grcs.ui.components.DateField("تاريخ الميلاد", sDob, { sDob = it })
                         val sFemale = gender == "male"
                         if (sName.isNotBlank() && sFemale) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             QChip("حامل", sPreg) { sPreg = !sPreg }; QChip("مرضعة", sBf) { sBf = !sBf }
                         }
                     }
                 }
-                Text("أفراد الأسرة المضافون", color = p.mute, fontSize = 12.sp)
+                FormCard("أفراد الأسرة (اختياري)") {
                 kids.forEachIndexed { i, st ->
                     val k = st.value
                     QCard {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             QField("الاسم", k.name, { st.value = Kid(it, k.gender, k.dob, k.rel) })
-                            QField("تاريخ الميلاد (1990-05-21)", k.dob, { st.value = Kid(k.name, k.gender, it, k.rel) }, type = KeyboardType.Number)
+                            dev.saged.grcs.ui.components.DateField("تاريخ الميلاد", k.dob, { st.value = Kid(k.name, k.gender, it, k.rel) })
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 QChip("ذكر", k.gender == "male") { st.value = Kid(k.name, "male", k.dob, k.rel) }
                                 QChip("أنثى", k.gender == "female") { st.value = Kid(k.name, "female", k.dob, k.rel) }
@@ -433,11 +431,12 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
                     }
                 }
                 Btn("إضافة فرد للأسرة", { kids.add(mutableStateOf(Kid("", "", "", "son"))) }, kind = BtnKind.Outline, icon = QIcons.Plus)
+                }
             }
             FormCard("التواصل") {
                 QField("رقم الهاتف الأساسي", phone, { phone = it }, type = KeyboardType.Phone)
                 QField("رقم هاتف إضافي (اختياري)", phone2, { phone2 = it }, type = KeyboardType.Phone)
-                if (head) QField("العنوان / الموقع", address, { address = it })
+                QField("العنوان / الموقع", address, { address = it })
             }
             FormCard("الحالة الصحية") {
                 if (gender == "female") ToggleLine("حامل", preg) { preg = it }
@@ -450,7 +449,6 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
                 }
                 ToggleLine("إعاقة", dis) { dis = it }
                 if (dis) QField("تفاصيل الإعاقة", disDetails, { disDetails = it })
-                ToggleLine("حالة طارئة", urgent) { urgent = it }
             }
             FormCard("ملاحظات") { QField("ملاحظات إضافية…", notes, { notes = it }, multiline = true) }
             (err ?: serverErr)?.let { Text(it, color = p.danger, fontSize = 13.sp) }

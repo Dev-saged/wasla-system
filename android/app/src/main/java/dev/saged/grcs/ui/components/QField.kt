@@ -62,3 +62,17 @@ fun QChip(text: String, on: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
     ) { Text(text, color = if (on) p.onPri else p.ink, fontSize = 14.sp) }
 }
+
+/** حقل تاريخ بمنتقي أصلي (input type=date في الويب): الصيغة yyyy-MM-dd. */
+@Composable
+fun DateField(label: String, value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    Box(modifier.clickable {
+        val m = Regex("^(\\d{4})-(\\d{2})-(\\d{2})$").find(value)
+        val c = java.util.Calendar.getInstance()
+        val y = m?.groupValues?.get(1)?.toInt() ?: (c.get(java.util.Calendar.YEAR) - 20)
+        val mo = (m?.groupValues?.get(2)?.toInt() ?: (c.get(java.util.Calendar.MONTH) + 1)) - 1
+        val d = m?.groupValues?.get(3)?.toInt() ?: c.get(java.util.Calendar.DAY_OF_MONTH)
+        android.app.DatePickerDialog(ctx, { _, yy, mm, dd -> onChange("%04d-%02d-%02d".format(yy, mm + 1, dd)) }, y, mo, d).apply { datePicker.maxDate = System.currentTimeMillis() }.show()
+    }) { QField(label, value, {}, enabled = false) }
+}
