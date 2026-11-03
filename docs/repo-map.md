@@ -80,3 +80,5 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - web-fidelity R3 (v5.2.0): Quality rules/page per web (+EditScreen fix), Import cards, QField label-above, Rapid layout, CampInfo, Query result bar, Similar empty state, delegate messages list.
 - web-fidelity R4 (v5.3.0): role matrix per web code (settings gating, dataentry home), Quality.rules(12)+PFilter q:/tier:, CampSections (tiers clickable, quality tasks, donut, age bars), FAB add/import, admin camp msg buttons, persons cats button.
 - web-fidelity R5 (v5.4.0): BenHome rebuilt per screen-beneficiary (no bottom nav), PFields (phone2 in customFields, livingSituation), Login per web card.
+- R6: docs/web-spec/INDEX.md (extract.py) = جرد آلي لـindex.html: 22 شاشة بأسطرها، 579 دالة، أسطر شروط الدور؛ هو المرجع للمطابقة شاشة بشاشة.
+- R6: ui/people/PersonDetail.kt = نافذة تفاصيل الفرد بترتيب openPersonDetail (شارات، هشاشة، حساب الدخول، صفوف، طلبات، مساعدات، أفراد الأسرة، سجل التعديلات، أزرار بالدور)؛ حذف رب الأسرة يحذف أفراده كالويب. ناقص: زر التصنيفات الفردي.

@@ -156,7 +156,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
         when {
             cats -> dev.saged.grcs.ui.camps.CatsPage(auth, data) { cats = false }
             ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o, ex -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }, ex) }
-            fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, auth.user.id, { open = null }, { edit = it }, { remove(it) }, { o -> save(o, fk) }, if (auth.user.role == "admin" && camps.size > 1) ({ openTransfer = true }) else null) { h -> data.credentials(auth, h.optString("nationalId"), camp) }
+            fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, auth.user.role, auth.user.id, { open = null }, { edit = it }, { remove(it) }, { o -> save(o, fk) }, if (auth.user.role == "admin" && camps.size > 1) ({ openTransfer = true }) else null, { h -> data.credentials(auth, h.optString("nationalId"), camp) }) { m -> withContext(Dispatchers.IO) { dev.saged.grcs.data.Audit.list(auth, camp, 300).filter { it.targetName == m.optString("fullName") }.take(10) } }
             else -> Column(Modifier.fillMaxSize()) {
                 AppHeader("الأسر والأفراد", (camps.firstOrNull { it.first == camp }?.second ?: "") + if (pending > 0) " · معلّق $pending" else "", onBack = onExit)
                 Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -269,74 +269,37 @@ private fun FamRow(f: Fam, onClick: () -> Unit) {
 private fun TopBar(title: String, onBack: () -> Unit) = AppHeader(title, "", conn = null, onBack = onBack)
 
 @Composable
-private fun FamilyScreen(f: Fam?, canWrite: Boolean, uid: String, onBack: () -> Unit, onEdit: (JSONObject) -> Unit, onDelete: (JSONObject) -> Unit, onSave: (JSONObject) -> Unit, onTransfer: (() -> Unit)?, loadCreds: (JSONObject) -> Pair<String, String>?) {
-    val scope = rememberCoroutineScope()
-    var creds by remember { mutableStateOf<String?>(null) }
+private fun FamilyScreen(f: Fam?, canWrite: Boolean, role: String, uid: String, onBack: () -> Unit, onEdit: (JSONObject) -> Unit, onDelete: (JSONObject) -> Unit, onSave: (JSONObject) -> Unit, onTransfer: (() -> Unit)?, loadCreds: (JSONObject) -> Pair<String, String>?, loadAudit: suspend (JSONObject) -> List<dev.saged.grcs.data.AuditEntry>) {
+    var selId by remember { mutableStateOf("") }
     var aidFor by remember { mutableStateOf<JSONObject?>(null) }
     val p = LocalPalette.current
     var confirm by remember { mutableStateOf<JSONObject?>(null) }
     Column(Modifier.fillMaxSize()) {
-        TopBar(f?.head?.optString("fullName") ?: "أسرة", onBack)
+        TopBar((f?.members?.firstOrNull { it.optString("id") == selId } ?: f?.head)?.optString("fullName") ?: "أسرة", onBack)
         if (f == null) { Text("لا توجد بيانات", color = p.mute, modifier = Modifier.padding(24.dp)); return }
         LazyColumn(Modifier.weight(1f).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(f.members.sortedByDescending { it.optBoolean("isFamilyHead") }, key = { it.optString("id") }) { m ->
-                QCard {
-                    Text(m.optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                    val tags = buildList {
-                        if (m.optBoolean("isFamilyHead")) add("رب الأسرة") else relLabels.firstOrNull { it.first == m.optString("relation") }?.let { add(it.second) }
-                        m.optString("birthDate").takeIf { it.isNotEmpty() }?.let { add(it) }
-                        m.optString("nationalId").takeIf { it.isNotEmpty() }?.let { add(it) }
-                        if (m.optBoolean("isPregnant")) add("حامل")
-                        if (m.optBoolean("hasChronicDisease")) add("مرض مزمن")
-                        if (m.optBoolean("hasDisability")) add("إعاقة")
-                    }
-                    Text(tags.joinToString(" · "), color = p.mute, fontSize = 12.sp)
-                    if (m.optBoolean("isFamilyHead")) Aid.requests(m).sortedByDescending { it.optLong("updatedAt") }.forEach { r ->
-                        Column(Modifier.fillMaxWidth().padding(top = 8.dp).background(p.surface2, RoundedCornerShape(12.dp)).padding(10.dp)) {
-                            Text((Aid.reqTypes.firstOrNull { it.first == r.optString("type") }?.second ?: r.optString("type")) + " — " + (Aid.reqStatus[r.optString("status")] ?: r.optString("status")), color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                            if (r.optString("details").isNotEmpty()) Text(r.optString("details"), color = p.mute, fontSize = 12.sp)
-                            if (canWrite && r.optString("status") in listOf("pending", "approved")) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                val next = if (r.optString("status") == "pending") listOf("approved" to "قبول", "rejected" to "رفض") else listOf("done" to "تم التسليم")
-                                next.forEach { (st, l) -> Text(l, color = p.pri, fontSize = 13.sp, modifier = Modifier.heightIn(min = 44.dp).clickable { onSave(Aid.setRequestStatus(m, r.optString("id"), st, uid)) }.padding(vertical = 12.dp, horizontal = 8.dp)) }
-                            }
-                        }
-                    }
-                    if (canWrite) FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (m.optBoolean("isFamilyHead") && m.optString("nationalId").isNotEmpty()) Btn("بيانات الدخول", {
-                            scope.launch { creds = withContext(Dispatchers.IO) { loadCreds(m) }?.let { "اسم المستخدم: ${it.first}\nكلمة المرور: ${it.second}" } ?: "لا تتوفر بيانات دخول لهذه الأسرة" }
-                        }, kind = BtnKind.Outline, icon = QIcons.Key, small = true)
-                        Btn("مساعدة", { aidFor = m }, kind = BtnKind.Outline, icon = QIcons.Heart, small = true)
-                        Btn("تعديل", { onEdit(m) }, kind = BtnKind.Outline, icon = QIcons.Edit, small = true)
-                        Btn("حذف", { confirm = m }, kind = BtnKind.Danger, icon = QIcons.Trash, small = true)
-                    }
-                }
+            item {
+                val cur = f.members.firstOrNull { it.optString("id") == selId } ?: f.head ?: f.members.first()
+                PersonDetailBody(cur, f.members.filter { it.optString("id") != cur.optString("id") }.sortedWith(compareBy({ it.optInt("orderIndex", 9) }, { -(Stats.ageOf(it) ?: 0) })), role, uid,
+                    { selId = it.optString("id") }, { onEdit(cur) }, { confirm = cur }, onTransfer, onSave, { aidFor = cur }, loadCreds, loadAudit)
             }
             item { Spacer(Modifier.height(80.dp)) }
         }
-        if (onTransfer != null) Btn("نقل الأسرة لمخيم آخر", onTransfer, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), BtnKind.Outline, QIcons.Transfer)
         if (canWrite) Btn("إضافة فرد", {
             val fid = f.head?.optString("familyId").orEmpty().ifEmpty { f.members.first().optString("familyId") }
             onEdit(JSONObject().put("familyId", fid).put("isFamilyHead", false).put("relation", "son"))
         }, Modifier.fillMaxWidth().padding(16.dp), icon = QIcons.Plus)
     }
     aidFor?.let { m -> AidDialog(m, uid, { aidFor = null }) { o -> onSave(o); aidFor = null } }
-    creds?.let { t ->
-        Box(Modifier.fillMaxSize().background(p.ink.copy(alpha = .5f)).clickable { creds = null }, contentAlignment = Alignment.Center) {
-            Column(Modifier.padding(32.dp).background(p.surface, RoundedCornerShape(20.dp)).padding(20.dp)) {
-                Text("بيانات الدخول", color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(10.dp))
-                Text(t, color = p.ink, fontSize = 15.sp)
-                Text("إغلاق", color = p.pri, modifier = Modifier.heightIn(min = 44.dp).clickable { creds = null }.padding(top = 14.dp))
-            }
-        }
-    }
     confirm?.let { m ->
         Box(Modifier.fillMaxSize().background(p.ink.copy(alpha = .5f)).clickable { confirm = null }, contentAlignment = Alignment.Center) {
             Column(Modifier.padding(32.dp).background(p.surface, RoundedCornerShape(20.dp)).padding(20.dp).clickable(enabled = false) {}) {
-                Text("حذف ${m.optString("fullName")}؟", color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                val cascade = m.optBoolean("isFamilyHead") && (f?.members?.size ?: 1) > 1
+                Text("حذف فرد", color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(if (cascade) "هذا رب أسرة — سيُحذف هو و${(f?.members?.size ?: 1) - 1} من أفراد أسرته. هل تريد المتابعة؟" else "سيتم حذف ${m.optString("fullName")} ولا يمكن التراجع.", color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("حذف", color = p.onPri, modifier = Modifier.heightIn(min = 44.dp).background(p.danger, RoundedCornerShape(12.dp)).clickable { onDelete(m); confirm = null }.padding(horizontal = 24.dp, vertical = 12.dp))
+                    Text("حذف", color = p.onPri, modifier = Modifier.heightIn(min = 44.dp).background(p.danger, RoundedCornerShape(12.dp)).clickable { if (m.optBoolean("isFamilyHead")) f?.members?.forEach(onDelete) else onDelete(m); confirm = null }.padding(horizontal = 24.dp, vertical = 12.dp))
                     Text("إلغاء", color = p.ink, modifier = Modifier.heightIn(min = 44.dp).clickable { confirm = null }.padding(horizontal = 16.dp, vertical = 12.dp))
                 }
             }
