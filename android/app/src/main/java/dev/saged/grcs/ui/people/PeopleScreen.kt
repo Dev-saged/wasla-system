@@ -310,6 +310,7 @@ private fun TopBar(title: String, onBack: () -> Unit) = AppHeader(title, "", con
 private fun FamilyScreen(f: Fam?, canWrite: Boolean, role: String, uid: String, onBack: () -> Unit, onEdit: (JSONObject) -> Unit, onDelete: (JSONObject) -> Unit, onSave: (JSONObject) -> Unit, onTransfer: (() -> Unit)?, loadCreds: (JSONObject) -> Pair<String, String>?, loadAudit: suspend (JSONObject) -> List<dev.saged.grcs.data.AuditEntry>) {
     var selId by remember { mutableStateOf("") }
     var aidFor by remember { mutableStateOf<JSONObject?>(null) }
+    var tagsFor by remember { mutableStateOf<JSONObject?>(null) }
     val p = LocalPalette.current
     var confirm by remember { mutableStateOf<JSONObject?>(null) }
     Column(Modifier.fillMaxSize()) {
@@ -319,7 +320,7 @@ private fun FamilyScreen(f: Fam?, canWrite: Boolean, role: String, uid: String, 
             item {
                 val cur = f.members.firstOrNull { it.optString("id") == selId } ?: f.head ?: f.members.first()
                 PersonDetailBody(cur, f.members.filter { it.optString("id") != cur.optString("id") }.sortedWith(compareBy({ it.optInt("orderIndex", 9) }, { -(Stats.ageOf(it) ?: 0) })), role, uid,
-                    { selId = it.optString("id") }, { onEdit(cur) }, { confirm = cur }, onTransfer, onSave, { aidFor = cur }, loadCreds, loadAudit)
+                    { selId = it.optString("id") }, { onEdit(cur) }, { confirm = cur }, onTransfer, onSave, { aidFor = cur }, { tagsFor = cur }, loadCreds, loadAudit)
             }
             item { Spacer(Modifier.height(80.dp)) }
         }
@@ -328,6 +329,7 @@ private fun FamilyScreen(f: Fam?, canWrite: Boolean, role: String, uid: String, 
             onEdit(JSONObject().put("familyId", fid).put("isFamilyHead", false).put("relation", "son"))
         }, Modifier.fillMaxWidth().padding(16.dp), icon = QIcons.Plus)
     }
+    tagsFor?.let { m -> TagsDialog(m, { tagsFor = null }) { o -> onSave(o); tagsFor = null } }
     aidFor?.let { m -> AidDialog(m, uid, { aidFor = null }) { o -> onSave(o); aidFor = null } }
     confirm?.let { m ->
         Box(Modifier.fillMaxSize().background(p.ink.copy(alpha = .5f)).clickable { confirm = null }, contentAlignment = Alignment.Center) {

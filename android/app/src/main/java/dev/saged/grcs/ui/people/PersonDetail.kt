@@ -144,7 +144,7 @@ private fun DetailRow(k: String, v: String) {
 internal fun PersonDetailBody(
     sel: JSONObject, family: List<JSONObject>, role: String, uid: String,
     onOpenMember: (JSONObject) -> Unit, onEdit: () -> Unit, onDelete: () -> Unit, onTransfer: (() -> Unit)?,
-    onSave: (JSONObject) -> Unit, onAid: () -> Unit, loadCreds: (JSONObject) -> Pair<String, String>?, loadAudit: suspend (JSONObject) -> List<AuditEntry>,
+    onSave: (JSONObject) -> Unit, onAid: () -> Unit, onTags: () -> Unit, loadCreds: (JSONObject) -> Pair<String, String>?, loadAudit: suspend (JSONObject) -> List<AuditEntry>,
 ) {
     val p = LocalPalette.current
     val staff = role in listOf("admin", "delegate", "dataentry")
@@ -256,6 +256,7 @@ internal fun PersonDetailBody(
 
         FlowRow(Modifier.padding(top = 16.dp, bottom = 80.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (canEdit) Btn("تعديل", onEdit, kind = BtnKind.Outline, icon = QIcons.Edit)
+            if (canEdit) Btn("التصنيفات", onTags, kind = BtnKind.Outline, icon = QIcons.Filter)
             if (role == "admin" && onTransfer != null) Btn("نقل الأسرة", onTransfer, kind = BtnKind.Outline, icon = QIcons.Transfer)
             if (canDelete) Btn("حذف", onDelete, kind = BtnKind.Danger, icon = QIcons.Trash)
         }
