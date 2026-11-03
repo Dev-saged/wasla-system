@@ -8,7 +8,7 @@ object PFilter {
         "head" to "رب الأسرة", "all" to "الكل",
         "tier:critical" to "حرجة", "tier:high" to "عالية", "tier:medium" to "متوسطة", "tier:stable" to "مستقرة",
         "male" to "ذكور", "female" to "إناث",
-        "infant" to "رضّع <1", "preschool" to "1-5", "school" to "6-18", "youth" to "شباب 18-30", "mid" to "بالغون 30-60", "elderly" to "كبار +60",
+        "infant" to "رضع <1", "preschool" to "1-5", "school" to "6-18", "youth" to "شباب 18-30", "mid" to "بالغون 30-60", "elderly" to "كبار +60",
         "pregnant" to "حوامل", "orphan" to "أيتام", "breastfeeding" to "مرضعات", "under2" to "دون سنتين",
         "injured" to "جرحى", "martyr" to "أسر شهداء", "chronic" to "مرضى", "disability" to "إعاقة",
         "widowed" to "أرامل", "divorced" to "مطلّقات/ين", "nophone" to "بلا هاتف", "noid" to "بلا هوية",

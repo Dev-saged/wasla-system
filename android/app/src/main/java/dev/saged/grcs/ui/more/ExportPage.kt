@@ -163,7 +163,7 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 }
             }
             Box(Modifier.fillMaxWidth().background(p.navy, RoundedCornerShape(16.dp)).padding(18.dp), contentAlignment = Alignment.Center) {
-                Text("سيتم تصدير ${count} ${if (mode == "family") "أسرة" else "سجل"}", color = androidx.compose.ui.graphics.Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("سيتم تصدير ${count} سجل", color = androidx.compose.ui.graphics.Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Btn("Excel", { doExport("xlsx") }, Modifier.weight(1f), BtnKind.Primary, QIcons.Export, enabled = !busy)

@@ -158,15 +158,11 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
             ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o, ex -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }, ex) }
             fk != null -> FamilyScreen(fams.firstOrNull { it.key == fk }, canWrite, auth.user.role, auth.user.id, { open = null }, { edit = it }, { remove(it) }, { o -> save(o, fk) }, if (auth.user.role == "admin" && camps.size > 1) ({ openTransfer = true }) else null, { h -> data.credentials(auth, h.optString("nationalId"), camp) }) { m -> withContext(Dispatchers.IO) { dev.saged.grcs.data.Audit.list(auth, camp, 300).filter { it.targetName == m.optString("fullName") }.take(10) } }
             else -> Column(Modifier.fillMaxSize()) {
-                AppHeader("الأسر والأفراد", (camps.firstOrNull { it.first == camp }?.second ?: "") + if (pending > 0) " · معلّق $pending" else "", onBack = onExit)
+                AppHeader("الأفراد", (camps.firstOrNull { it.first == camp }?.second ?: "") + if (pending > 0) " · معلّق $pending" else "", onBack = onExit)
                 Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) {
                 Spacer(Modifier.height(12.dp))
-                if (camps.size > 1) {
-                    Spacer(Modifier.height(8.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
-                }
                 Spacer(Modifier.height(8.dp))
-                SearchBox(q, { q = it }, "بحث بالاسم أو الهوية أو الجوال")
+                SearchBox(q, { q = it }, "بحث بالاسم أو رقم الهوية...")
                 Spacer(Modifier.height(8.dp))
                 androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (PFilter.chips.none { it.first == filter }) item { QChip(PFilter.label(filter), true) { } }
@@ -183,7 +179,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
                 val famList = remember(fams, headIds, sort) { fams.filter { it.key in headIds }.let { l -> if (sort == "vuln") l.sortedByDescending { Vuln.compute(it.members).score } else l } }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(if (filter == "head") "${famList.size} أسرة" else "${shownP.size} سجل", color = p.mute, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                    QChip(if (sort == "vuln") "الأكثر هشاشة أولاً" else "ترتيب: الاسم", sort == "vuln") { sort = if (sort == "vuln") "default" else "vuln" }
+                    QChip(if (sort == "vuln") "الأكثر هشاشة أولاً" else "ترتيب الكشف", sort == "vuln") { sort = if (sort == "vuln") "default" else "vuln" }
                 }
                 Btn("تحميل هذا التصنيف", {
                     scope.launch {
