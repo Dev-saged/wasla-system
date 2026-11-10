@@ -85,7 +85,7 @@ fun CampInfoPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         info = i; name = i.name; region = i.region; sup = i.supervisor; supP = i.supervisorPhone; dep = i.deputy; depP = i.deputyPhone; de = i.dataEntry; deP = i.dataEntryPhone; notes = i.notes
     }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("معلومات المخيم", camps.firstOrNull { it.first == camp }?.second.orEmpty(), conn = null, onBack = onBack)
+        AppHeader("معلومات المخيم", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.Tent, endBack = onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             CampChips(camps, camp) { camp = it; msg = null }
             QCard {

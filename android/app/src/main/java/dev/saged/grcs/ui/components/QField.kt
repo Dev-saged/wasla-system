@@ -54,13 +54,14 @@ fun QField(label: String, value: String, onChange: (String) -> Unit, modifier: M
 
 /** شريحة اختيار (للجنس، الصلة، الأعلام). */
 @Composable
-fun QChip(text: String, on: Boolean, onClick: () -> Unit) {
+fun QChip(text: String, on: Boolean, activeColor: androidx.compose.ui.graphics.Color? = null, activeText: androidx.compose.ui.graphics.Color? = null, onClick: () -> Unit) {
     val p = LocalPalette.current
     val shape = RoundedCornerShape(50)
+    val bg = if (on) activeColor ?: p.navy else p.surface
     Box(
-        Modifier.heightIn(min = 44.dp).background(if (on) p.pri else p.surface, shape).border(1.dp, if (on) p.pri else p.line, shape)
-            .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
-    ) { Text(text, color = if (on) p.onPri else p.ink, fontSize = 14.sp) }
+        Modifier.background(bg, shape).border(1.5.dp, if (on) bg else p.line, shape)
+            .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
+    ) { Text(text, color = if (on) activeText ?: androidx.compose.ui.graphics.Color.White else p.mute, fontSize = 13.5.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, maxLines = 1) }
 }
 
 /** حقل تاريخ بمنتقي أصلي (input type=date في الويب): الصيغة yyyy-MM-dd. */

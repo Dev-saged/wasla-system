@@ -90,7 +90,7 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
         sub.startsWith("detail:") -> { dev.saged.grcs.ui.home.HomeScreen(auth, data, {}, { }, { }, onlyCamp = sub.removePrefix("detail:"), onBack = { sub = "" }, onPeople = { onOpen(sub.removePrefix("detail:")) }); return }
     }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("المخيمات", "${camps.size} مخيم · ${fa(camps.sumOf { it.stats.families })} أسرة") {
+        AppHeader("المخيمات", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.Tents) {
             if (admin) HeaderBtn(QIcons.Plus, "مخيم جديد") { creating = true }
         }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

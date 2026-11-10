@@ -137,7 +137,7 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
     }
     val t = camps.fold(CampStats.ZERO) { a, c -> a + c.stats }
     Column(Modifier.fillMaxSize()) {
-        AppHeader(if (onlyCamp != null || auth.user.role != "admin") camps.firstOrNull()?.name ?: BrandConfig.NAME else "كل المخيمات", "${roleLabel[auth.user.role] ?: auth.user.role}: ${auth.user.fullName}" + if (auth.user.role == "admin" && onlyCamp != null) " — عرض مخيم" else "", onBack = onBack) {
+        AppHeader(if (onlyCamp != null || auth.user.role != "admin") camps.firstOrNull()?.name ?: BrandConfig.NAME else "كل المخيمات", "${roleLabel[auth.user.role] ?: auth.user.role}: ${auth.user.fullName}" + if (auth.user.role == "admin" && onlyCamp != null) " — عرض مخيم" else "", endBack = onBack) {
             HeaderBtn(QIcons.Sync, "مزامنة") { if (!busy) tick++ }
         }
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {

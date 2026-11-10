@@ -123,7 +123,7 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        AppHeader("تصدير تقرير مخصص", "", conn = null, onBack = onBack)
+        AppHeader("تصدير تقرير مخصص", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.FileExport, endBack = onBack.takeIf { auth.user.role == "admin" })
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (camps.size > 1) {
                 Text("المخيم", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)

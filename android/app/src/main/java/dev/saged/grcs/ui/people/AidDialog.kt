@@ -43,11 +43,8 @@ fun AidDialog(person: JSONObject, uid: String, onClose: () -> Unit, onSave: (JSO
     var qty by remember { mutableStateOf("1") }
     var note by remember { mutableStateOf("") }
     val t = Aid.types.first { it.k == type }
-    Box(Modifier.fillMaxSize().background(p.ink.copy(alpha = .5f)).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-        Column(
-            Modifier.padding(20.dp).background(p.bg, RoundedCornerShape(24.dp)).clickable(enabled = false) {}.verticalScroll(rememberScrollState()).padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
+    dev.saged.grcs.ui.components.Sheet(onClose) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("مساعدة — " + person.optString("fullName"), color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Aid.types.filter { Aid.eligible(person, it.k) }.forEach { QChip(it.label, it.k == type) { type = it.k } }

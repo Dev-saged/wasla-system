@@ -25,6 +25,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -114,25 +117,25 @@ fun ConnBadge(state: Conn) {
 
 /** ترويسة كحلية ثابتة (app-header): زر رجوع اختياري، شعار متدرج بأيقونة الشاشة، عنوانان، أزرار، وشارة اتصال. */
 @Composable
-fun AppHeader(title: String, subtitle: String, conn: Conn? = ConnState.state, onBack: (() -> Unit)? = null, mark: ImageVector = Fa.PeopleRoof, actions: @Composable RowScope.() -> Unit = {}) {
+fun AppHeader(title: String, subtitle: String, conn: Conn? = ConnState.state, onBack: (() -> Unit)? = null, mark: ImageVector = Fa.PeopleRoof, backIcon: ImageVector = Fa.ArrowRight, endBack: (() -> Unit)? = null, actions: @Composable RowScope.() -> Unit = {}) {
     val p = LocalPalette.current
     Row(
         Modifier.fillMaxWidth().shadow(4.dp).background(p.navy).statusBarsPadding()
             .heightIn(min = 60.dp).padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        if (onBack != null) HeaderBtn(Fa.ArrowRight, "رجوع", onBack)
-        Box(
+        if (onBack != null) HeaderBtn(backIcon, "رجوع", onBack) else Box(
             Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(Brush.linearGradient(listOf(p.tealL, p.navyL)))
                 .border(1.dp, Color.White.copy(alpha = .25f), RoundedCornerShape(9.dp)),
             contentAlignment = Alignment.Center,
         ) { Icon(mark, null, Modifier.size(19.dp), tint = Color.White) }
         Column(Modifier.weight(1f)) {
-            Text(title, color = Color.White, fontSize = 15.sp, lineHeight = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (subtitle.isNotEmpty()) Text(subtitle, color = Color(0xFFBFD8E8), fontSize = 11.5.sp, lineHeight = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (subtitle.isNotEmpty()) Text(subtitle, color = Color(0xFFBFD8E8), fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         actions()
         if (conn != null) ConnBadge(conn)
+        if (endBack != null) HeaderBtn(Fa.ArrowRight, "رجوع", endBack)
     }
 }
 
@@ -304,15 +307,59 @@ fun MenuRow(icon: ImageVector, title: String, sub: String? = null, color: Color?
 
 /** بطاقة إعدادات بعنوان وأيقونة، ومحتواها صفوف. */
 @Composable
-fun SettingCard(title: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
+fun SettingCard(title: String, icon: ImageVector, iconTint: Color? = null, content: @Composable ColumnScope.() -> Unit) {
     val p = LocalPalette.current
     QCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(icon, null, Modifier.size(14.dp), tint = p.head)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            Icon(icon, null, Modifier.size(14.dp), tint = iconTint ?: p.head)
             Text(title, color = p.head, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(10.dp))
         content()
+    }
+}
+
+/** ورقة سفلية (modal-sheet): غشاء داكن، سطح بزاوية 22 من الأعلى، ارتفاع أقصى 88%، مقبض، وعنوان مع زر إغلاق. */
+@Composable
+fun Sheet(onClose: () -> Unit, title: String? = null, content: @Composable ColumnScope.() -> Unit) {
+    val p = LocalPalette.current
+    val reduce = rememberReduceMotion()
+    val maxH = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp * .88f
+    androidx.compose.ui.window.Dialog(onClose, androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        (androidx.compose.ui.platform.LocalView.current.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window?.setDimAmount(0f)
+        val enter = remember { androidx.compose.animation.core.Animatable(if (reduce) 0f else 1f) }
+        androidx.compose.runtime.LaunchedEffect(Unit) { enter.animateTo(0f, tween(280, easing = androidx.compose.animation.core.CubicBezierEasing(.4f, 0f, .2f, 1f))) }
+        Box(Modifier.fillMaxSize().background(Color(0x8C0A1423).copy(alpha = .55f * (1f - enter.value))).clickable(remember { MutableInteractionSource() }, null, onClick = onClose), contentAlignment = Alignment.BottomCenter) {
+            Column(
+                Modifier.widthIn(max = 640.dp).fillMaxWidth().heightIn(max = maxH).graphicsLayer { translationY = size.height * enter.value }
+                    .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)).background(p.surface).clickable(remember { MutableInteractionSource() }, null) {}
+                    .verticalScroll(androidx.compose.foundation.rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 20.dp),
+            ) {
+                Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp).size(44.dp, 5.dp).background(p.line, CircleShape))
+                if (title != null) Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(title, color = p.head, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    Box(Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(p.surface2).clickable(role = Role.Button, onClick = onClose), contentAlignment = Alignment.Center) { Icon(Fa.Xmark, "إغلاق", Modifier.size(15.dp), tint = p.head) }
+                }
+                content()
+            }
+        }
+    }
+}
+
+/** نافذة تأكيد (confirmDialog): أيقونة تحذير، عنوان، رسالة، وزرّا إلغاء وتأكيد. */
+@Composable
+fun ConfirmSheet(message: String, title: String = "تأكيد", okText: String = "تأكيد", okKind: BtnKind = BtnKind.Danger, icon: ImageVector = Fa.TriangleExclamation, cancelText: String = "إلغاء", onCancel: () -> Unit, onOk: () -> Unit) {
+    val p = LocalPalette.current
+    Sheet(onCancel) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, null, Modifier.size(40.dp), tint = if (okKind == BtnKind.Danger) p.danger else p.pri)
+            Text(title, color = p.head, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp, bottom = 8.dp))
+            Text(message, color = p.ink, fontSize = 14.5.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = 18.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Btn(cancelText, onCancel, Modifier.weight(1f), BtnKind.Outline)
+                Btn(okText, onOk, Modifier.weight(1f), okKind)
+            }
+        }
     }
 }
 
@@ -322,6 +369,63 @@ fun OfflineBanner(text: String) {
     val p = LocalPalette.current
     Text(text, color = p.warn, fontSize = 12.5.sp, lineHeight = 19.sp, fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(bottom = 12.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (p.dark) p.warn.copy(alpha = .12f) else Color(0xFFFFFBEB)).padding(horizontal = 14.dp, vertical = 9.dp))
+}
+
+/** صف إعدادات (settings-row): تسمية 14 وقيمة رمادية 12.5 وخط سفلي اختياري. */
+@Composable
+fun SettingsRow(label: String, value: String, last: Boolean = false) {
+    val p = LocalPalette.current
+    Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 11.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = p.ink, fontSize = 14.sp)
+        Text(value, color = p.mute, fontSize = 12.5.sp)
+    }
+    if (!last) Hair()
+}
+
+/** نص توضيحي رمادي 13 (caption). */
+@Composable
+fun Caption(text: String, modifier: Modifier = Modifier) = Text(text, color = LocalPalette.current.mute, fontSize = 13.sp, modifier = modifier)
+
+/** مفتاح تبديل (switch): 46×26 وكرة بيضاء 20. */
+@Composable
+fun QSwitch(on: Boolean, onChange: (Boolean) -> Unit) {
+    val p = LocalPalette.current
+    val x by androidx.compose.animation.core.animateDpAsState(if (on) 23.dp else 3.dp, tween(200), label = "sw")
+    Box(Modifier.size(46.dp, 26.dp).clip(RoundedCornerShape(14.dp)).background(if (on) p.pri else p.line).clickable(role = Role.Switch) { onChange(!on) }) {
+        Box(Modifier.padding(start = x, top = 3.dp).size(20.dp).shadow(1.dp, CircleShape).background(Color.White, CircleShape))
+    }
+}
+
+/** صف مفتاح بعنوان ووصف صغير (fx-row) بخط سفلي متقطع. */
+@Composable
+fun SwitchRow(title: String, sub: String?, on: Boolean, last: Boolean = false, onChange: (Boolean) -> Unit) {
+    val p = LocalPalette.current
+    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.weight(1f)) {
+            Text(title, color = p.ink, fontSize = 16.sp)
+            if (sub != null) Text(sub, color = p.mute, fontSize = 12.sp)
+        }
+        QSwitch(on, onChange)
+    }
+    if (!last) Canvas(Modifier.fillMaxWidth().height(1.dp)) { drawLine(p.line, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))) }
+}
+
+/** أزرار مقسّمة (seg-btns): ارتفاع 46، حد 1.5، والمحدد بحد تيل وخلفية خفيفة. */
+@Composable
+fun SegBtns(items: List<Pair<String, ImageVector?>>, sel: Int, modifier: Modifier = Modifier, onSel: (Int) -> Unit) {
+    val p = LocalPalette.current
+    val shape = RoundedCornerShape(10.dp)
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.forEachIndexed { i, (t, ic) ->
+            val on = i == sel
+            val fg = if (on) (if (p.dark) p.tealL else p.tealD) else p.mute
+            Row(Modifier.weight(1f).heightIn(min = 46.dp).clip(shape).background(if (on) p.pri.copy(alpha = if (p.dark) .12f else .08f) else p.surface).border(1.5.dp, if (on) p.pri else p.line, shape).clickable(role = Role.Tab) { onSel(i) },
+                horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                if (ic != null) { Icon(ic, null, Modifier.size(14.dp), tint = fg); Spacer(Modifier.width(6.dp)) }
+                Text(t, color = fg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            }
+        }
+    }
 }
 
 /** فاصل رفيع. */

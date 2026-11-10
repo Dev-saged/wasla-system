@@ -102,7 +102,7 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        AppHeader("استيراد Excel", "", conn = null, onBack = onBack)
+        AppHeader("استيراد Excel", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.FileImport, endBack = onBack.takeIf { auth.user.role == "admin" })
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
             val tplSave = {

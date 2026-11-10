@@ -107,7 +107,8 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     var importing by remember { mutableStateOf(false) }
     val tab = tabs[sel.coerceIn(0, tabs.lastIndex)]
     val ben = auth.user.role == "beneficiary"
-    BackHandler(sel != 0 && openCamp == null) { sel = 0 }
+    BackHandler(importing) { importing = false }
+    BackHandler(sel != 0 && openCamp == null && !importing) { sel = 0 }
     Column(Modifier.fillMaxSize().background(p.bg)) {
         Box(Modifier.weight(1f)) {
         if (importing) { dev.saged.grcs.ui.more.ImportPage(auth, data) { importing = false }; return@Box }
@@ -138,7 +139,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             Box(Modifier.size(56.dp).shadow(8.dp, CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.tealD)), CircleShape).clickable { if (tab == Tab.Home) { homeFilter = null; sel = tabs.indexOf(Tab.People).coerceAtLeast(0) }; newTrig++ }, contentAlignment = Alignment.Center) { Icon(Fa.Plus, "إضافة فرد", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(22.dp)) }
         }
         }
-        if (!ben) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null }
+        if (!ben) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null; importing = false }
     }
 }
 

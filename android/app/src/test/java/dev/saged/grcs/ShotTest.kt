@@ -35,7 +35,7 @@ class ShotTest {
     private val out get() = System.getenv("GRCS_SHOTS")
 
     private fun settle(n: Int = 8) { repeat(n) { rule.waitForIdle(); Thread.sleep(120); rule.mainClock.advanceTimeBy(400) }; rule.waitForIdle() }
-    private fun shot(name: String) { settle(); rule.onRoot().captureRoboImage("$out/$name.png") }
+    private fun shot(name: String) { settle(); com.github.takahirom.roborazzi.captureScreenRoboImage("$out/$name.png") }
     /** i = -1: العنصر الأدنى الظاهر على الشاشة (الشريط السفلي). */
     private fun tap(text: String, i: Int = 0): Boolean {
         val n = rule.onAllNodesWithText(text)

@@ -159,7 +159,7 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
     if (screen == "changepw") { dev.saged.grcs.ui.more.ChangePwPage(auth) { screen = "main" }; return }
     val campName = info?.name?.ifEmpty { null } ?: data.campList(auth).firstOrNull()?.second.orEmpty()
     Column(Modifier.fillMaxSize()) {
-        AppHeader(auth.user.fullName, if (campName.isEmpty()) "—" else if (campName.trim().startsWith("مخيم")) campName else "مخيم $campName") { HeaderBtn(QIcons.Logout, "تسجيل الخروج", onLogout) }
+        AppHeader(auth.user.fullName, if (campName.isEmpty()) "—" else if (campName.trim().startsWith("مخيم")) campName else "مخيم $campName", conn = null, mark = dev.saged.grcs.ui.icons.Fa.User) { HeaderBtn(QIcons.Logout, "تسجيل الخروج", onLogout) }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (head == null) {
                 if (busy) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)

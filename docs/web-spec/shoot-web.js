@@ -35,7 +35,10 @@ const { chromium } = require('playwright'); const fs = require('fs'); const path
     for (const s of screens) { await pg.evaluate(s => { try { __G.nav('screen-' + s); } catch (e) { console.log(e); } }, s); await shot(s); await full(s); }
     if (role === 'delegate') {
       await pg.evaluate(() => __G.nav('screen-persons')); await pg.waitForTimeout(800);
-      const card = await pg.$('#persons-list .person-card, #persons-list > *'); if (card) { await card.click(); await shot('person-detail'); }
+      const card = await pg.$('#persons-scroll .person-card');
+      if (card) { await card.click(); await shot('person-detail'); const m = await pg.$('.modal-overlay:not([hidden]) .modal, .modal:not([hidden])'); if (m) { await m.evaluate(e => { e.scrollTop = 600; }); await shot('person-detail-2'); await m.evaluate(e => { e.scrollTop = 99999; }); await shot('person-detail-3'); } await pg.keyboard.press('Escape'); await pg.evaluate(() => document.querySelectorAll('.modal-overlay').forEach(e => e.remove())); }
+      await pg.click('#persons-cats-btn').catch(() => {}); await shot('cats'); await pg.evaluate(() => document.querySelectorAll('.modal-overlay').forEach(e => e.remove()));
+      const ed = await pg.$('#persons-scroll .p-edit'); if (ed) { await ed.click(); await shot('person-edit'); await full('person-edit'); }
     }
     await ctx.close();
   }

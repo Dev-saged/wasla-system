@@ -81,7 +81,7 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
     LaunchedEffect(rev) { rows = withContext(Dispatchers.IO) { Staff.list(auth) } }
     LaunchedEffect(rev, tab, benCamp) { if (tab == 2) { ben = null; ben = withContext(Dispatchers.IO) { Staff.beneficiaries(auth, benCamp) } } }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("إدارة الحسابات", "", conn = null, onBack = onBack)
+        AppHeader("إدارة الحسابات", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.UsersGear)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (tab != 2 && !adding) Btn("إنشاء مستخدم جديد", { adding = true }, Modifier.fillMaxWidth(), icon = QIcons.Plus)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("مناديب ومدخلو بيانات", "المدراء", "المستفيدون").forEachIndexed { i, l -> QChip(l, tab == i) { tab = i } } }

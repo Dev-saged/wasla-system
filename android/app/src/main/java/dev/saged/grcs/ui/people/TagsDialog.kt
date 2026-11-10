@@ -61,9 +61,8 @@ internal fun TagsDialog(person: JSONObject, onClose: () -> Unit, onSave: (JSONOb
     @Composable fun Line(label: String, on: Boolean, ch: (Boolean) -> Unit) = Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f)); Switch(on, ch)
     }
-    Box(Modifier.fillMaxSize().background(p.ink.copy(alpha = .5f)).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
-        Column(Modifier.padding(20.dp).fillMaxWidth().background(p.surface, RoundedCornerShape(20.dp)).clickable(enabled = false) {}.verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("تصنيفات ${person.optString("fullName")}", color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+    dev.saged.grcs.ui.components.Sheet(onClose, "تصنيفات ${person.optString("fullName")}") {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Line("يتيم", orphan) { orphan = it }
             if (orphan) {
                 Text("نوع اليتم", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
