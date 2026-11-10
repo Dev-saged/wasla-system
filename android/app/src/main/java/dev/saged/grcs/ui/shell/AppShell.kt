@@ -55,6 +55,7 @@ import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.ui.ben.BenHome
 import dev.saged.grcs.ui.camps.CampsScreen
 import dev.saged.grcs.ui.home.HomeScreen
+import dev.saged.grcs.ui.icons.Fa
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.messages.MessagesScreen
 import dev.saged.grcs.ui.more.ExportPage
@@ -69,9 +70,9 @@ import dev.saged.grcs.ui.theme.LocalPalette
 import dev.saged.grcs.ui.theme.rememberReduceMotion
 
 private enum class Tab(val label: String, val icon: ImageVector) {
-    Home("الرئيسية", QIcons.Home), Camps("المخيمات", QIcons.Camp), People("الأفراد", QIcons.People),
-    Chat("الرسائل", QIcons.Chat), Accounts("الحسابات", QIcons.Key), Export("تصدير", QIcons.Export),
-    Settings("الإعدادات", QIcons.Settings),
+    Home("الرئيسية", Fa.House), Camps("المخيمات", Fa.Tents), People("الأفراد", Fa.Users),
+    Chat("الرسائل", Fa.Comments), Accounts("الحسابات", Fa.UsersGear), Export("تصدير", Fa.ChartSimple),
+    Settings("الإعدادات", Fa.Gear),
 }
 
 /** مجموعات التبويب السفلي حسب الدور كما في الويب (NAV_SETS). */
@@ -132,9 +133,9 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             }
         }
         val field = auth.user.role == "delegate" || auth.user.role == "dataentry" || (auth.user.role == "admin" && openCamp != null)
-        if (field && !importing && (tab == Tab.Home || tab == Tab.People || (tab == Tab.Camps && openCamp != null))) Column(Modifier.align(Alignment.BottomStart).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.size(44.dp).shadow(4.dp, CircleShape).background(p.surface, CircleShape).border(1.5.dp, p.line, CircleShape).clickable { importing = true }, contentAlignment = Alignment.Center) { Icon(QIcons.Import, "استيراد Excel", tint = p.ink, modifier = Modifier.size(20.dp)) }
-            Box(Modifier.size(56.dp).shadow(8.dp, CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.pri)), CircleShape).clickable { if (tab == Tab.Home) { homeFilter = null; sel = tabs.indexOf(Tab.People).coerceAtLeast(0) }; newTrig++ }, contentAlignment = Alignment.Center) { Icon(QIcons.Plus, "إضافة فرد", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(26.dp)) }
+        if (field && !importing && (tab == Tab.Home || tab == Tab.People || (tab == Tab.Camps && openCamp != null))) Column(Modifier.align(Alignment.BottomEnd).padding(start = 16.dp, end = 16.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.size(44.dp).shadow(4.dp, CircleShape).background(p.surface, CircleShape).border(1.5.dp, p.line, CircleShape).clickable { importing = true }, contentAlignment = Alignment.Center) { Icon(Fa.FileArrowUp, "استيراد Excel", tint = p.head, modifier = Modifier.size(16.dp)) }
+            Box(Modifier.size(56.dp).shadow(8.dp, CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.tealD)), CircleShape).clickable { if (tab == Tab.Home) { homeFilter = null; sel = tabs.indexOf(Tab.People).coerceAtLeast(0) }; newTrig++ }, contentAlignment = Alignment.Center) { Icon(Fa.Plus, "إضافة فرد", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(22.dp)) }
         }
         }
         if (!ben) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null }
@@ -151,14 +152,14 @@ private fun NavBar(tabs: List<Tab>, sel: Int, unread: Int, onSelect: (Int) -> Un
             val w = maxWidth / tabs.size
             val x by animateDpAsState(w * sel, tween(450, easing = Silk), label = "ind")
             Box(
-                Modifier.offset(x = x + (w - 22.dp) / 2).width(22.dp).height(3.dp)
+                Modifier.offset(x = x + (w - 40.dp) / 2).width(40.dp).height(3.dp)
                     .clip(RoundedCornerShape(bottomStart = 3.dp, bottomEnd = 3.dp)).background(p.pri),
             )
             Row(Modifier.fillMaxSize()) {
                 tabs.forEachIndexed { i, d ->
                     val on = i == sel
-                    val tint by animateColorAsState(if (on) p.ink else p.mute, tween(250), label = "tint")
-                    val ic by animateColorAsState(if (on) p.pri else p.mute, tween(250), label = "ic")
+                    val tint by animateColorAsState(if (on) p.head else p.mute, tween(200), label = "tint")
+                    val ic by animateColorAsState(if (on) p.head else p.mute, tween(200), label = "ic")
                     val lift by animateDpAsState(if (on) (-2).dp else 0.dp, tween(300, easing = Silk), label = "lift")
                     Column(
                         Modifier.weight(1f).fillMaxSize().clickable(
@@ -171,11 +172,11 @@ private fun NavBar(tabs: List<Tab>, sel: Int, unread: Int, onSelect: (Int) -> Un
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Box {
-                            Icon(d.icon, null, Modifier.offset(y = lift).size(22.dp), tint = ic)
+                            Icon(d.icon, null, Modifier.offset(y = lift).size(if (d.icon.viewportWidth > 512f) 24.dp else 19.dp), tint = ic)
                             if (d == Tab.Chat && unread > 0) Text(if (unread > 99) "99+" else "$unread", color = androidx.compose.ui.graphics.Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold,
                                 modifier = Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = (-4).dp).clip(RoundedCornerShape(8.dp)).background(p.danger).padding(horizontal = 4.dp))
                         }
-                        Text(d.label, color = tint, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text(d.label, color = tint, fontSize = 10.5.sp, lineHeight = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 3.dp))
                     }
                 }
             }

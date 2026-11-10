@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.em
 import dev.saged.grcs.config.BrandConfig
 
 @Immutable
@@ -26,6 +27,7 @@ data class Palette(
     val navy: Color, val navyL: Color, val tealL: Color, val purple: Color, val blue: Color,
     val pregnant: Color, val success: Color, val gray: Color,
     val tierHigh: Color, val tierMedium: Color, val tierStable: Color,
+    val tealD: Color, val head: Color, val track: Color,
     val dark: Boolean,
 )
 
@@ -45,6 +47,7 @@ fun paletteOf(dark: Boolean): Palette {
         navy = pick(p.navy), navyL = pick(p.navyL), tealL = pick(p.tealL), purple = pick(p.purple), blue = pick(p.blue),
         pregnant = pick(p.pregnant), success = pick(p.success), gray = pick(p.gray),
         tierHigh = pick(p.tierHigh), tierMedium = pick(p.tierMedium), tierStable = pick(p.tierStable),
+        tealD = pick(p.tealD), head = pick(p.head), track = pick(p.track),
         dark = dark,
     )
 }
@@ -79,7 +82,10 @@ fun GrcsTheme(content: @Composable () -> Unit) {
         LocalLayoutDirection provides LayoutDirection.Rtl,
     ) {
         MaterialTheme(colorScheme = scheme) {
-            ProvideTextStyle(TextStyle(fontFamily = GrcsFonts.body), content)
+            // سطر النص كما في CSS: ارتفاع 1.6 يُحترم حرفياً حتى لسطر واحد
+            ProvideTextStyle(TextStyle(fontFamily = GrcsFonts.body, lineHeight = 1.6.em,
+                lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center, androidx.compose.ui.text.style.LineHeightStyle.Trim.None),
+                platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)), content)
         }
     }
 }
