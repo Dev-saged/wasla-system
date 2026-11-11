@@ -244,9 +244,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
                             Text(if (sort == "vuln") "الأكثر هشاشة أولاً" else "ترتيب الكشف", color = p.ink, fontSize = 13.sp)
                             androidx.compose.material3.Icon(Fa.ChevronDown, null, Modifier.size(10.dp), tint = p.ink)
                         }
-                        androidx.compose.material3.DropdownMenu(menu, { menu = false }) {
-                            listOf("default" to "ترتيب الكشف", "vuln" to "الأكثر هشاشة أولاً").forEach { (k, l) -> androidx.compose.material3.DropdownMenuItem({ Text(l, fontSize = 14.sp) }, { sort = k; menu = false }) }
-                        }
+                        if (menu) dev.saged.grcs.ui.components.PickSheet("الترتيب", listOf("default" to "ترتيب الكشف", "vuln" to "الأكثر هشاشة أولاً"), sort, { menu = false }) { sort = it }
                     }
                     Btn("تحميل هذا التصنيف", {
                         scope.launch {

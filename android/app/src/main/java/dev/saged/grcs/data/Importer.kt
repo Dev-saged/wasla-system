@@ -94,6 +94,45 @@ object Importer {
         return ImportPreview(out, dupes, bad, mapped, out.count { it.optBoolean("isFamilyHead") }, ex)
     }
 
+    class Enrich(val writes: LinkedHashMap<JSONObject, String>, val heads: Int, val members: Int, val added: Int)
+
+    /**
+     * تكميل الموجودين من الملف (سلوك الويب عند تطابق الهوية): يطابق هوية رب الأسرة/الفرد مع كل المسجّلين في byCamp،
+     * يملأ الحقول الفارغة فقط، ويضيف أفراد الأسرة الناقصين لأسرة موجودة. السجلات تُعدَّل في مكانها (مرّر نسخاً).
+     */
+    fun enrich(rows: List<List<String>>, map: Map<String, Int>?, byCamp: Map<String, List<JSONObject>>, uid: String): Enrich {
+        val h = rows[0]; val body = rows.drop(1)
+        val flat = isFlat(h)
+        val writes = LinkedHashMap<JSONObject, String>(); var heads = 0; var members = 0; var added = 0
+        val sc = Cells.summaryCols(h)
+        if (!flat || sc.wifeName != null) {
+            val mode = if (flat) "family_summary" else "horizontal"
+            val c = Cells.cols(h, mode)
+            if (c.headName != null && c.headNid != null) {
+                val r = Reconcile.run(body, c, mode, true, byCamp, uid) { _, _ -> }
+                writes.putAll(r.writes); heads += r.headsEnriched; members += r.membersEnriched; added += r.spousesAdded + r.childrenAdded
+            }
+        }
+        if (flat) {
+            val m = map ?: detect(h)
+            val campOf = java.util.IdentityHashMap<JSONObject, String>(); val byNid = HashMap<String, JSONObject>()
+            for ((camp, ps) in byCamp) for (p in ps) { campOf[p] = camp; Nid.norm(p.optString("nationalId")).let { if (it.isNotEmpty() && it !in byNid) byNid[it] = p } }
+            fun cell(r: List<String>, f: String) = m[f]?.let { Cells.clean(r.getOrNull(it)) }.orEmpty()
+            fun has(p: JSONObject, k: String) = p.optString(k).let { it.isNotEmpty() && it != "null" }
+            for (r in body) {
+                val p = byNid[Nid.norm(cell(r, "nid"))] ?: continue
+                var ch = false
+                fun fill(k: String, v: String) { if (v.isNotEmpty() && !has(p, k)) { p.put(k, v); ch = true } }
+                if (p.optBoolean("isFamilyHead")) { fill("phone", digits(cell(r, "phone"))); Cells.maritalWord(cell(r, "marital"))?.let { fill("maritalStatus", it.first) } }
+                fill("address", cell(r, "address"))
+                if (!has(p, "birthDate")) Cells.date(cell(r, "dob"))?.let { p.put("birthDate", it); dobAge(it)?.let { a -> p.put("calculatedAge", a) }; ch = true }
+                if (p.optString("gender").let { it.isEmpty() || it == "unknown" }) Cells.gender(cell(r, "gender").ifEmpty { null }, null, p.optString("fullName")).let { if (it != "unknown") { p.put("gender", it); ch = true } }
+                if (ch && p !in writes) { p.put("updatedBy", uid); writes[p] = campOf[p]!!; if (p.optBoolean("isFamilyHead")) heads++ else members++ }
+            }
+        }
+        return Enrich(writes, heads, members, added)
+    }
+
     class Kid(val name: Int, val nid: Int?, val dob: Int?)
 
     /** مجموعات أعمدة الأبناء المرقّمة (اسم/هوية/ميلاد) كما detectRepeatingChildGroups. */

@@ -1,5 +1,7 @@
 package dev.saged.grcs.ui.components
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,9 +74,28 @@ fun <T> QSelect(value: T, options: List<Pair<T, String>>, modifier: Modifier = M
                 Text(options.firstOrNull { it.first == value }?.second.orEmpty(), color = p.ink, fontSize = 16.sp, maxLines = 1, modifier = Modifier.weight(1f))
                 androidx.compose.material3.Icon(dev.saged.grcs.ui.icons.Fa.ChevronDown, null, Modifier.size(11.dp), tint = p.ink)
             }
-            androidx.compose.material3.DropdownMenu(open, { open = false }) {
-                options.forEach { (k, l) -> androidx.compose.material3.DropdownMenuItem({ Text(l, fontSize = 15.sp) }, { onSelect(k); open = false }) }
+        }
+    }
+    if (open) PickSheet(label.ifEmpty { "اختر" }, options, value, { open = false }) { onSelect(it) }
+}
+
+/** ورقة اختيار سفلية بهوية التطبيق (بديل القائمة المنسدلة): بحث عند كثرة الخيارات وعلامة على المختار. */
+@Composable
+fun <T> PickSheet(title: String, options: List<Pair<T, String>>, value: T?, onClose: () -> Unit, onPick: (T) -> Unit) {
+    val p = LocalPalette.current
+    var q by remember { mutableStateOf("") }
+    Sheet(onClose, title) {
+        if (options.size > 8) QField("", q, { q = it }, Modifier.padding(bottom = 8.dp), placeholder = "بحث…", icon = dev.saged.grcs.ui.icons.Fa.MagnifyingGlass)
+        val shown = if (q.isBlank()) options else options.filter { it.second.contains(q.trim()) }
+        if (shown.isEmpty()) Text("لا نتائج", color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(12.dp))
+        shown.forEachIndexed { i, (k, l) ->
+            val on = k == value
+            val sh = RoundedCornerShape(12.dp)
+            androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(sh).background(if (on) p.pri.copy(alpha = .1f) else androidx.compose.ui.graphics.Color.Transparent).clickable { onPick(k); onClose() }.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(l, color = if (on) p.pri else p.ink, fontSize = 15.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.weight(1f))
+                if (on) androidx.compose.material3.Icon(dev.saged.grcs.ui.icons.Fa.Check, null, Modifier.size(14.dp), tint = p.pri)
             }
+            if (i < shown.lastIndex) Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp).height(1.dp).background(p.line.copy(alpha = .6f)))
         }
     }
 }

@@ -109,3 +109,23 @@ class ImportBatchTest {
         assertEquals(listOf("سارة"), d.added.map { it.n }); assertEquals(listOf("علي"), d.removed.map { it.n }); assertEquals(listOf("محمد"), d.changed.map { it.n })
     }
 }
+
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
+class ImportEnrichTest {
+    @Test
+    fun flatFileFillsMissingFieldsOfExistingPeople() {
+        val head = JSONObject().put("id", "h1").put("fullName", "محمد أحمد").put("nationalId", "123456782").put("isFamilyHead", true).put("familyId", "F1").put("phone", "")
+        val rows = listOf(listOf("الاسم", "رقم الهوية", "رقم الجوال", "تاريخ الميلاد"), listOf("محمد أحمد", "123456782", "0599111222", "1/5/1980"), listOf("جديد", "999999998", "", ""))
+        val e = Importer.enrich(rows, null, mapOf("C1" to listOf(head)), "u1")
+        assertEquals(1, e.heads); assertEquals("0599111222", head.optString("phone")); assertEquals("1980-05-01", head.optString("birthDate")); assertEquals(1, e.writes.size)
+    }
+
+    @Test
+    fun horizontalFileAddsMissingChildToExistingFamily() {
+        val head = JSONObject().put("id", "h1").put("fullName", "محمد أحمد").put("nationalId", "123456782").put("isFamilyHead", true).put("familyId", "F1").put("relation", "head")
+        val rows = listOf(listOf("الاسم الرباعي", "رقم الهوية", "اسم الطفل 1", "هوية الطفل 1", "تاريخ ميلاد الطفل 1"), listOf("محمد أحمد", "123456782", "عمر محمد", "400000009", "2015-01-01"))
+        val e = Importer.enrich(rows, null, mapOf("C1" to listOf(head)), "u1")
+        assertEquals(1, e.added); assertTrue(e.writes.keys.any { it.optString("fullName") == "عمر محمد" && it.optString("familyId") == "F1" })
+    }
+}

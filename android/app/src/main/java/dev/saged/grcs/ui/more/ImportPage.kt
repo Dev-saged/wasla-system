@@ -23,9 +23,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import dev.saged.grcs.data.Templates
+import org.json.JSONObject
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,6 +67,8 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var msg by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var fileName by remember { mutableStateOf("") }
+    var enr by remember { mutableStateOf<Importer.Enrich?>(null) }
+    var origById by remember { mutableStateOf(mapOf<String, JSONObject>()) }
     var undoId by remember { mutableStateOf<String?>(null) }
     var askUndo by remember { mutableStateOf<String?>(null) }
     var history by remember { mutableStateOf<List<dev.saged.grcs.data.BatchRec>?>(null) }
@@ -106,7 +107,16 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     }
     LaunchedEffect(rows, map, camp) {
         val r = rows ?: return@LaunchedEffect
-        prev = withContext(Dispatchers.IO) { Importer.preview(r, camp, data.people.persons(camp), auth.user.id, map) }
+        val pair = withContext(Dispatchers.IO) {
+            // المطابقة على كل المسجّلين المحمّلين (كل المخيمات للإدارة) حتى لا يتكرر رب أسرة بين مخيمين
+            val scope0 = (if (auth.user.role == "admin") data.campList(auth).map { it.first } else listOf(camp)).distinct()
+            val orig = scope0.associateWith { data.people.persons(it) }
+            val copies = orig.mapValues { (_, l) -> l.map { JSONObject(it.toString()) } }
+            val e = runCatching { Importer.enrich(r, map, copies, auth.user.id) }.getOrNull()
+            origById = orig.values.flatten().associateBy { it.optString("id") }
+            Importer.preview(r, camp, orig.values.flatten(), auth.user.id, map) to e
+        }
+        prev = pair.first; enr = pair.second
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -136,12 +146,7 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                             Text(label, color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                             Box {
                                 Btn(map!![f]?.let { headers.getOrNull(it) }?.ifBlank { "(بلا عنوان)" } ?: "— غير مستخدم —", { open = true }, kind = BtnKind.Outline, small = true)
-                                DropdownMenu(open, { open = false }) {
-                                    DropdownMenuItem(text = { Text("— غير مستخدم —") }, onClick = { map = map!! - f; tplBy = null; open = false })
-                                    headers.forEachIndexed { i, h ->
-                                        DropdownMenuItem(text = { Text(h.ifBlank { "(بلا عنوان)" }) }, onClick = { map = map!!.filterValues { it != i } + (f to i); tplBy = null; open = false })
-                                    }
-                                }
+                                if (open) dev.saged.grcs.ui.components.PickSheet(label, listOf(-1 to "— غير مستخدم —") + headers.mapIndexed { i, h -> i to h.ifBlank { "(بلا عنوان)" } }, map!![f] ?: -1, { open = false }) { i -> map = if (i < 0) map!! - f else map!!.filterValues { it != i } + (f to i); tplBy = null }
                             }
                         }
                     }
@@ -154,24 +159,32 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             prev?.let { r ->
                 Column(Modifier.fillMaxWidth().qcard().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("سيُضاف ${r.toAdd.size} فرداً (${r.headCount} أسرة/رب أسرة)", color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    Text("مكرر بالهوية (سيُتخطى): ${r.skippedExisting} · صفوف غير صالحة: ${r.skippedInvalid}", color = p.mute, fontSize = 12.sp)
+                    enr?.let { e -> if (e.writes.isNotEmpty()) Text("موجودون مسبقاً: ستكتمل بيانات ${e.heads} رب أسرة و${e.members} فرد (الحقول الفارغة فقط)" + if (e.added > 0) "، ويُضاف ${e.added} فرد ناقص لأسرهم" else "", color = p.ok, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                    Text("مطابق بلا جديد (يُتخطى): ${(r.skippedExisting - (enr?.let { it.heads + it.members } ?: 0)).coerceAtLeast(0)} · صفوف غير صالحة: ${r.skippedInvalid}", color = p.mute, fontSize = 12.sp)
                     r.mapped.forEach { Text(it, color = p.mute, fontSize = 11.sp) }
                 }
                 if (r.excluded.isNotEmpty()) Btn("تقرير المستبعدين (${r.excluded.size})", {
                     scope.launch { val res = withContext(Dispatchers.IO) { data.export.save("مستبعدون-الاستيراد.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(r.excluded, "مستبعدون", headers + "السبب"), r.excluded.size) }; msg = if (res.ok) "حُفظ التقرير: ${res.name}" else "تعذّر الحفظ" }
                 }, Modifier.fillMaxWidth(), kind = BtnKind.Outline, icon = QIcons.Export)
-                if (r.toAdd.isNotEmpty()) Btn("تأكيد الإضافة", {
+                if (r.toAdd.isNotEmpty() || enr?.writes?.isNotEmpty() == true) Btn(if (r.toAdd.isEmpty()) "تأكيد تكميل البيانات" else "تأكيد الاستيراد", {
                     scope.launch {
                         busy = true
+                        val e = enr
                         val bid = withContext(Dispatchers.IO) {
                             val at = System.currentTimeMillis()
+                            val pre = ArrayList<JSONObject>(); val extra = ArrayList<JSONObject>()
+                            e?.writes?.entries?.groupBy({ it.value }, { it.key })?.forEach { (c, l) ->
+                                l.forEach { o -> origById[o.optString("id")]?.let { if (c == camp) pre += it }; if (c == camp) extra += o; data.afterSave(auth, c, data.people.save(c, o), false) }
+                                if (c != camp) data.pushNow(auth, c)
+                            }
                             r.toAdd.forEach { data.people.save(camp, it) }
                             r.toAdd.filter { it.optBoolean("isFamilyHead") }.forEach { data.afterSave(auth, camp, it, false) }
                             data.pushNow(auth, camp)
                             map?.let { if (flat) Templates.remember(auth, Importer.fingerprint(headers), headers, it) }
-                            dev.saged.grcs.data.ImportBatch.commit(auth, camp, if (flat) "flat" else "horizontal", fileName, at, emptyList(), r.toAdd, r.toAdd)
+                            dev.saged.grcs.data.Audit.log(auth, camp, "import_excel", camp, fileName, JSONObject().put("added", r.toAdd.size + (e?.added ?: 0)).put("updated", (e?.heads ?: 0) + (e?.members ?: 0)).toString())
+                            dev.saged.grcs.data.ImportBatch.commit(auth, camp, if (flat) "flat" else "horizontal", fileName, at, pre, r.toAdd + extra, r.toAdd + extra)
                         }
-                        undoId = bid; msg = "تمت إضافة ${r.toAdd.size} فرداً"; prev = null; rows = null; map = null; busy = false
+                        undoId = bid; msg = "تمت إضافة ${r.toAdd.size + (e?.added ?: 0)} فرداً" + (e?.let { if (it.heads + it.members > 0) " واكتملت بيانات ${it.heads} رب أسرة و${it.members} فرد موجود" else "" } ?: ""); enr = null; prev = null; rows = null; map = null; busy = false
                     }
                 }, Modifier.fillMaxWidth(), enabled = !busy, icon = QIcons.Check)
             }
