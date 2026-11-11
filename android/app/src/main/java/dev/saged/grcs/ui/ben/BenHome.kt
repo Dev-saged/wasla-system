@@ -52,6 +52,10 @@ import dev.saged.grcs.ui.components.AppHeader
 import dev.saged.grcs.ui.components.Btn
 import dev.saged.grcs.ui.components.QCard
 import dev.saged.grcs.ui.components.SectionTitle
+import dev.saged.grcs.ui.icons.Fa
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.components.QChip
 import dev.saged.grcs.ui.components.QField
@@ -94,24 +98,19 @@ private fun detailRows(x: JSONObject): List<Pair<String, String>> {
 }
 
 @Composable
-private fun Pill(t: String, c: Color) {
-    Text(t, color = c, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(c.copy(alpha = .14f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp))
-}
-
-@Composable
-private fun FormCard(title: String, content: @Composable () -> Unit) {
+private fun FormCard(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, content: @Composable () -> Unit) {
     val p = LocalPalette.current
-    QCard { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { Text(title, color = p.navy.takeIf { !p.dark } ?: p.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold); content() } }
-}
-
-@Composable
-private fun SwitchRow(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
-    val p = LocalPalette.current
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = p.ink, fontSize = 14.sp, modifier = Modifier.weight(1f))
-        androidx.compose.material3.Switch(on, onChange)
+    QCard(pad = 16.dp) {
+        Row(Modifier.padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (icon != null) Icon(icon, null, Modifier.size(17.dp), tint = p.pri)
+            Text(title, color = p.head, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) { content() }
     }
 }
+
+@Composable
+private fun SwitchRow(label: String, on: Boolean, onChange: (Boolean) -> Unit) = dev.saged.grcs.ui.components.SwitchRow(label, null, on, onChange = onChange)
 
 /** شاشة المستفيد بنفس بنية الويب: شارات، حلقة الاكتمال، زر التواصل، أربعة تبويبات، المظهر، كلمة المرور، الخروج. */
 @Composable
@@ -140,8 +139,10 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
         msgs = withContext(Dispatchers.IO) { runCatching { Messages().loadBen(auth) }.getOrDefault(emptyList()) }
         busy = false
     }
-    val head = persons.firstOrNull { it.optBoolean("isFamilyHead") } ?: persons.firstOrNull()
-    val family = persons.filter { it.optString("id") != head?.optString("id") }
+    val myFam = auth.user.json.optString("familyId")
+    val mine = if (myFam.isNotEmpty() && persons.any { it.optString("familyId") == myFam }) persons.filter { it.optString("familyId") == myFam } else persons
+    val head = mine.firstOrNull { it.optBoolean("isFamilyHead") } ?: mine.firstOrNull()
+    val family = mine.filter { it.optString("id") != head?.optString("id") }
     fun saveP(o: JSONObject, extras: List<JSONObject>) {
         scope.launch {
             withContext(Dispatchers.IO) {
@@ -161,28 +162,37 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
     Column(Modifier.fillMaxSize()) {
         AppHeader(auth.user.fullName, if (campName.isEmpty()) "—" else if (campName.trim().startsWith("مخيم")) campName else "مخيم $campName", conn = null, mark = dev.saged.grcs.ui.icons.Fa.User) { HeaderBtn(QIcons.Logout, "تسجيل الخروج", onLogout) }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (auth.offline) dev.saged.grcs.ui.components.OfflineBanner("غير متصل — التعديلات ستُزامن عند توفر الإنترنت")
             if (head == null) {
                 if (busy) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)
                 else QCard { Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { Text("تعذّر إيجاد بياناتك", color = p.ink, fontWeight = FontWeight.Bold, fontSize = 16.sp); Text("تواصل مع مندوب مخيمك", color = p.mute, fontSize = 13.sp) } }
             } else {
                 // شارات الحالة
                 val age = Stats.ageOf(head)
-                val pills = buildList<Pair<String, Color>> {
-                    if (age != null && age < 1) add("رضيع" to p.danger)
-                    if (head.optBoolean("isPregnant")) add("حامل" to p.pregnant)
-                    if (head.optBoolean("isBreastfeeding")) add("مرضعة" to p.purple)
-                    if (head.optBoolean("hasChronicDisease")) add("مرض مزمن" to p.warn)
-                    if (age != null && age >= 60) add("كبير سن" to p.purple)
-                    if (head.optBoolean("hasDisability")) add("إعاقة" to p.blue)
-                    if (head.optString("maritalStatus").contains("أرمل")) add("أرمل/ة" to p.gray)
-                    if (head.optString("maritalStatus").contains("مطلق")) add("مطلّق/ة" to p.gray)
-                    if (head.optString("nationalId").isEmpty()) add("بلا هوية" to p.danger)
-                    if (head.optString("phone").isEmpty()) add("بلا هاتف" to p.gray)
+                val pills = buildList<Triple<String, Color, androidx.compose.ui.graphics.vector.ImageVector>> {
+                    if (age != null && age < 1) add(Triple("رضيع", p.danger, Fa.Baby))
+                    if (head.optBoolean("isPregnant")) add(Triple("حامل", p.pregnant, Fa.BabyCarriage))
+                    if (head.optBoolean("isBreastfeeding")) add(Triple("مرضعة", p.purple, Fa.Baby))
+                    if (head.optBoolean("hasChronicDisease")) add(Triple("مرض مزمن", p.warn, Fa.NotesMedical))
+                    if (age != null && age >= 60) add(Triple("كبير سن", p.purple, Fa.PersonCane))
+                    if (head.optBoolean("hasDisability")) add(Triple("إعاقة", p.blue, Fa.Wheelchair))
+                    if (head.optString("maritalStatus").contains("أرمل")) add(Triple("أرمل/ة", p.gray, Fa.Ring))
+                    if (head.optString("maritalStatus").contains("مطلق")) add(Triple("مطلّق/ة", p.gray, Fa.HeartCrack))
+                    if (head.optString("nationalId").isEmpty()) add(Triple("بلا هوية", p.danger, Fa.IdCardClip))
+                    if (head.optString("phone").isEmpty()) add(Triple("بلا هاتف", p.gray, Fa.PhoneSlash))
                 }
-                if (pills.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { pills.forEach { (t, c) -> Pill(t, c) } }
+                if (pills.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { pills.forEach { (t, c, ic) -> dev.saged.grcs.ui.components.Pill(t, c, icon = ic) } }
                 Completeness(head, family) { t -> tab = t }
-                Btn("تواصل مع إدارة المخيم", { screen = "chat" }, Modifier.fillMaxWidth(), icon = QIcons.Chat)
-                SegTabs(listOf("ملفي", "أسرتي", "طلباتي", "إشعاراتي"), tab, { tab = it })
+                Btn("تواصل مع إدارة المخيم", { screen = "chat" }, Modifier.fillMaxWidth(), icon = Fa.CommentDots)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("ملفي" to Fa.IdCard, "أسرتي" to Fa.PeopleRoof, "طلباتي" to Fa.HandHoldingHeart, "إشعاراتي" to Fa.Bell).forEachIndexed { i, (t, ic) ->
+                        val on = tab == i; val sh = RoundedCornerShape(50)
+                        Column(Modifier.weight(1f).background(if (on) p.navy else p.surface, sh).border(1.5.dp, if (on) p.navy else p.line, sh).clip(sh).clickable { tab = i }.padding(horizontal = 4.dp, vertical = 9.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(ic, null, Modifier.size(18.dp), tint = if (on) Color.White else p.mute)
+                            Text(t, color = if (on) Color.White else p.mute, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        }
+                    }
+                }
                 when (tab) {
                     0 -> ProfileTab(head, onSave = { o -> saveP(o, emptyList()) })
                     1 -> FamilyTab(head, family, onAdd = { editing = JSONObject().put("familyId", head.optString("familyId")).put("isFamilyHead", false).put("relation", "son") }, onOpen = { editing = it })
@@ -190,12 +200,12 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
                     3 -> NotifyTab(head, msgs, auth.user.id)
                 }
             }
-            FormCard("المظهر") { dev.saged.grcs.ui.components.SegTabs(listOf("تلقائي", "فاتح", "داكن"), dev.saged.grcs.ui.theme.ThemePref.mode, { dev.saged.grcs.ui.theme.ThemePref.set(it) }) }
-            Btn("تغيير كلمة المرور", { screen = "changepw" }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Key)
-            Btn("تسجيل الخروج", onLogout, Modifier.fillMaxWidth(), BtnKind.Danger, QIcons.Logout)
+            FormCard("المظهر", Fa.CircleHalfStroke) { dev.saged.grcs.ui.components.SegBtns(listOf("تلقائي" to Fa.CircleHalfStroke, "فاتح" to Fa.Sun, "داكن" to Fa.Moon), dev.saged.grcs.ui.theme.ThemePref.mode) { dev.saged.grcs.ui.theme.ThemePref.set(it) } }
+            Btn("تغيير كلمة المرور", { screen = "changepw" }, Modifier.fillMaxWidth(), BtnKind.Outline, Fa.Key)
+            Btn("تسجيل الخروج", onLogout, Modifier.fillMaxWidth(), BtnKind.Danger, Fa.ArrowRightFromBracket)
             Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("منظومة مخيمات النزوح", color = p.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text("تطوير: المهندس ساجد العبادلة", color = p.mute, fontSize = 11.sp)
+                Text("منظومة مخيمات النزوح", color = p.head, fontSize = 13.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold)
+                Text("تطوير: المهندس ساجد العبادلة", color = p.mute, fontSize = 12.sp, lineHeight = 24.sp)
             }
         }
     }
@@ -219,13 +229,22 @@ private fun Completeness(head: JSONObject, family: List<JSONObject>, goTab: (Int
     }
     QCard {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Ring(pct / 100f, if (pct == 100) p.success else p.tealL, 64.dp, "$pct%")
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(if (pct == 100) "ملفك مكتمل" else "اكتمال ملفك", color = p.ink, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {
+                Ring(pct / 100f, if (pct == 100) p.success else p.pri, 72.dp, "")
+                Text("$pct", color = p.head, fontSize = 19.sp, lineHeight = 19.sp, fontWeight = FontWeight.ExtraBold)
+                Text("%", color = p.mute, fontSize = 10.sp, lineHeight = 10.sp, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 15.dp))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(if (pct == 100) "ملفك مكتمل" else "اكتمال ملفك", color = p.ink, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(bottom = 6.dp))
                 if (missing.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    missing.forEach { m -> Text(m.label, color = p.warn, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.heightIn(min = 32.dp).background(p.warn.copy(alpha = .14f), RoundedCornerShape(50)).clickable { goTab(m.tab) }.padding(horizontal = 10.dp, vertical = 6.dp)) }
-                } else Text("كل البيانات المطلوبة منك موجودة — شكراً لك", color = p.mute, fontSize = 12.sp)
-                if (gaps.isNotEmpty()) Text("يكملها المندوب: " + gaps.joinToString("، "), color = p.mute, fontSize = 12.sp)
+                    missing.forEach { m ->
+                        val sh = RoundedCornerShape(50)
+                        Box(Modifier.heightIn(min = 34.dp).clip(sh).background(if (p.dark) p.warn.copy(alpha = .12f) else Color(0xFFFFFBEB)).drawBehind { drawRoundRect(p.warn.copy(alpha = .6f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height / 2), style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 2.dp.toPx())))) }.clickable { goTab(m.tab) }.padding(horizontal = 12.dp, vertical = 6.dp), contentAlignment = Alignment.Center) {
+                            Text(m.label, color = p.warn, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                } else Text("كل البيانات المطلوبة منك موجودة — شكراً لك", color = p.mute, fontSize = 13.sp)
+                if (gaps.isNotEmpty()) Text("يكملها المندوب: " + gaps.joinToString("، "), color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
             }
         }
     }
@@ -246,26 +265,31 @@ private fun ProfileTab(head: JSONObject, onSave: (JSONObject) -> Unit) {
     var living by remember(head) { mutableStateOf(PFields.living(head)) }
     var urgent by remember(head) { mutableStateOf(head.optBoolean("urgentNeed")) }
     var ud by remember(head) { mutableStateOf(head.optString("urgentNeedDetails")) }
-    FormCard("بياناتي") {
-        detailRows(head).forEach { (k, v) ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(k, color = p.mute, fontSize = 13.sp); Text(v, color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f, false))
+    FormCard("بياناتي", Fa.IdCard) {
+        Column {
+            detailRows(head).forEach { (k, v) ->
+                Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(k, color = p.mute, fontSize = 14.sp); Text(v, color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f))
+                }
+                Spacer(Modifier.fillMaxWidth().height(1.dp).background(p.line))
+            }
+            Row(Modifier.padding(top = 8.dp).fillMaxWidth().background(p.surface2, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Fa.Lock, null, Modifier.size(12.dp), tint = p.mute)
+                Text("الاسم ورقم الهوية ثابتان — للتصحيح تواصل مع المندوب", color = p.mute, fontSize = 12.sp)
             }
         }
-        Text("الاسم ورقم الهوية ثابتان — للتصحيح تواصل مع المندوب", color = p.mute, fontSize = 12.sp)
     }
-    FormCard("تعديل بياناتي") {
+    FormCard("تعديل بياناتي", Fa.Pen) {
         QField("رقم الهاتف", phone, { phone = it }, type = androidx.compose.ui.text.input.KeyboardType.Phone)
-        QField("رقم هاتف إضافي", phone2, { phone2 = it }, type = androidx.compose.ui.text.input.KeyboardType.Phone)
+        QField("رقم هاتف إضافي", phone2, { phone2 = it }, type = androidx.compose.ui.text.input.KeyboardType.Phone, placeholder = "رقم احتياطي للتواصل")
         QField("العنوان / الموقع الحالي", address, { address = it })
         SwitchRow("أعاني من مرض مزمن", chronic) { chronic = it }
         if (chronic) QField("تفاصيل المرض", cd, { cd = it })
         SwitchRow("لدي إعاقة", dis) { dis = it }
         if (dis) QField("تفاصيل الإعاقة", dd, { dd = it })
-        QField("ملاحظات صحية", notes, { notes = it }, multiline = true)
-        Text("نوع المأوى", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { shelters.forEach { (k, l) -> QChip(l, shelter == k) { shelter = if (shelter == k) "" else k } } }
-        QField("تفاصيل الوضع المعيشي", living, { living = it }, multiline = true)
+        QField("ملاحظات صحية", notes, { notes = it }, multiline = true, placeholder = "أي ملاحظات تريد إخبار المندوب بها...")
+        dev.saged.grcs.ui.components.QSelect(shelter, listOf("" to "— اختر —") + shelters, label = "نوع المأوى") { shelter = it }
+        QField("تفاصيل الوضع المعيشي", living, { living = it }, multiline = true, placeholder = "مثال: الخيمة تحتاج شادر جديد، نقيم مع أسرة أخرى...")
         SwitchRow("لدي احتياج طارئ", urgent) { urgent = it }
         if (urgent) QField("ما هو الاحتياج الطارئ؟", ud, { ud = it }, multiline = true)
         Btn("حفظ ومزامنة", {
@@ -277,7 +301,7 @@ private fun ProfileTab(head: JSONObject, onSave: (JSONObject) -> Unit) {
                 .put("notes", notes.trim()).put("shelterType", shelter).put("livingSituation", living.trim())
             PFields.setPhone2(o, phone2.trim())
             onSave(o)
-        }, Modifier.fillMaxWidth(), icon = QIcons.Check)
+        }, Modifier.fillMaxWidth(), icon = Fa.Check)
     }
 }
 
@@ -327,7 +351,7 @@ private fun FamilyTab(head: JSONObject, family: List<JSONObject>, onAdd: () -> U
 private fun RequestsTab(head: JSONObject, type: String, onType: (String) -> Unit, details: String, onDetails: (String) -> Unit, onSend: (JSONObject) -> Unit) {
     val p = LocalPalette.current
     var cancelId by remember { mutableStateOf<String?>(null) }
-    FormCard("طلب جديد") {
+    FormCard("طلب جديد", Fa.HandHoldingHeart) {
         Text("نوع الطلب", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Aid.reqTypes.forEach { (k, l) -> QChip(l, type == k) { onType(k) } } }
         QField("التفاصيل", details, onDetails, multiline = true)
@@ -342,7 +366,7 @@ private fun RequestsTab(head: JSONObject, type: String, onType: (String) -> Unit
         QCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(reqLabels[r.optString("type")] ?: r.optString("type"), color = p.ink, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Pill(Aid.reqStatus[st] ?: st, c)
+                dev.saged.grcs.ui.components.Pill(Aid.reqStatus[st] ?: st, c)
             }
             if (r.optString("details").isNotEmpty()) Text(r.optString("details"), color = p.mute, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
             if (r.optString("reply").isNotEmpty()) Text("↩ " + r.optString("reply"), color = p.ink, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
@@ -353,7 +377,7 @@ private fun RequestsTab(head: JSONObject, type: String, onType: (String) -> Unit
 @Composable
 private fun NotifyTab(head: JSONObject, msgs: List<JSONObject>, uid: String) {
     val p = LocalPalette.current
-    FormCard("الإشعارات") { Text("تصلك رسائل الإدارة وتحديثات الطلبات هنا عند فتح التطبيق.", color = p.mute, fontSize = 13.sp) }
+    FormCard("الإشعارات", Fa.Bell) { Text("تصلك رسائل الإدارة وتحديثات الطلبات هنا عند فتح التطبيق.", color = p.mute, fontSize = 13.sp) }
     SectionTitle("آخر الإشعارات")
     data class F(val t: Long, val title: String, val body: String)
     val feed = buildList {

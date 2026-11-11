@@ -42,6 +42,7 @@ import dev.saged.grcs.ui.components.QField
 import dev.saged.grcs.ui.components.Ring
 import dev.saged.grcs.ui.components.SearchBox
 import dev.saged.grcs.ui.components.fa
+import dev.saged.grcs.ui.icons.Fa
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.theme.LocalPalette
 import kotlinx.coroutines.Dispatchers
@@ -58,9 +59,8 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
     val scope = rememberCoroutineScope()
     var camps by remember { mutableStateOf(data.cached(auth).sortedByDescending { it.stats.total }) }
     val admin = auth.user.role == "admin"
-    var edit by remember { mutableStateOf<CampSummary?>(null) }
-    var creating by remember { mutableStateOf(false) }
-    var busy by remember { mutableStateOf(false) }
+    var del by remember { mutableStateOf<CampSummary?>(null) }
+    var critFam by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var sub by remember { mutableStateOf("") }
     var q by remember { mutableStateOf("") }
     var hits by remember { mutableStateOf<List<Triple<String, String, org.json.JSONObject>>>(emptyList()) }
@@ -72,6 +72,7 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
 
     LaunchedEffect(camps.size) {
         quality = withContext(Dispatchers.IO) { camps.associate { c -> c.id to (runCatching { Quality.report(data.people.persons(c.id)).first }.getOrDefault(0)) } }
+        critFam = withContext(Dispatchers.IO) { camps.associate { c -> c.id to (runCatching { dev.saged.grcs.data.Vuln.families(data.people.persons(c.id)).count { it.result.tier == "critical" } }.getOrDefault(0)) } }
         infos = withContext(Dispatchers.IO) { camps.mapNotNull { c -> runCatching { c.id to data.campInfo(auth, c.id) }.getOrNull() }.toMap() }
     }
     LaunchedEffect(q) {
@@ -90,19 +91,17 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
         sub.startsWith("detail:") -> { dev.saged.grcs.ui.home.HomeScreen(auth, data, {}, { }, { }, onlyCamp = sub.removePrefix("detail:"), onBack = { sub = "" }, onPeople = { onOpen(sub.removePrefix("detail:")) }); return }
     }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("المخيمات", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.Tents) {
-            if (admin) HeaderBtn(QIcons.Plus, "مخيم جديد") { creating = true }
-        }
+        AppHeader("المخيمات", "", conn = null, mark = Fa.Tents)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (admin) {
-                Btn("مطابقة كشف وطني شامل (مطابقة وتكميل بيانات)", { sub = "reconcile" }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Search)
-                Btn("كشوفات التصنيفات لكل المخيمات (أيتام، حوامل…)", { sub = "cats" }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Filter)
+                Btn("مطابقة كشف وطني شامل (مطابقة وتكميل بيانات)", { sub = "reconcile" }, Modifier.fillMaxWidth(), BtnKind.Outline, Fa.UsersViewfinder)
+                Btn("كشوفات التصنيفات لكل المخيمات (أيتام، حوامل...)", { sub = "cats" }, Modifier.fillMaxWidth(), BtnKind.Outline, Fa.LayerGroup)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Btn("المساعدات — كل المخيمات", { sub = "aid" }, Modifier.weight(1f), BtnKind.Outline, QIcons.Heart)
-                    Btn("مركز الجودة", { sub = "quality" }, Modifier.weight(1f), BtnKind.Outline, QIcons.Check)
+                    Btn("المساعدات — كل المخيمات", { sub = "aid" }, Modifier.weight(1f), BtnKind.Outline, Fa.BoxOpen)
+                    Btn("مركز الجودة", { sub = "quality" }, Modifier.weight(1f), BtnKind.Outline, Fa.ShieldHalved)
                 }
-                Btn("تصدير بيانات المخيمات", { sub = "export" }, Modifier.fillMaxWidth(), BtnKind.Navy, QIcons.Export)
-                SearchBox(q, { q = it }, "بحث موحّد: اسم شخص أو مخيم…")
+                Btn("تصدير بيانات المخيمات", { sub = "export" }, Modifier.fillMaxWidth(), BtnKind.Navy, Fa.FileExcel)
+                SearchBox(q, { q = it }, "بحث موحّد: اسم شخص أو مخيم...")
                 hits.forEach { (cid, cn, ps) ->
                     QCard(Modifier, { onFamily(cid, ps.optString("familyId").ifEmpty { "i_" + ps.optString("id") }) }) {
                         Text(ps.optString("fullName"), color = p.ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -111,68 +110,49 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
                 }
             }
             if (note.isNotEmpty()) Text(note, color = p.mute, fontSize = 12.sp)
-            if (camps.isEmpty()) EmptyState(QIcons.Camp, "لا بيانات بعد", "افتح الرئيسية للمزامنة")
+            if (camps.isEmpty()) EmptyState(Fa.Tent, "لا توجد مخيمات بعد", "أنشئ حساب مندوب مخيم من شاشة الحسابات")
             camps.filter { q.isBlank() || it.name.contains(q.trim()) }.forEach { c ->
                 val info = infos[c.id]
-                QCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(c.name, color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
-                        if (admin) androidx.compose.foundation.layout.Box(Modifier.size(44.dp).clickable { edit = c }, contentAlignment = Alignment.Center) { androidx.compose.material3.Icon(QIcons.Edit, "تعديل الاسم", Modifier.size(20.dp), tint = p.mute) }
-                    }
-                    Text(listOfNotNull(info?.supervisor?.ifEmpty { null }, info?.supervisorPhone?.ifEmpty { null }).joinToString(" — ").ifEmpty { "—" }, color = p.mute, fontSize = 12.sp)
-                    Spacer(Modifier.height(10.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                val crit = critFam[c.id] ?: 0
+                QCard(Modifier, { sub = "detail:" + c.id }) {
+                    Text(c.name, color = p.ink, fontSize = 15.5.sp, fontWeight = FontWeight.Bold)
+                    Text(info?.supervisor?.ifEmpty { null } ?: "—", color = p.mute, fontSize = 12.5.sp, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
+                    Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         Stat(fa(c.stats.total), "فرد"); Stat(fa(c.stats.families), "أسرة")
                         Stat(info?.lastUpdated?.takeIf { it > 0 }?.let { fmt.format(Date(it)) } ?: "—", "آخر تحديث")
+                        if (crit > 0) Stat(fa(crit), "أسرة حرجة", p.acc)
                     }
-                    Spacer(Modifier.height(10.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.padding(top = 2.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("اكتمال البيانات", color = p.mute, fontSize = 12.sp)
                         val pct = quality[c.id] ?: 0
-                        Ring(pct / 100f, if (pct >= 85) p.success else if (pct >= 60) p.warn else p.danger, 52.dp, "$pct%")
+                        Ring(pct / 100f, if (pct >= 85) p.success else if (pct >= 60) p.warn else p.danger, 46.dp, "$pct%")
                     }
-                    Spacer(Modifier.height(10.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Btn("عرض التفاصيل", { sub = "detail:" + c.id }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                        Btn("تحميل كشف Excel", {
-                            scope.launch {
-                                val r = withContext(Dispatchers.IO) { data.export.run("xlsx", c.id, c.name, data.people.persons(c.id), false) }
-                                note = if (r.ok) "تم حفظ ${r.count} سجل: ${r.name}" else "تعذّر الحفظ — تحقق من إذن التخزين"
-                            }
-                        }, Modifier.fillMaxWidth(), BtnKind.Outline)
-                        if (admin) Btn("حذف المخيم", { sub = "danger" }, Modifier.fillMaxWidth(), BtnKind.Danger)
-                    }
+                    Btn("عرض التفاصيل", { sub = "detail:" + c.id }, Modifier.fillMaxWidth(), BtnKind.Outline, Fa.ArrowLeft, small = true)
+                    Btn("تحميل كشف Excel", {
+                        scope.launch {
+                            val r = withContext(Dispatchers.IO) { data.export.run("xlsx", c.id, c.name, data.people.persons(c.id), false) }
+                            note = if (r.ok) "تم حفظ ${r.count} سجل: ${r.name}" else "تعذّر الحفظ — تحقق من إذن التخزين"
+                        }
+                    }, Modifier.fillMaxWidth().padding(top = 8.dp), BtnKind.Outline, Fa.Download, small = true)
+                    if (admin) Btn("حذف المخيم", { del = c }, Modifier.fillMaxWidth().padding(top = 8.dp), BtnKind.Danger, Fa.Trash, small = true)
                 }
             }
             Spacer(Modifier.height(16.dp))
         }
     }
-    if (creating || edit != null) {
-        var name by remember(edit, creating) { mutableStateOf(edit?.name.orEmpty()) }
-        AlertDialog(
-            onDismissRequest = { if (!busy) { creating = false; edit = null } },
-            title = { Text(if (creating) "مخيم جديد" else "تعديل اسم المخيم") },
-            text = { QField("اسم المخيم", name, { name = it }) },
-            confirmButton = {
-                TextButton(enabled = !busy && name.isNotBlank(), onClick = {
-                    busy = true
-                    val target = edit
-                    scope.launch {
-                        withContext(Dispatchers.IO) { if (target == null) data.createCamp(auth, name) != null else data.renameCamp(auth, target.id, name) }
-                        busy = false; creating = false; edit = null; reload()
-                    }
-                }) { Text("حفظ") }
-            },
-            dismissButton = { TextButton(enabled = !busy, onClick = { creating = false; edit = null }) { Text("إلغاء") } },
-        )
+    del?.let { c ->
+        dev.saged.grcs.ui.components.ConfirmSheet("سيتم حذف مخيم \"${c.name}\" مع كل بياناته (الأفراد، الأسر، الرسائل، أي حسابات متبقية تابعة له) من هذا الجهاز ومن قاعدة البيانات المركزية. تبقى نسخة من المخيم وأفراده وحساباته في سلة المحذوفات 30 يوماً (الرسائل لا تُستعاد).", "حذف المخيم نهائياً", "حذف نهائي", icon = Fa.Trash, onCancel = { del = null }) {
+            del = null
+            scope.launch { val e = withContext(Dispatchers.IO) { data.wipeCamp(auth, c.id, c.name, true) }; note = e ?: "تم حذف المخيم"; reload() }
+        }
     }
 }
 
 @Composable
-private fun Stat(value: String, label: String) {
+private fun Stat(value: String, label: String, color: androidx.compose.ui.graphics.Color? = null) {
     val p = LocalPalette.current
     Column {
-        Text(value, color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
-        Text(label, color = p.mute, fontSize = 11.5.sp)
+        Text(value, color = color ?: p.head, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = p.mute, fontSize = 12.5.sp)
     }
 }

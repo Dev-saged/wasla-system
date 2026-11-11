@@ -74,6 +74,7 @@ class ShotTest {
     @Test fun admin() = run("admin") { for ((t, n) in listOf("المخيمات" to "camps-admin", "الرسائل" to "messages-list", "الحسابات" to "accounts-admin", "الإعدادات" to "settings")) { tap(t, -1); shot("admin-$n") } }
     @Test fun delegate() = run("delegate") { for ((t, n) in listOf("الأفراد" to "persons", "الرسائل" to "messages-list", "تصدير" to "export", "الإعدادات" to "settings")) { tap(t, -1); shot("delegate-$n") } }
     @Test fun delegatePeople() = run("delegate") { tap("الأفراد", -1); settle(10); shot("delegate-persons2"); if (tap("محمد أحمد سالم النجار")) shot("delegate-person-detail") }
+    @Test fun delegateForm() = run("delegate") { tap("الأفراد", -1); settle(10); rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("تعديل"))[0].performClick(); settle(); shot("delegate-person-edit") }
     @Test fun dataentry() = run("dataentry") { tap("الأفراد", -1); shot("dataentry-persons"); tap("الإعدادات", -1); shot("dataentry-settings") }
     @Test fun beneficiary() = run("beneficiary") { }
 }

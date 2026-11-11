@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.em
 import dev.saged.grcs.ui.icons.Fa
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.theme.GrcsFonts
@@ -457,7 +458,7 @@ fun SearchBox(value: String, onChange: (String) -> Unit, hint: String, modifier:
             if (value.isEmpty()) Text(hint, color = p.mute, fontSize = 14.sp)
             androidx.compose.foundation.text.BasicTextField(
                 value, onChange, singleLine = true,
-                textStyle = androidx.compose.ui.text.TextStyle(color = p.ink, fontSize = 14.sp, fontFamily = GrcsFonts.body),
+                textStyle = androidx.compose.ui.text.TextStyle(color = p.ink, fontSize = 16.sp, fontFamily = GrcsFonts.body, lineHeight = 1.6.em, lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center, androidx.compose.ui.text.style.LineHeightStyle.Trim.None)),
                 cursorBrush = androidx.compose.ui.graphics.SolidColor(p.pri), modifier = Modifier.fillMaxWidth(),
             )
         }

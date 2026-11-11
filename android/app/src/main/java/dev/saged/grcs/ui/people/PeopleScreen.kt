@@ -48,6 +48,8 @@ import dev.saged.grcs.ui.icons.Fa
 import dev.saged.grcs.ui.components.HeaderBtn
 import dev.saged.grcs.ui.components.cardShadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.navigationBarsPadding
 import dev.saged.grcs.ui.icons.QIcons
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -404,93 +406,110 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
         return null
     }
 
+    dev.saged.grcs.ui.shell.Immersive()
     Column(Modifier.fillMaxSize()) {
         AppHeader(if (isNew) "إضافة فرد جديد" else "تعديل بيانات فرد", "", conn = null, onBack = onBack, backIcon = Fa.Xmark)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            FormCard("البيانات الأساسية") {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            FormCard("البيانات الأساسية", Fa.IdCard) {
                 QField("الاسم الكامل *", name, { name = it })
                 QField("رقم الهوية *", nid, { nid = it }, type = KeyboardType.Number)
-                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable { noId = !noId; if (noId) nid = "" }, verticalAlignment = Alignment.CenterVertically) {
-                    androidx.compose.material3.Checkbox(noId, { noId = it; if (it) nid = "" })
+                Row(Modifier.fillMaxWidth().clickable { noId = !noId; if (noId) nid = "" }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val sh = RoundedCornerShape(3.dp)
+                    Box(Modifier.size(16.dp).background(if (noId) p.pri else p.surface, sh).border(1.5.dp, if (noId) p.pri else p.mute, sh), contentAlignment = Alignment.Center) { if (noId) androidx.compose.material3.Icon(Fa.Check, null, Modifier.size(10.dp), tint = Color.White) }
                     Text("لا يوجد رقم هوية بعد (مولود لم تصدر هويته)", color = p.mute, fontSize = 12.sp)
                 }
                 dev.saged.grcs.ui.components.DateField("تاريخ الميلاد", dob, { dob = it })
                 val age = dobAge(normDigits(dob))
-                Text("العمر المحسوب: " + (age?.let { "$it سنة" } ?: "—"), color = p.mute, fontSize = 12.5.sp)
-                Text("الجنس", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    QChip("ذكر", gender == "male") { gender = "male" }
-                    QChip("أنثى", gender == "female") { gender = "female" }
-                    QChip("غير محدد", gender == "unknown") { gender = "unknown" }
+                Column {
+                    Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("العمر المحسوب", color = p.ink, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text(age?.let { "$it سنة" } ?: "—", color = p.mute, fontSize = 13.sp)
+                    }
+                    if (age == null) Text("أدخل تاريخ الميلاد ليُصنَّف تلقائياً", color = p.mute, fontSize = 13.sp)
+                    else FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val (bg, fg, ic, t) = when { age < 18 -> listOf(Color(0xFFFEF3C7), Color(0xFF92400E), Fa.Child, "طفل"); age >= 60 -> listOf(Color(0xFFEDE9FE), Color(0xFF5B21B6), Fa.PersonCane, "كبير سن"); else -> listOf(Color(0xFFDBEAFE), Color(0xFF1E40AF), Fa.User, "بالغ") }
+                        Row(Modifier.background(bg as Color, CircleShape).padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            androidx.compose.material3.Icon(ic as androidx.compose.ui.graphics.vector.ImageVector, null, Modifier.size(11.dp), tint = fg as Color)
+                            Text("$t · $age سنة", color = fg, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        val band = when { age < 1 -> "رضع <1"; age <= 5 -> "أطفال 1-5"; age < 18 -> "أطفال 6-18"; age <= 30 -> "شباب 18-30"; age < 60 -> "بالغون 30-60"; else -> "كبار السن +60" }
+                        Text(band, color = p.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(p.surface2, CircleShape).padding(horizontal = 10.dp, vertical = 4.dp))
+                    }
+                }
+                Column {
+                    Text("الجنس", color = p.ink, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 6.dp))
+                    GenderSeg(gender) { gender = it }
                 }
             }
-            FormCard("الأسرة") {
-                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("رب الأسرة", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    androidx.compose.material3.Switch(head, null, enabled = false)
-                }
+            FormCard("الأسرة", Fa.HouseChimney) {
+                IconSwitch("رب الأسرة", Fa.Crown, head, enabled = false) {}
                 if (head) {
-                    Text("الحالة الاجتماعية", color = p.mute, fontSize = 12.sp)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { maritalLabels.forEach { m -> QChip(m, marital == m) { marital = m } } }
-                    Text("نوع المأوى", color = p.mute, fontSize = 12.sp)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { shelterLabels.forEach { (k, l) -> QChip(l, shelter == k) { shelter = if (shelter == k) "" else k } } }
-                } else if (!src.optBoolean("isFamilyHead")) {
-                    Text("صلة القرابة برب الأسرة", color = p.mute, fontSize = 12.sp)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { relLabels.forEach { (k, l) -> QChip(l, rel == k) { rel = k } } }
+                    dev.saged.grcs.ui.components.QSelect(shelter, listOf("" to "— اختر —") + shelterLabels, label = "نوع المأوى") { shelter = it }
+                    Column {
+                        dev.saged.grcs.ui.components.FilterLabelPlain("الحالة الاجتماعية", Fa.Ring)
+                        val msIcons = listOf(Fa.Heart, Fa.UserShield, Fa.Ring, Fa.User)
+                        dev.saged.grcs.ui.components.SegBtns(maritalLabels.mapIndexed { i, m -> m to msIcons.getOrNull(i) }, maritalLabels.indexOf(marital)) { marital = maritalLabels[it] }
+                    }
                 }
             }
             if (head) {
-                FormCard("الزوج / الزوجة (اختياري)") {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        QField("الاسم الكامل", sName, { sName = it })
-                        QField("رقم الهوية", sNid, { sNid = it }, type = KeyboardType.Number)
+                FormCard("الزوج / الزوجة (اختياري)", Fa.PeoplePulling) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        QField("الاسم الكامل", sName, { sName = it }, placeholder = "اسم الزوج/ة رباعي")
+                        QField("رقم الهوية (مطلوب إن أُدخل الاسم)", sNid, { sNid = it }, type = KeyboardType.Number)
                         dev.saged.grcs.ui.components.DateField("تاريخ الميلاد", sDob, { sDob = it })
                         val sFemale = gender == "male"
-                        if (sName.isNotBlank() && sFemale) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            QChip("حامل", sPreg) { sPreg = !sPreg }; QChip("مرضعة", sBf) { sBf = !sBf }
+                        if (sName.isNotBlank() && sFemale) Column {
+                            IconSwitch("حامل", Fa.BabyCarriage, sPreg) { sPreg = it }; IconSwitch("مرضعة", Fa.Baby, sBf) { sBf = it }
                         }
                     }
                 }
-                FormCard("أفراد الأسرة (اختياري)") {
+                FormCard("أفراد الأسرة (اختياري)", Fa.Children) {
                 kids.forEachIndexed { i, st ->
                     val k = st.value
                     QCard {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             QField("الاسم", k.name, { st.value = Kid(it, k.gender, k.dob, k.rel) })
                             dev.saged.grcs.ui.components.DateField("تاريخ الميلاد", k.dob, { st.value = Kid(k.name, k.gender, it, k.rel) })
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                QChip("ذكر", k.gender == "male") { st.value = Kid(k.name, "male", k.dob, k.rel) }
-                                QChip("أنثى", k.gender == "female") { st.value = Kid(k.name, "female", k.dob, k.rel) }
-                            }
+                            GenderSeg(k.gender, unknown = false) { st.value = Kid(k.name, it, k.dob, k.rel) }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { relLabels.forEach { (rk, l) -> QChip(l, k.rel == rk) { st.value = Kid(k.name, k.gender, k.dob, rk) } } }
-                            Btn("حذف", { kids.removeAt(i) }, kind = BtnKind.Danger)
+                            Btn("حذف", { kids.removeAt(i) }, kind = BtnKind.Danger, small = true, icon = Fa.Trash)
                         }
                     }
                 }
-                Btn("إضافة فرد للأسرة", { kids.add(mutableStateOf(Kid("", "", "", "son"))) }, kind = BtnKind.Outline, icon = QIcons.Plus)
+                Row { Btn("إضافة فرد للأسرة", { kids.add(mutableStateOf(Kid("", "", "", "son"))) }, kind = BtnKind.Outline, small = true, icon = Fa.Plus) }
                 }
             }
-            FormCard("التواصل") {
+            FormCard("التواصل", Fa.AddressBook) {
                 QField("رقم الهاتف الأساسي", phone, { phone = it }, type = KeyboardType.Phone)
                 QField("رقم هاتف إضافي (اختياري)", phone2, { phone2 = it }, type = KeyboardType.Phone)
                 QField("العنوان / الموقع", address, { address = it })
             }
-            FormCard("الحالة الصحية") {
-                if (gender == "female") ToggleLine("حامل", preg) { preg = it }
-                if (gender == "female") ToggleLine("مرضعة", bf) { bf = it }
-                ToggleLine("مرض مزمن", chronic) { chronic = it }
-                if (chronic) {
-                    Text("اختر الحالة/الحالات المرضية", color = p.mute, fontSize = 12.sp)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { chronicLabels.forEach { (k, l) -> QChip(l, k in conds) { if (k in conds) conds.remove(k) else conds.add(k) } } }
-                    QField("تفاصيل إضافية / أخرى", diseaseDetails, { diseaseDetails = it })
+            FormCard("الحالة الصحية", Fa.HeartPulse) {
+                Column {
+                    if (gender == "female") IconSwitch("حامل", Fa.BabyCarriage, preg) { preg = it }
+                    if (gender == "female") IconSwitch("مرضعة", Fa.Baby, bf) { bf = it }
+                    IconSwitch("مرض مزمن", Fa.NotesMedical, chronic) { chronic = it }
+                    if (chronic) Column(Modifier.padding(top = 10.dp)) {
+                        Text("اختر الحالة/الحالات المرضية", color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))
+                        FlowRow(Modifier.padding(top = 10.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            chronicLabels.forEach { (k, l) ->
+                                val on = k in conds; val sh = RoundedCornerShape(50)
+                                Text(l, color = if (on) p.danger else p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(sh).background(if (on) p.danger.copy(alpha = if (p.dark) .13f else .06f) else p.surface2).border(1.5.dp, if (on) p.danger else p.line, sh).clickable { if (on) conds.remove(k) else conds.add(k) }.padding(horizontal = 14.dp, vertical = 7.dp))
+                            }
+                        }
+                        QField("", diseaseDetails, { diseaseDetails = it }, Modifier.padding(top = 8.dp), placeholder = "تفاصيل إضافية / أخرى")
+                    }
+                    IconSwitch("إعاقة", Fa.Wheelchair, dis) { dis = it }
+                    if (dis) QField("", disDetails, { disDetails = it }, Modifier.padding(top = 10.dp), placeholder = "تفاصيل الإعاقة")
                 }
-                ToggleLine("إعاقة", dis) { dis = it }
-                if (dis) QField("تفاصيل الإعاقة", disDetails, { disDetails = it })
             }
-            FormCard("ملاحظات") { QField("ملاحظات إضافية…", notes, { notes = it }, multiline = true) }
+            FormCard("ملاحظات", Fa.NoteSticky) { QField("", notes, { notes = it }, multiline = true, placeholder = "ملاحظات إضافية...") }
             (err ?: serverErr)?.let { Text(it, color = p.danger, fontSize = 13.sp) }
             Spacer(Modifier.height(8.dp))
         }
+        Spacer(Modifier.fillMaxWidth().height(1.dp).background(p.line))
+        Box(Modifier.fillMaxWidth().background(p.surface).navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Btn("حفظ", {
             err = validate()
                 if (err == null) {
@@ -530,7 +549,8 @@ internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: Strin
                     }
                     onSave(o, ex)
                 }
-        }, Modifier.fillMaxWidth().padding(16.dp), icon = QIcons.Check)
+        }, Modifier.fillMaxWidth(), icon = Fa.Check)
+        }
     }
 }
 
@@ -547,19 +567,44 @@ private fun dobAge(d: String): Int? {
 }
 
 @Composable
-private fun FormCard(title: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+private fun FormCard(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     val p = LocalPalette.current
-    QCard {
-        Text(title, color = p.navy.takeIf { !p.dark } ?: p.ink, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(bottom = 10.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
+    QCard(pad = 16.dp) {
+        Row(Modifier.padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (icon != null) androidx.compose.material3.Icon(icon, null, Modifier.size(17.dp), tint = p.pri)
+            Text(title.substringBefore(" (اختياري)"), color = p.head, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            if (title.endsWith("(اختياري)")) Text("(اختياري)", color = p.mute, fontSize = 13.sp)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
     }
 }
 
+/** صف مفتاح بأيقونة (toggle-row). */
 @Composable
-private fun ToggleLine(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
+private fun IconSwitch(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, on: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
     val p = LocalPalette.current
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-        androidx.compose.material3.Switch(on, onChange)
+    Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+        Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) { androidx.compose.material3.Icon(icon, null, Modifier.size(15.dp), tint = p.ink) }
+        Text(label, color = p.ink, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        dev.saged.grcs.ui.components.QSwitch(on) { if (enabled) onChange(it) }
+    }
+}
+
+/** أزرار الجنس المقسّمة بألوان الويب (أزرق للذكر، وردي للأنثى). */
+@Composable
+private fun GenderSeg(gender: String, unknown: Boolean = true, onSel: (String) -> Unit) {
+    val p = LocalPalette.current
+    val shape = RoundedCornerShape(10.dp)
+    val items = listOfNotNull(Triple("male", "ذكر", Fa.Mars), Triple("female", "أنثى", Fa.Venus), if (unknown) Triple("unknown", "غير محدد", Fa.Question) else null)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.forEach { (k, l, ic) ->
+            val on = gender == k
+            val c = when { !on -> p.mute; k == "male" -> p.blue; k == "female" -> Color(0xFFDB2777); else -> if (p.dark) p.tealL else p.tealD }
+            val bg = when { !on -> p.surface; k == "male" -> p.blue.copy(alpha = .09f); k == "female" -> Color(0xFFDB2777).copy(alpha = .06f); else -> p.pri.copy(alpha = .08f) }
+            Row(Modifier.weight(1f).heightIn(min = 46.dp).clip(shape).background(bg).border(1.5.dp, if (!on) p.line else if (k == "unknown") p.pri else c, shape).clickable { onSel(k) }, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.material3.Icon(ic, null, Modifier.size(14.dp), tint = c); Spacer(Modifier.width(6.dp))
+                Text(l, color = c, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            }
+        }
     }
 }

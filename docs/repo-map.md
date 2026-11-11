@@ -91,3 +91,5 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - R7: PeopleScreen allMode = قائمة التصنيف لكل المخيمات للأدمن (screen-category): عنوان التصنيف + «N سجل — كل المخيمات»، زر تحميل الكشف، بطاقة بهوية/هاتف/مخيم/مسؤول، والضغط يفتح تفاصيل الفرد.
 - R7: Chat = حالة فارغة، «مُستلمة» على الصادر، زر رسائل المستفيدين في الترويسة؛ OpeningScreen = شاشة البداية كالويب (خلفية كحلية، شارة، العنوان، سطر المطوّر، شريط تحميل).
 R8: التصنيفات (TagsDialog) من openTagsEditor — يتيم/جريح/أسرة شهيد/مخصصة، زر في تفاصيل الفرد.
+R9: مطابقة بصرية بالمقارنة الآلية — docs/web-spec/{fixture.py,shoot-web.js,shoot-kt.sh} تلتقط الويب وKotlin بنفس البيانات؛ ShotTest يعمل فقط مع GRCS_SHOTS. الأيقونات Fa.kt (مولّد من gen-fa.py) وQIcons تشير إليها.
+R9: Kit: Sheet/ConfirmSheet/SettingsRow/QSwitch/SwitchRow/SegBtns/QSelect/CheckRow/FilterLabel/OfflineBanner؛ خط Cairo بمقاييس رأسية معدّلة (patch-font-metrics.py) وارتفاع سطر 1.6؛ ShellState.immersive يخفي الشريط السفلي في نموذج الفرد.

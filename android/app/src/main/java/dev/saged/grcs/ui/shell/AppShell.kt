@@ -69,6 +69,13 @@ import androidx.compose.runtime.LaunchedEffect
 import dev.saged.grcs.ui.theme.LocalPalette
 import dev.saged.grcs.ui.theme.rememberReduceMotion
 
+/** عدّاد الشاشات التي تخفي الشريط السفلي وزر الإضافة (نموذج الفرد والمحادثة) كما في الويب. */
+object ShellState { var immersive by androidx.compose.runtime.mutableIntStateOf(0) }
+
+/** يخفي الشريط السفلي ما دامت الشاشة معروضة. */
+@Composable
+fun Immersive() { androidx.compose.runtime.DisposableEffect(Unit) { ShellState.immersive++; onDispose { ShellState.immersive-- } } }
+
 private enum class Tab(val label: String, val icon: ImageVector) {
     Home("الرئيسية", Fa.House), Camps("المخيمات", Fa.Tents), People("الأفراد", Fa.Users),
     Chat("الرسائل", Fa.Comments), Accounts("الحسابات", Fa.UsersGear), Export("تصدير", Fa.ChartSimple),
@@ -134,12 +141,12 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             }
         }
         val field = auth.user.role == "delegate" || auth.user.role == "dataentry" || (auth.user.role == "admin" && openCamp != null)
-        if (field && !importing && (tab == Tab.Home || tab == Tab.People || (tab == Tab.Camps && openCamp != null))) Column(Modifier.align(Alignment.BottomEnd).padding(start = 16.dp, end = 16.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        if (field && !importing && ShellState.immersive == 0 && (tab == Tab.Home || tab == Tab.People || (tab == Tab.Camps && openCamp != null))) Column(Modifier.align(Alignment.BottomEnd).padding(start = 16.dp, end = 16.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(Modifier.size(44.dp).shadow(4.dp, CircleShape).background(p.surface, CircleShape).border(1.5.dp, p.line, CircleShape).clickable { importing = true }, contentAlignment = Alignment.Center) { Icon(Fa.FileArrowUp, "استيراد Excel", tint = p.head, modifier = Modifier.size(16.dp)) }
             Box(Modifier.size(56.dp).shadow(8.dp, CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.tealD)), CircleShape).clickable { if (tab == Tab.Home) { homeFilter = null; sel = tabs.indexOf(Tab.People).coerceAtLeast(0) }; newTrig++ }, contentAlignment = Alignment.Center) { Icon(Fa.Plus, "إضافة فرد", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(22.dp)) }
         }
         }
-        if (!ben) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null; importing = false }
+        if (!ben && ShellState.immersive == 0) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null; importing = false }
     }
 }
 

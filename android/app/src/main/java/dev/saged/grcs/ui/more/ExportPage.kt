@@ -45,6 +45,8 @@ import dev.saged.grcs.ui.components.BtnKind
 import dev.saged.grcs.ui.components.QChip
 import dev.saged.grcs.ui.components.QField
 import dev.saged.grcs.ui.components.SectionTitle
+import dev.saged.grcs.ui.icons.Fa
+import dev.saged.grcs.ui.components.FilterLabel
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.theme.LocalPalette
 import kotlinx.coroutines.Dispatchers
@@ -124,61 +126,47 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize()) {
         AppHeader("تصدير تقرير مخصص", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.FileExport, endBack = onBack.takeIf { auth.user.role == "admin" })
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
             if (camps.size > 1) {
-                Text("المخيم", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { QChip("كل المخيمات", camp == "*") { camp = "*" }; camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
+                FilterLabel("المخيم", Fa.Tent)
+                FlowRow(Modifier.padding(bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { QChip("كل المخيمات", camp == "*") { camp = "*" }; camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
             }
-            Text("طريقة العرض", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QChip("حسب الأسرة (صف واحد لكل أسرة)", mode == "family") { mode = "family" }
-                QChip("حسب الفرد (تصفية مفصّلة)", mode == "individual") { mode = "individual" }
+            FilterLabel("طريقة العرض", Fa.TableList)
+            androidx.compose.foundation.lazy.LazyRow(Modifier.padding(bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item { QChip("حسب الأسرة (صف واحد لكل أسرة)", mode == "family") { mode = "family" } }
+                item { QChip("حسب الفرد (تصفية مفصّلة)", mode == "individual") { mode = "individual" } }
             }
             if (mode == "individual") {
-                Text("الجنس", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("all" to "الكل", "male" to "ذكور", "female" to "إناث").forEach { (k, l) -> QChip(l, gender == k) { gender = k } } }
-                Text("الفئة العمرية", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("all" to "الكل", "infant" to "أقل من سنة", "preschool" to "1-5 سنوات", "school" to "6-18 سنة", "youth" to "شباب 18-30", "midAdult" to "بالغون 30-60", "elderly" to "كبار السن +60", "custom" to "نطاق مخصص").forEach { (k, l) -> QChip(l, age == k) { age = k } }
+                FilterLabel("الجنس", Fa.VenusMars)
+                dev.saged.grcs.ui.components.QSelect(gender, listOf("all" to "الكل", "male" to "ذكور", "female" to "إناث"), Modifier.padding(bottom = 14.dp)) { gender = it }
+                FilterLabel("الفئة العمرية", Fa.CakeCandles)
+                dev.saged.grcs.ui.components.QSelect(age, listOf("all" to "الكل", "infant" to "أقل من سنة", "preschool" to "1-5 سنوات", "school" to "6-18 سنة", "youth" to "شباب 18-30", "midAdult" to "بالغون 30-60", "elderly" to "كبار السن +60", "custom" to "نطاق مخصص"), Modifier.padding(bottom = if (age == "custom") 8.dp else 14.dp)) { age = it }
+                if (age == "custom") Row(Modifier.padding(bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    QField("", ageMin, { ageMin = it.filter { c -> c.isDigit() } }, Modifier.weight(1f), KeyboardType.Number, placeholder = "من")
+                    QField("", ageMax, { ageMax = it.filter { c -> c.isDigit() } }, Modifier.weight(1f), KeyboardType.Number, placeholder = "إلى")
                 }
-                if (age == "custom") Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    QField("من", ageMin, { ageMin = it.filter { c -> c.isDigit() } }, Modifier.weight(1f), KeyboardType.Number)
-                    QField("إلى", ageMax, { ageMax = it.filter { c -> c.isDigit() } }, Modifier.weight(1f), KeyboardType.Number)
-                }
-                listOf("pregnant" to "الحوامل فقط", "chronic" to "المرضى المزمنون فقط", "disability" to "ذوو الإعاقة فقط", "widowed" to "الأرامل فقط", "divorced" to "المطلّقات/ين فقط", "nophone" to "بدون هاتف", "noid" to "بدون رقم هوية").forEach { (k, l) ->
-                    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable { if (k in flags) flags.remove(k) else flags.add(k) }, verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(k in flags, { if (it) flags.add(k) else flags.remove(k) })
-                        Text(l, color = p.ink, fontSize = 14.sp)
-                    }
-                }
+                Column(Modifier.padding(bottom = 14.dp)) { listOf("pregnant" to "الحوامل فقط", "chronic" to "المرضى المزمنون فقط", "disability" to "ذوو الإعاقة فقط", "widowed" to "الأرامل فقط", "divorced" to "المطلّقات/ين فقط", "nophone" to "بدون هاتف", "noid" to "بدون رقم هوية").forEach { (k, l) -> dev.saged.grcs.ui.components.CheckRow(l, k in flags) { if (it) flags.add(k) else flags.remove(k) } } }
             }
-            Text("أسرة محددة", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            Box {
-                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).background(p.surface, RoundedCornerShape(14.dp)).clickable { famMenu = true }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (family == "all") "كل الأسر" else heads.firstOrNull { famKey(it) == family }?.optString("fullName").orEmpty(), color = p.ink, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                }
-                DropdownMenu(famMenu, { famMenu = false }) {
-                    DropdownMenuItem(text = { Text("كل الأسر") }, onClick = { family = "all"; famMenu = false })
-                    heads.take(300).forEach { h -> DropdownMenuItem(text = { Text(h.optString("fullName")) }, onClick = { family = famKey(h); famMenu = false }) }
-                }
+            FilterLabel("أسرة محددة", Fa.House)
+            dev.saged.grcs.ui.components.QSelect(family, listOf("all" to "كل الأسر") + heads.take(300).map { famKey(it) to it.optString("fullName") }) { family = it }
+            Row(Modifier.padding(vertical = 14.dp).fillMaxWidth().background(p.navy, RoundedCornerShape(12.dp)).padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                Text("سيتم تصدير ", color = androidx.compose.ui.graphics.Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(if (mode == "family") "$count أسرة" else "$count", color = androidx.compose.ui.graphics.Color(0xFF7DD3E8), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(" سجل", color = androidx.compose.ui.graphics.Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
-            Box(Modifier.fillMaxWidth().background(p.navy, RoundedCornerShape(16.dp)).padding(18.dp), contentAlignment = Alignment.Center) {
-                Text("سيتم تصدير ${count} سجل", color = androidx.compose.ui.graphics.Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Btn("Excel", { doExport("xlsx") }, Modifier.weight(1f), BtnKind.Primary, Fa.FileExcel, enabled = !busy)
+                Btn("CSV", { doExport("csv") }, Modifier.weight(1f), BtnKind.Outline, Fa.FileCsv, enabled = !busy)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Btn("Excel", { doExport("xlsx") }, Modifier.weight(1f), BtnKind.Primary, QIcons.Export, enabled = !busy)
-                Btn("CSV", { doExport("csv") }, Modifier.weight(1f), BtnKind.Outline, enabled = !busy)
-            }
-            Btn("طباعة", { doExport("pdf") }, Modifier.fillMaxWidth(), BtnKind.Navy, enabled = !busy)
+            Btn("طباعة", { doExport("pdf") }, Modifier.fillMaxWidth().padding(top = 8.dp), BtnKind.Navy, Fa.Print, enabled = !busy)
             res?.let { if (!it.ok) Text("تعذّر الحفظ — تحقق من إذن التخزين", color = p.danger, fontSize = 13.sp) }
             SectionTitle("ملفاتي المحفوظة على الجهاز")
             if (saved.isEmpty()) Text("لا توجد ملفات محفوظة على هذا الجهاز بعد", color = p.mute, fontSize = 13.sp)
             saved.forEach { (n, u) ->
-                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).background(p.surface, RoundedCornerShape(14.dp)).clickable { share(n, u) }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.padding(bottom = 8.dp).fillMaxWidth().heightIn(min = 48.dp).background(p.surface, RoundedCornerShape(14.dp)).clickable { share(n, u) }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(n, color = p.ink, fontSize = 13.sp, modifier = Modifier.weight(1f)); Text("مشاركة", color = p.pri, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
-            Text("المجلد: المستندات / تصدير ${dev.saged.grcs.config.BrandConfig.BACKUP_DIR}", color = p.mute, fontSize = 11.sp)
-        }
+                    }
     }
 }

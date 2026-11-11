@@ -44,6 +44,9 @@ import dev.saged.grcs.ui.components.BtnKind
 import dev.saged.grcs.ui.components.IconTile
 import dev.saged.grcs.ui.components.QCard
 import dev.saged.grcs.ui.components.cardShadow
+import dev.saged.grcs.ui.icons.Fa
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.draw.clip
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.DataRepo
@@ -87,16 +90,16 @@ fun MessagesScreen(auth: AuthState, data: DataRepo, start: String? = null, onExi
             val none = "لا توجد رسائل بعد"
             if (auth.user.role == "delegate" && camps.size == 1) {
                 val sm = sums[camps[0].first]
-                ThreadRow("المركز الرئيسي (الإدارة العامة)", sm?.last ?: none, QIcons.Broadcast, p.navy, sm?.unread ?: 0) { thread = camps[0].first }
-                ThreadRow("رسائل المستفيدين", sm?.lastBen ?: none, QIcons.People, p.navy, sm?.benUnread ?: 0) { thread = "bl:${camps[0].first}" }
-            } else ThreadRow("رسالة جماعية لكل المخيمات", glob ?: none, QIcons.Broadcast, p.acc) { thread = "global" }
+                ThreadRow("المركز الرئيسي (الإدارة العامة)", sm?.last ?: none, Fa.BuildingColumns, sm?.unread ?: 0) { thread = camps[0].first }
+                ThreadRow("رسائل المستفيدين", sm?.lastBen ?: none, Fa.Users, sm?.benUnread ?: 0) { thread = "bl:${camps[0].first}" }
+            } else ThreadRow("رسالة جماعية لكل المخيمات", glob ?: none, Fa.Bullhorn) { thread = "global" }
             if (auth.user.role == "admin") {
                 var open by remember { mutableStateOf(false) }
                 var txt by remember { mutableStateOf("") }
                 var busy by remember { mutableStateOf(false) }
                 var res by remember { mutableStateOf("") }
                 val sc = rememberCoroutineScope()
-                if (!open) ThreadRow("رسالة جماعية لجميع المستفيدين", none, QIcons.People, p.purple) { open = true; res = "" }
+                if (!open) ThreadRow("رسالة جماعية لجميع المستفيدين", none, Fa.UsersRectangle) { open = true; res = "" }
                 else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     QField("نص الرسالة", txt, { txt = it }, multiline = true)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -112,7 +115,7 @@ fun MessagesScreen(auth: AuthState, data: DataRepo, start: String? = null, onExi
                 }
                 if (res.isNotEmpty()) Text(res, color = p.mute, fontSize = 12.sp)
             }
-            if (!(auth.user.role == "delegate" && camps.size == 1)) camps.forEach { (id, n) -> val sm = sums[id]; val benOnly = sm != null && sm.unread == 0 && sm.benUnread > 0; ThreadRow(n, if (benOnly) "${sm!!.benUnread} رسالة جديدة من المستفيدين" else sm?.last ?: none, QIcons.Camp, p.pri, (sm?.unread ?: 0) + (sm?.benUnread ?: 0)) { thread = if (benOnly) "bl:$id" else id } }
+            if (!(auth.user.role == "delegate" && camps.size == 1)) camps.forEach { (id, n) -> val sm = sums[id]; val benOnly = sm != null && sm.unread == 0 && sm.benUnread > 0; ThreadRow(n, if (benOnly) "${sm!!.benUnread} رسالة جديدة من المستفيدين" else sm?.last ?: none, Fa.Tent, (sm?.unread ?: 0) + (sm?.benUnread ?: 0)) { thread = if (benOnly) "bl:$id" else id } }
           }
         } else if (t.startsWith("bl:")) BenList(auth, repo, t.removePrefix("bl:"), camps.firstOrNull { it.first == t.removePrefix("bl:") }?.second.orEmpty(), { back() }) { tid -> thread = "bt:${t.removePrefix("bl:")}:$tid" }
         else Chat(auth, t, if (t == "global") "رسائل عامة" else if (ben) "الإدارة" else if (t.startsWith("bt:")) "محادثة مستفيد" else camps.firstOrNull { it.first == t }?.second ?: t, onBenList = if (!ben && t != "global" && !t.startsWith("bt:")) ({ thread = "bl:$t" }) else null) { if (!ben) { if (t.startsWith("bt:")) thread = "bl:" + t.removePrefix("bt:").substringBefore(":") else back() } else back() }
@@ -150,25 +153,23 @@ private fun BenList(auth: AuthState, repo: Messages, camp: String, campName: Str
         if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp) else if (rows!!.isEmpty()) dev.saged.grcs.ui.components.EmptyState(QIcons.Chat, "لا توجد رسائل من المستفيدين بعد", "ستظهر هنا أي رسالة يرسلها مستفيد لإدارة المخيم")
         rows?.forEach { (tid, name, last) ->
             val un = repo.unread[tid] ?: 0
-            ThreadRow(name, last, QIcons.Person, p.pri, un) { onOpen(tid) }
+            ThreadRow(name, last, Fa.User, un) { onOpen(tid) }
         }
       }
     }
 }
 
 @Composable
-private fun ThreadRow(title: String, sub: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: androidx.compose.ui.graphics.Color, unread: Int = 0, onClick: () -> Unit) {
+private fun ThreadRow(title: String, sub: String, icon: androidx.compose.ui.graphics.vector.ImageVector, unread: Int = 0, onClick: () -> Unit) {
     val p = LocalPalette.current
-    QCard(Modifier, onClick, 12.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconTile(icon, color, 40.dp, solid = false)
-            Column(Modifier.weight(1f)) {
-                Text(title, color = p.ink, fontSize = 14.5.sp, fontWeight = if (unread > 0) FontWeight.ExtraBold else FontWeight.Bold, maxLines = 1)
-                if (sub.isNotEmpty()) Text(sub, color = p.mute, fontSize = 12.sp, maxLines = 1)
-            }
-            if (unread > 0) Text("$unread", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(p.danger, CircleShape).padding(horizontal = 8.dp, vertical = 2.dp))
-            else Icon(QIcons.Chev, null, Modifier.size(18.dp), tint = p.mute)
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+    Row(Modifier.fillMaxWidth().cardShadow().clip(shape).background(p.surface).clickable(onClick = onClick).padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.size(44.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.navyL, p.navy))), contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(19.dp), tint = Color.White) }
+        Column(Modifier.weight(1f)) {
+            Text(title, color = p.ink, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            if (sub.isNotEmpty()) Text(sub, color = p.mute, fontSize = 12.5.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
+        if (unread > 0) Box(Modifier.heightIn(min = 18.dp).widthIn(min = 18.dp).background(p.danger, CircleShape).padding(horizontal = 5.dp), contentAlignment = Alignment.Center) { Text("$unread", color = Color.White, fontSize = 10.5.sp, lineHeight = 18.sp) }
     }
 }
 
