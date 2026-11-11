@@ -67,7 +67,7 @@ private fun CampChips(camps: List<Pair<String, String>>, sel: String, onSel: (St
 fun CampInfoPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
-    val camps = remember { data.campList(auth) }
+    val camps = remember { data.ctxCamps(auth) }
     var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
     var info by remember { mutableStateOf<CampInfo?>(null) }
     var name by remember { mutableStateOf("") }; var region by remember { mutableStateOf("") }

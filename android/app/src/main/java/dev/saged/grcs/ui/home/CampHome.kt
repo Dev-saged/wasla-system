@@ -88,13 +88,13 @@ fun CampSections(tiers: Map<String, Int>, qpct: Int, qcounts: Map<String, Int>, 
     }
     Spacer(Modifier.height(8.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Btn("إدخال سريع", { onGo("rapid") }, Modifier.weight(1f), BtnKind.Outline, small = true)
-        Btn("سجل الاستيراد", { onGo("import") }, Modifier.weight(1f), BtnKind.Outline, small = true)
+        Btn("إدخال سريع", { onGo("rapid") }, Modifier.weight(1f), BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.Bolt, small = true)
+        Btn("سجل الاستيراد", { onGo("import") }, Modifier.weight(1f), BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.ClockRotateLeft, small = true)
     }
     Spacer(Modifier.height(8.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Btn("مركز الجودة", { onGo("quality") }, Modifier.weight(1f), BtnKind.Outline, small = true)
-        Btn("المساعدات", { onGo("aid") }, Modifier.weight(1f), BtnKind.Outline, small = true)
+        Btn("مركز الجودة", { onGo("quality") }, Modifier.weight(1f), BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.ShieldHalved, small = true)
+        Btn("المساعدات", { onGo("aid") }, Modifier.weight(1f), BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.BoxOpen, small = true)
     }
     SectionTitle("توزيع الجنس")
     Donut(male, female, (total - male - female).coerceAtLeast(0))

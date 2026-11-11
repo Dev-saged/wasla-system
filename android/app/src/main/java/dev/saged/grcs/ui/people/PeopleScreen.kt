@@ -71,8 +71,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-private val relLabels = listOf("wife" to "زوجة", "husband" to "زوج", "son" to "ابن", "daughter" to "ابنة", "orphan" to "يتيم/ة", "other" to "آخر")
-private val maritalLabels = listOf("متزوج/ة", "أرمل/ة", "مطلق/ة", "أعزب")
 
 private fun normDigits(s: String): String = buildString { for (c in s) append(when (c) { in '٠'..'٩' -> '0' + (c - '٠'); in '۰'..'۹' -> '0' + (c - '۰'); else -> c }) }.trim()
 
@@ -85,10 +83,10 @@ private fun group(list: List<JSONObject>): List<Fam> =
 
 /** الأسر والأفراد: قائمة، تفصيل أسرة، إضافة/تعديل/حذف. التعديل محلي فوري ويُرفع في الخلفية. */
 @Composable
-fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, startFilter: String? = null, startFamily: String? = null, newTrigger: Int = 0, onExit: (() -> Unit)? = null) {
+fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, startFilter: String? = null, startFamily: String? = null, onExit: (() -> Unit)? = null) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
-    val camps = remember { data.campList(auth) }
+    val camps = remember { data.ctxCamps(auth) }
     var camp by remember { mutableStateOf(startCamp ?: camps.firstOrNull()?.first.orEmpty()) }
     var persons by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var q by remember { mutableStateOf("") }
@@ -110,7 +108,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
     var rev by remember { mutableIntStateOf(0) }
     val canWrite = auth.user.role != "beneficiary"
 
-    LaunchedEffect(newTrigger) { if (newTrigger > 0 && auth.user.role != "beneficiary") edit = JSONObject().put("isFamilyHead", true).put("relation", "head") }
+    LaunchedEffect(dev.saged.grcs.ui.shell.ShellState.newPerson) { if (dev.saged.grcs.ui.shell.ShellState.newPerson) { dev.saged.grcs.ui.shell.ShellState.newPerson = false; if (auth.user.role != "beneficiary") { edit = JSONObject().put("isFamilyHead", true).put("relation", "head") } } }
     LaunchedEffect(allMode) {
         if (allMode) infos = withContext(Dispatchers.IO) { camps.mapNotNull { c -> runCatching { c.first to data.campInfo(auth, c.first) }.getOrNull() }.toMap() }
         if (allMode) allList = withContext(Dispatchers.IO) { camps.flatMap { (cid, _) -> data.people.persons(cid).map { x -> x.put("campId", cid) } } }
@@ -171,7 +169,13 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
         val fk = open
         when {
             cats -> dev.saged.grcs.ui.camps.CatsPage(auth, data) { cats = false }
-            ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o, ex -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }, ex) }
+            ed != null -> PersonForm(ed, persons, camp, auth.user.id, nidErr, { edit = null; nidErr = null }) { r ->
+                scope.launch {
+                    val e = withContext(Dispatchers.IO) { data.saveForm(auth, camp, r) }
+                    if (e != null) nidErr = e
+                    else { nidErr = null; edit = null; rev++; exportNote = if (r.skippedNids > 0) "${r.skippedNids} من أفراد الأسرة بلا رقم هوية — أكمله قريباً" else if (r.isNew) "تمت إضافة الفرد بنجاح" else "تم تحديث البيانات بنجاح" }
+                }
+            }
             allMode -> Column(Modifier.fillMaxSize()) {
                 val matched = remember(allList, filter) { allList?.let { PFilter.apply(filter, it) } }
                 AppHeader(PFilter.label(filter), if (matched == null) "جارٍ التحميل..." else "${matched.size} سجل — كل المخيمات", conn = null, mark = Fa.LayerGroup, endBack = onExit, search = true)
@@ -284,7 +288,7 @@ private fun PersonRow(m: JSONObject, all: List<JSONObject>, tier: String?, canEd
         if (m.optBoolean("hasDisability")) add(Fa.Wheelchair to p.blue)
         if (a != null && a < 1) add(Fa.Baby to p.danger)
         if (ms == "widowed" || ms == "divorced" || ms.contains("أرمل") || ms.contains("مطلق") || ms.contains("مطلّق")) add(Fa.Ring to p.gray)
-        if (m.optString("phone").isEmpty()) add(Fa.PhoneSlash to p.gray)
+        if (m.optBoolean("isFamilyHead") && m.optString("phone").isEmpty()) add(Fa.PhoneSlash to p.gray)
         if (m.optJSONArray("requests")?.let { r -> (0 until r.length()).any { r.optJSONObject(it)?.optString("status") == "pending" } } == true) add(Fa.HandHoldingHeart to p.danger)
         if (m.optBoolean("urgentNeed")) add(Fa.TriangleExclamation to p.danger)
         tags.forEach { t -> add(when (t) { "orphan" -> Fa.ChildReaching to p.warn; "injured" -> Fa.UserInjured to p.danger; "martyr_family" -> Fa.Dove to p.gray; else -> Fa.Tag to p.blue }) }
@@ -343,269 +347,6 @@ private fun FamilyScreen(f: Fam?, startSel: String, canWrite: Boolean, role: Str
         val others = if (m.optBoolean("isFamilyHead")) f.members.size - 1 else 0
         dev.saged.grcs.ui.components.ConfirmSheet(if (others > 0) "هذا رب أسرة — سيُحذف هو و$others من أفراد أسرته نهائياً. لا يمكن التراجع." else "سيتم حذف هذا السجل نهائياً ولا يمكن التراجع.", "حذف فرد", "حذف نهائي", onCancel = { confirm = null }) {
             if (m.optBoolean("isFamilyHead")) f.members.forEach(onDelete) else onDelete(m); confirm = null
-        }
-    }
-}
-
-@Composable
-internal fun EditScreen(src: JSONObject, all: List<JSONObject>, serverErr: String?, onBack: () -> Unit, onSave: (JSONObject, List<JSONObject>) -> Unit) {
-    val p = LocalPalette.current
-    val isNew = src.optString("id").isEmpty()
-    val head = src.optBoolean("isFamilyHead")
-    var name by remember { mutableStateOf(src.optString("fullName")) }
-    var nid by remember { mutableStateOf(src.optString("nationalId")) }
-    var dob by remember { mutableStateOf(src.optString("birthDate")) }
-    var gender by remember { mutableStateOf(src.optString("gender")) }
-    var phone by remember { mutableStateOf(src.optString("phone")) }
-    var address by remember { mutableStateOf(src.optString("address")) }
-    var notes by remember { mutableStateOf(src.optString("notes")) }
-    var marital by remember { mutableStateOf(src.optString("maritalStatus")) }
-    var rel by remember { mutableStateOf(src.optString("relation")) }
-    var preg by remember { mutableStateOf(src.optBoolean("isPregnant")) }
-    var chronic by remember { mutableStateOf(src.optBoolean("hasChronicDisease")) }
-    var dis by remember { mutableStateOf(src.optBoolean("hasDisability")) }
-    var phone2 by remember { mutableStateOf(dev.saged.grcs.data.PFields.phone2(src)) }
-    var shelter by remember { mutableStateOf(src.optString("shelterType")) }
-    var bf by remember { mutableStateOf(src.optBoolean("isBreastfeeding")) }
-    var urgent by remember { mutableStateOf(src.optBoolean("urgentNeed")) }
-    var diseaseDetails by remember { mutableStateOf(src.optString("diseaseDetails")) }
-    var disDetails by remember { mutableStateOf(src.optString("disabilityDetails")) }
-    val conds = remember { mutableStateListOf<String>().also { l -> src.optJSONArray("chronicConditions")?.let { a -> for (i in 0 until a.length()) l.add(a.optString(i)) } } }
-    val oldSpouse = remember(src) { if (head) all.firstOrNull { it.optString("familyId") == src.optString("familyId") && it.optString("relation") in listOf("wife", "husband", "spouse") } else null }
-    var sName by remember { mutableStateOf(oldSpouse?.optString("fullName").orEmpty()) }
-    var sNid by remember { mutableStateOf(oldSpouse?.optString("nationalId").orEmpty()) }
-    var sDob by remember { mutableStateOf(oldSpouse?.optString("birthDate")?.takeIf { it != "null" }.orEmpty()) }
-    var sPreg by remember { mutableStateOf(oldSpouse?.optBoolean("isPregnant") == true) }
-    var sBf by remember { mutableStateOf(oldSpouse?.optBoolean("isBreastfeeding") == true) }
-    class Kid(var name: String, var gender: String, var dob: String, var rel: String)
-    val kids = remember { mutableStateListOf<MutableState<Kid>>() }
-    var noId by remember { mutableStateOf(!isNew && src.optString("nationalId").isEmpty()) }
-    var err by remember { mutableStateOf<String?>(null) }
-
-    fun validate(): String? {
-        val n = normDigits(nid)
-        if (name.trim().length < 2) return "أدخل الاسم"
-        if (gender.isEmpty()) return "اختر الجنس"
-        if (!noId && normDigits(nid).isEmpty()) return "رقم الهوية مطلوب أو فعّل «لا يوجد رقم هوية»"
-        if (n.isNotEmpty() && !Regex("^\\d{9}$").matches(n)) return "رقم الهوية 9 أرقام"
-        if (n.isNotEmpty() && all.any { it.optString("nationalId") == n && it.optString("id") != src.optString("id") }) return "رقم الهوية مسجّل لشخص آخر"
-        val d = normDigits(dob)
-        if (d.isNotEmpty() && !Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(d)) return "التاريخ بصيغة 1990-05-21"
-        if (phone2.isNotEmpty() && normDigits(phone2).length < 9) return "الجوال الإضافي غير صحيح"
-        if (head && sName.isNotBlank()) {
-            val sn = normDigits(sNid)
-            if (sn.isEmpty()) return "رقم هوية الزوج/ة مطلوب"
-            if (!Regex("^\\d{9}$").matches(sn)) return "هوية الزوج/ة 9 أرقام"
-            if (sn == normDigits(nid) || all.any { it.optString("nationalId") == sn && it.optString("id") != oldSpouse?.optString("id") }) return "هوية الزوج/ة مسجّلة"
-        }
-        for (k in kids) {
-            val kd = normDigits(k.value.dob)
-            if (k.value.name.isBlank()) return "اسم الفرد المضاف مطلوب"
-            if (k.value.gender.isEmpty()) return "جنس ${k.value.name} مطلوب"
-            if (kd.isNotEmpty() && !Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(kd)) return "تاريخ ${k.value.name} بصيغة 1990-05-21"
-        }
-        return null
-    }
-
-    dev.saged.grcs.ui.shell.Immersive()
-    Column(Modifier.fillMaxSize()) {
-        AppHeader(if (isNew) "إضافة فرد جديد" else "تعديل بيانات فرد", "", conn = null, onBack = onBack, backIcon = Fa.Xmark)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            FormCard("البيانات الأساسية", Fa.IdCard) {
-                QField("الاسم الكامل *", name, { name = it })
-                QField("رقم الهوية *", nid, { nid = it }, type = KeyboardType.Number)
-                Row(Modifier.fillMaxWidth().clickable { noId = !noId; if (noId) nid = "" }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val sh = RoundedCornerShape(3.dp)
-                    Box(Modifier.size(16.dp).background(if (noId) p.pri else p.surface, sh).border(1.5.dp, if (noId) p.pri else p.mute, sh), contentAlignment = Alignment.Center) { if (noId) androidx.compose.material3.Icon(Fa.Check, null, Modifier.size(10.dp), tint = Color.White) }
-                    Text("لا يوجد رقم هوية بعد (مولود لم تصدر هويته)", color = p.mute, fontSize = 12.sp)
-                }
-                dev.saged.grcs.ui.components.DateField("تاريخ الميلاد", dob, { dob = it })
-                val age = dobAge(normDigits(dob))
-                Column {
-                    Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("العمر المحسوب", color = p.ink, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
-                        Text(age?.let { "$it سنة" } ?: "—", color = p.mute, fontSize = 13.sp)
-                    }
-                    if (age == null) Text("أدخل تاريخ الميلاد ليُصنَّف تلقائياً", color = p.mute, fontSize = 13.sp)
-                    else FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        val (bg, fg, ic, t) = when { age < 18 -> listOf(Color(0xFFFEF3C7), Color(0xFF92400E), Fa.Child, "طفل"); age >= 60 -> listOf(Color(0xFFEDE9FE), Color(0xFF5B21B6), Fa.PersonCane, "كبير سن"); else -> listOf(Color(0xFFDBEAFE), Color(0xFF1E40AF), Fa.User, "بالغ") }
-                        Row(Modifier.background(bg as Color, CircleShape).padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            androidx.compose.material3.Icon(ic as androidx.compose.ui.graphics.vector.ImageVector, null, Modifier.size(11.dp), tint = fg as Color)
-                            Text("$t · $age سنة", color = fg, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-                        val band = when { age < 1 -> "رضع <1"; age <= 5 -> "أطفال 1-5"; age < 18 -> "أطفال 6-18"; age <= 30 -> "شباب 18-30"; age < 60 -> "بالغون 30-60"; else -> "كبار السن +60" }
-                        Text(band, color = p.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(p.surface2, CircleShape).padding(horizontal = 10.dp, vertical = 4.dp))
-                    }
-                }
-                Column {
-                    Text("الجنس", color = p.ink, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 6.dp))
-                    GenderSeg(gender) { gender = it }
-                }
-            }
-            FormCard("الأسرة", Fa.HouseChimney) {
-                IconSwitch("رب الأسرة", Fa.Crown, head, enabled = false) {}
-                if (head) {
-                    dev.saged.grcs.ui.components.QSelect(shelter, listOf("" to "— اختر —") + shelterLabels, label = "نوع المأوى") { shelter = it }
-                    Column {
-                        dev.saged.grcs.ui.components.FilterLabelPlain("الحالة الاجتماعية", Fa.Ring)
-                        val msIcons = listOf(Fa.Heart, Fa.UserShield, Fa.Ring, Fa.User)
-                        dev.saged.grcs.ui.components.SegBtns(maritalLabels.mapIndexed { i, m -> m to msIcons.getOrNull(i) }, maritalLabels.indexOf(marital)) { marital = maritalLabels[it] }
-                    }
-                }
-            }
-            if (head) {
-                FormCard("الزوج / الزوجة (اختياري)", Fa.PeoplePulling) {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        QField("الاسم الكامل", sName, { sName = it }, placeholder = "اسم الزوج/ة رباعي")
-                        QField("رقم الهوية (مطلوب إن أُدخل الاسم)", sNid, { sNid = it }, type = KeyboardType.Number)
-                        dev.saged.grcs.ui.components.DateField("تاريخ الميلاد", sDob, { sDob = it })
-                        val sFemale = gender == "male"
-                        if (sName.isNotBlank() && sFemale) Column {
-                            IconSwitch("حامل", Fa.BabyCarriage, sPreg) { sPreg = it }; IconSwitch("مرضعة", Fa.Baby, sBf) { sBf = it }
-                        }
-                    }
-                }
-                FormCard("أفراد الأسرة (اختياري)", Fa.Children) {
-                kids.forEachIndexed { i, st ->
-                    val k = st.value
-                    QCard {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            QField("الاسم", k.name, { st.value = Kid(it, k.gender, k.dob, k.rel) })
-                            dev.saged.grcs.ui.components.DateField("تاريخ الميلاد", k.dob, { st.value = Kid(k.name, k.gender, it, k.rel) })
-                            GenderSeg(k.gender, unknown = false) { st.value = Kid(k.name, it, k.dob, k.rel) }
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { relLabels.forEach { (rk, l) -> QChip(l, k.rel == rk) { st.value = Kid(k.name, k.gender, k.dob, rk) } } }
-                            Btn("حذف", { kids.removeAt(i) }, kind = BtnKind.Danger, small = true, icon = Fa.Trash)
-                        }
-                    }
-                }
-                Row { Btn("إضافة فرد للأسرة", { kids.add(mutableStateOf(Kid("", "", "", "son"))) }, kind = BtnKind.Outline, small = true, icon = Fa.Plus) }
-                }
-            }
-            FormCard("التواصل", Fa.AddressBook) {
-                QField("رقم الهاتف الأساسي", phone, { phone = it }, type = KeyboardType.Phone)
-                QField("رقم هاتف إضافي (اختياري)", phone2, { phone2 = it }, type = KeyboardType.Phone)
-                QField("العنوان / الموقع", address, { address = it })
-            }
-            FormCard("الحالة الصحية", Fa.HeartPulse) {
-                Column {
-                    if (gender == "female") IconSwitch("حامل", Fa.BabyCarriage, preg) { preg = it }
-                    if (gender == "female") IconSwitch("مرضعة", Fa.Baby, bf) { bf = it }
-                    IconSwitch("مرض مزمن", Fa.NotesMedical, chronic) { chronic = it }
-                    if (chronic) Column(Modifier.padding(top = 10.dp)) {
-                        Text("اختر الحالة/الحالات المرضية", color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))
-                        FlowRow(Modifier.padding(top = 10.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            chronicLabels.forEach { (k, l) ->
-                                val on = k in conds; val sh = RoundedCornerShape(50)
-                                Text(l, color = if (on) p.danger else p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(sh).background(if (on) p.danger.copy(alpha = if (p.dark) .13f else .06f) else p.surface2).border(1.5.dp, if (on) p.danger else p.line, sh).clickable { if (on) conds.remove(k) else conds.add(k) }.padding(horizontal = 14.dp, vertical = 7.dp))
-                            }
-                        }
-                        QField("", diseaseDetails, { diseaseDetails = it }, Modifier.padding(top = 8.dp), placeholder = "تفاصيل إضافية / أخرى")
-                    }
-                    IconSwitch("إعاقة", Fa.Wheelchair, dis) { dis = it }
-                    if (dis) QField("", disDetails, { disDetails = it }, Modifier.padding(top = 10.dp), placeholder = "تفاصيل الإعاقة")
-                }
-            }
-            FormCard("ملاحظات", Fa.NoteSticky) { QField("", notes, { notes = it }, multiline = true, placeholder = "ملاحظات إضافية...") }
-            (err ?: serverErr)?.let { Text(it, color = p.danger, fontSize = 13.sp) }
-            Spacer(Modifier.height(8.dp))
-        }
-        Spacer(Modifier.fillMaxWidth().height(1.dp).background(p.line))
-        Box(Modifier.fillMaxWidth().background(p.surface).navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Btn("حفظ", {
-            err = validate()
-                if (err == null) {
-                    val o = Merge.copy(src)
-                    val n = normDigits(nid); val d = normDigits(dob)
-                    o.put("fullName", name.trim()).put("nationalId", n).put("gender", gender).put("phone", phone.trim())
-                        .put("birthDate", if (d.isEmpty()) JSONObject.NULL else d)
-                        .put("calculatedAge", dobAge(d) ?: JSONObject.NULL)
-                        .put("isPregnant", gender == "female" && preg).put("hasChronicDisease", chronic).put("hasDisability", dis)
-                        .put("notes", notes.trim())
-                        .put("isBreastfeeding", gender == "female" && bf).put("urgentNeed", urgent)
-                        .put("chronicConditions", org.json.JSONArray(if (chronic) conds.toList() else emptyList<String>()))
-                        .put("diseaseDetails", if (chronic) diseaseDetails.trim() else "").put("disabilityDetails", if (dis) disDetails.trim() else "")
-                    dev.saged.grcs.data.PFields.setPhone2(o, normDigits(phone2).trim())
-                    if (head) {
-                        o.put("shelterType", shelter).put("address", address.trim()).put("maritalStatus", marital).put("isFamilyHead", true).put("relation", "head")
-                        if (o.optString("familyId").isEmpty()) o.put("familyId", n.ifEmpty { java.util.UUID.randomUUID().toString() })
-                    } else if (!o.optBoolean("isFamilyHead")) o.put("relation", rel.ifEmpty { "other" })
-                    if (o.optString("id").isEmpty()) o.put("id", java.util.UUID.randomUUID().toString())
-                    val fid = o.optString("familyId")
-                    val ex = mutableListOf<JSONObject>()
-                    if (head && sName.isNotBlank()) {
-                        val sd = normDigits(sDob); val sg = if (gender == "male") "female" else if (gender == "female") "male" else ""
-                        val sp = if (oldSpouse != null) Merge.copy(oldSpouse) else JSONObject().put("relation", if (gender == "male") "wife" else "husband").put("isFamilyHead", false)
-                        sp.put("fullName", sName.trim()).put("nationalId", normDigits(sNid)).put("gender", sg)
-                            .put("birthDate", if (sd.isEmpty()) JSONObject.NULL else sd).put("calculatedAge", dobAge(sd) ?: JSONObject.NULL)
-                            .put("address", address.trim()).put("maritalStatus", marital)
-                            .put("isPregnant", sg == "female" && sPreg).put("isBreastfeeding", sg == "female" && sBf)
-                        ex.add(sp)
-                    }
-                    for (st in kids) {
-                        val k = st.value; val kd = normDigits(k.dob)
-                        ex.add(JSONObject().put("fullName", k.name.trim()).put("gender", k.gender).put("relation", k.rel).put("isFamilyHead", false)
-                            .put("birthDate", if (kd.isEmpty()) JSONObject.NULL else kd).put("calculatedAge", dobAge(kd) ?: JSONObject.NULL)
-                            .put("nationalId", "").put("phone", "").put("address", address.trim()).put("maritalStatus", "")
-                            .put("isPregnant", false).put("hasChronicDisease", false).put("hasDisability", false).put("notes", ""))
-                    }
-                    onSave(o, ex)
-                }
-        }, Modifier.fillMaxWidth(), icon = Fa.Check)
-        }
-    }
-}
-
-private val shelterLabels = listOf("tent_ok" to "خيمة سليمة", "tent_damaged" to "خيمة تالفة", "shared" to "مأوى مشترك", "building_damaged" to "مبنى متضرر", "none" to "بلا مأوى")
-private val chronicLabels = listOf("heart" to "قلب", "diabetes" to "سكري", "hypertension" to "ضغط الدم", "kidney" to "كلى", "cancer" to "سرطان", "respiratory" to "ربو / تنفسي", "liver" to "كبد", "thyroid" to "غدة درقية", "mental" to "نفسية", "blood" to "أمراض دم", "neuro" to "عصبية", "bone" to "مفاصل / عظام", "other" to "أخرى")
-
-private fun dobAge(d: String): Int? {
-    val m = Regex("^(\\d{4})-(\\d{2})-(\\d{2})$").find(d) ?: return null
-    val t = java.util.Calendar.getInstance()
-    var a = t.get(java.util.Calendar.YEAR) - m.groupValues[1].toInt()
-    val dm = t.get(java.util.Calendar.MONTH) + 1 - m.groupValues[2].toInt()
-    if (dm < 0 || (dm == 0 && t.get(java.util.Calendar.DAY_OF_MONTH) < m.groupValues[3].toInt())) a--
-    return a.coerceAtLeast(0)
-}
-
-@Composable
-private fun FormCard(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
-    val p = LocalPalette.current
-    QCard(pad = 16.dp) {
-        Row(Modifier.padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (icon != null) androidx.compose.material3.Icon(icon, null, Modifier.size(17.dp), tint = p.pri)
-            Text(title.substringBefore(" (اختياري)"), color = p.head, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            if (title.endsWith("(اختياري)")) Text("(اختياري)", color = p.mute, fontSize = 13.sp)
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
-    }
-}
-
-/** صف مفتاح بأيقونة (toggle-row). */
-@Composable
-private fun IconSwitch(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, on: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
-    val p = LocalPalette.current
-    Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-        Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) { androidx.compose.material3.Icon(icon, null, Modifier.size(15.dp), tint = p.ink) }
-        Text(label, color = p.ink, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-        dev.saged.grcs.ui.components.QSwitch(on) { if (enabled) onChange(it) }
-    }
-}
-
-/** أزرار الجنس المقسّمة بألوان الويب (أزرق للذكر، وردي للأنثى). */
-@Composable
-private fun GenderSeg(gender: String, unknown: Boolean = true, onSel: (String) -> Unit) {
-    val p = LocalPalette.current
-    val shape = RoundedCornerShape(10.dp)
-    val items = listOfNotNull(Triple("male", "ذكر", Fa.Mars), Triple("female", "أنثى", Fa.Venus), if (unknown) Triple("unknown", "غير محدد", Fa.Question) else null)
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items.forEach { (k, l, ic) ->
-            val on = gender == k
-            val c = when { !on -> p.mute; k == "male" -> p.blue; k == "female" -> Color(0xFFDB2777); else -> if (p.dark) p.tealL else p.tealD }
-            val bg = when { !on -> p.surface; k == "male" -> p.blue.copy(alpha = .09f); k == "female" -> Color(0xFFDB2777).copy(alpha = .06f); else -> p.pri.copy(alpha = .08f) }
-            Row(Modifier.weight(1f).heightIn(min = 46.dp).clip(shape).background(bg).border(1.5.dp, if (!on) p.line else if (k == "unknown") p.pri else c, shape).clickable { onSel(k) }, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                androidx.compose.material3.Icon(ic, null, Modifier.size(14.dp), tint = c); Spacer(Modifier.width(6.dp))
-                Text(l, color = c, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-            }
         }
     }
 }

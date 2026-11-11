@@ -45,17 +45,18 @@ import kotlinx.coroutines.withContext
 fun SimilarPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
-    val camps = remember { data.campList(auth) }
+    val camps = remember { data.ctxCamps(auth) }
     var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
     var pairs by remember { mutableStateOf<List<SimPair>?>(null) }
     var rev by remember { mutableStateOf(0) }
     var note by remember { mutableStateOf("") }
-    LaunchedEffect(camp, rev) { pairs = null; pairs = withContext(Dispatchers.Default) { data.similar(camp) } }
+    LaunchedEffect(rev) { pairs = null; pairs = withContext(Dispatchers.Default) { camps.flatMap { data.similar(it.first) } } }
     fun drop(o: JSONObject) {
         scope.launch {
             withContext(Dispatchers.IO) {
-                runCatching { data.trash.put(auth, camp, "person", o.optString("fullName").ifEmpty { "—" }, listOf(o)) }
-                data.people.delete(camp, o); data.afterSave(auth, camp, o, true); data.pushNow(auth, camp)
+                val c = o.optString("campId").ifEmpty { camp }
+                runCatching { data.trash.put(auth, c, "person", o.optString("fullName").ifEmpty { "—" }, listOf(o)) }
+                data.people.delete(c, o); data.afterSave(auth, c, o, true); data.pushNow(auth, c)
             }
             note = "حُذف السجل المكرر (محفوظ في السلة 30 يوماً)"; rev++
         }
@@ -68,9 +69,8 @@ fun SimilarPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         }
     }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("أسماء متشابهة", "${camps.firstOrNull { it.first == camp }?.second ?: camp} — ${pairs?.size ?: 0} زوج", conn = null, onBack = onBack)
+        AppHeader("أسماء متشابهة", "${if (camps.size > 1) "كل المخيمات" else camps.firstOrNull()?.second ?: camp} — ${pairs?.size ?: 0} زوج", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
             Text("سجلات داخل نفس الأسرة يُرجَّح أنها لنفس الشخص (اختلاف همزة أو تشكيل أو حرف). الدمج يُبقي السجل المختار ويكمل حقوله الفارغة من الآخر.", color = p.mute, fontSize = 13.sp)
             if (note.isNotEmpty()) Text(note, color = p.ok, fontSize = 12.sp)
             if (pairs == null) Text("جارٍ الفحص…", color = p.mute, fontSize = 13.sp)

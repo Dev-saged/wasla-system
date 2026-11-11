@@ -62,7 +62,7 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
     var del by remember { mutableStateOf<CampSummary?>(null) }
     var critFam by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var sub by remember { mutableStateOf("") }
-    LaunchedEffect(dev.saged.grcs.ui.shell.ShellState.campsRoute) { dev.saged.grcs.ui.shell.ShellState.campsRoute?.let { sub = it; dev.saged.grcs.ui.shell.ShellState.campsRoute = null } }
+    LaunchedEffect(dev.saged.grcs.ui.shell.ShellState.campsRoute) { dev.saged.grcs.ui.shell.ShellState.campsRoute?.let { if (it.startsWith("detail:")) onOpen(it.removePrefix("detail:")) else sub = it; dev.saged.grcs.ui.shell.ShellState.campsRoute = null } }
     var q by remember { mutableStateOf("") }
     var hits by remember { mutableStateOf<List<Triple<String, String, org.json.JSONObject>>>(emptyList()) }
     var quality by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
@@ -89,7 +89,6 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
         sub == "export" -> { dev.saged.grcs.ui.more.ExportPage(auth, data) { sub = "" }; return }
         sub == "reconcile" -> { dev.saged.grcs.ui.more.ReconcilePage(auth, data) { sub = "" }; return }
         sub == "danger" -> { dev.saged.grcs.ui.more.CampDangerPage(auth, data) { sub = ""; reload() }; return }
-        sub.startsWith("detail:") -> { dev.saged.grcs.ui.home.HomeScreen(auth, data, {}, { }, { }, onlyCamp = sub.removePrefix("detail:"), onBack = { sub = "" }, onPeople = { onOpen(sub.removePrefix("detail:")) }); return }
     }
     Column(Modifier.fillMaxSize()) {
         AppHeader("المخيمات", "", conn = null, mark = Fa.Tents, search = true)
@@ -115,7 +114,7 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
             camps.filter { q.isBlank() || it.name.contains(q.trim()) }.forEach { c ->
                 val info = infos[c.id]
                 val crit = critFam[c.id] ?: 0
-                QCard(Modifier, { sub = "detail:" + c.id }) {
+                QCard(Modifier, { onOpen(c.id) }) {
                     Text(c.name, color = p.ink, fontSize = 15.5.sp, fontWeight = FontWeight.Bold)
                     Text(info?.supervisor?.ifEmpty { null } ?: "—", color = p.mute, fontSize = 12.5.sp, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
                     Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -128,7 +127,7 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
                         val pct = quality[c.id] ?: 0
                         Ring(pct / 100f, if (pct >= 85) p.success else if (pct >= 60) p.warn else p.danger, 46.dp, "$pct%")
                     }
-                    Btn("عرض التفاصيل", { sub = "detail:" + c.id }, Modifier.fillMaxWidth(), BtnKind.Outline, Fa.ArrowLeft, small = true)
+                    Btn("عرض التفاصيل", { onOpen(c.id) }, Modifier.fillMaxWidth(), BtnKind.Outline, Fa.ArrowLeft, small = true)
                     Btn("تحميل كشف Excel", {
                         scope.launch {
                             val r = withContext(Dispatchers.IO) { data.export.run("xlsx", c.id, c.name, data.people.persons(c.id), false) }

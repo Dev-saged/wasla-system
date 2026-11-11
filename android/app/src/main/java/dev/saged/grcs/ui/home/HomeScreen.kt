@@ -53,6 +53,7 @@ import dev.saged.grcs.ui.icons.Fa
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.theme.LocalPalette
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private val roleLabel = mapOf("admin" to "مسؤول عام", "delegate" to "مندوب المخيم", "dataentry" to "مدخل بيانات", "beneficiary" to "مستفيد")
@@ -63,7 +64,7 @@ private class Insight(
     val qpct: Int = 100, val qcounts: Map<String, Int> = emptyMap(), val sim: Int = 0, val mine: Int = 0, val today: Int = 0,
 )
 
-private val countKeys = listOf("orphan", "child", "preschool", "school", "youth", "mid")
+private val countKeys = listOf("orphan", "child", "preschool", "school", "youth", "midAdult")
 
 private fun insight(data: DataRepo, token: String, camps: List<CampSummary>, uid: String = ""): Insight {
     runCatching { Vuln.load(token) }
@@ -83,7 +84,7 @@ private fun insight(data: DataRepo, token: String, camps: List<CampSummary>, uid
             runCatching { sim = data.similar(c.id).size }
             ps.filter { it.optString("createdBy") == uid }.let { m -> mine = m.size; today = m.count { it.optLong("createdAt") >= day0 } }
         }
-        countKeys.forEach { k -> counts[k] = (counts[k] ?: 0) + dev.saged.grcs.data.PFilter.apply(k, ps).size }
+        dev.saged.grcs.data.Derive.counts(ps).let { dc -> countKeys.forEach { k -> counts[k] = (counts[k] ?: 0) + (dc[k] ?: 0) } }
         val st = c.stats
         critical[c.id] = st.infant + st.pregnant + st.chronic
         if (st.infant >= 50 || st.pregnant >= 30 || st.chronic >= 100) critCamps++
@@ -144,31 +145,32 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
             Column(Modifier.widthIn(max = 640.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
                 if (!busy && error != null) dev.saged.grcs.ui.components.OfflineBanner(error.orEmpty())
                 if (onlyCamp != null) info?.let { i ->
+                    val dlScope = androidx.compose.runtime.rememberCoroutineScope()
                     QCard {
-                        Text("معلومات المخيم", color = p.ink, fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
+                        Text("معلومات المخيم", color = p.head, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
                         Spacer(Modifier.height(6.dp))
                         listOf("المنطقة/الحي" to i.region, "مسؤول المخيم" to listOf(i.supervisor, i.supervisorPhone).filter { it.isNotEmpty() }.joinToString(" — "),
                             "نائب المسؤول" to listOf(i.deputy, i.deputyPhone).filter { it.isNotEmpty() }.joinToString(" — "),
                             "مدخل البيانات" to listOf(i.dataEntry, i.dataEntryPhone).filter { it.isNotEmpty() }.joinToString(" — "),
                             "عدد الأسر المسجَّلة" to fa(camps.firstOrNull()?.stats?.families ?: 0)).forEach { (k, v) ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(k, color = p.mute, fontSize = 12.5.sp); Text(v.ifEmpty { "—" }, color = p.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                                Text(k, color = p.mute, fontSize = 14.sp); Text(v.ifEmpty { "—" }, color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        dev.saged.grcs.ui.components.Btn("الأفراد", onPeople, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
-                        dev.saged.grcs.ui.components.Btn("استيراد", { sub = "import" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
-                        dev.saged.grcs.ui.components.Btn("تحميل كشف", { sub = "export" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
+                        dev.saged.grcs.ui.components.Btn("الأفراد", onPeople, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.Users, small = true)
+                        dev.saged.grcs.ui.components.Btn("استيراد", { sub = "import" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.FileArrowUp, small = true)
+                        dev.saged.grcs.ui.components.Btn("تحميل كشف", { dlScope.launch { val c = camps.firstOrNull(); if (c != null) { val r = withContext(Dispatchers.IO) { data.export.run("xlsx", c.id, c.name, data.people.persons(c.id), false) }; error = if (r.ok) "تم حفظ ${r.count} سجل: ${r.name}" else "تعذّر الحفظ — تحقق من إذن التخزين" } } }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.FileExcel, small = true)
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        dev.saged.grcs.ui.components.Btn("تعديل معلومات المخيم", { sub = "caminfo" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
-                        dev.saged.grcs.ui.components.Btn("مراسلة المندوب", { sub = "msg" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
+                        dev.saged.grcs.ui.components.Btn("تعديل معلومات المخيم", { sub = "caminfo" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.Pen, small = true)
+                        dev.saged.grcs.ui.components.Btn("مراسلة المندوب", { sub = "msg" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.Comment, small = true)
                     }
                     Spacer(Modifier.height(8.dp))
-                    dev.saged.grcs.ui.components.Btn("رسائل المستفيدين", { sub = "benmsg" }, Modifier.fillMaxWidth(), dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
+                    dev.saged.grcs.ui.components.Btn("رسائل المستفيدين", { sub = "benmsg" }, Modifier.fillMaxWidth(), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.Users, small = true)
                     Spacer(Modifier.height(12.dp))
                 }
                 if (auth.user.role == "dataentry") {
@@ -186,7 +188,7 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
                         K("أطفال 6-18", c["school"] ?: 0, p.warn, Fa.Child, "school"), K("كبار السن +60", t.elderly, p.purple, Fa.PersonCane, "elderly"),
                         K("حوامل", t.pregnant, p.pregnant, Fa.BabyCarriage, "pregnant"), K("أمراض مزمنة", t.chronic, p.warn, Fa.NotesMedical, "chronic"),
                         K("ذوو إعاقة", t.disability, p.blue, Fa.Wheelchair, "disability"), K("أطفال 1-5 سنوات", c["preschool"] ?: 0, p.danger, Fa.ChildReaching, "preschool"),
-                        K("شباب 18-30", c["youth"] ?: 0, p.pri, Fa.User, "youth"), K("بالغون 30-60", c["mid"] ?: 0, p.navy, Fa.UserTie, "mid"),
+                        K("شباب 18-30", c["youth"] ?: 0, p.pri, Fa.User, "youth"), K("بالغون 30-60", c["midAdult"] ?: 0, p.navy, Fa.UserTie, "midAdult"),
                         K("أرامل", t.widowed, p.gray, Fa.Ring, "widowed"), K("مطلّقات/ين", t.divorced, p.gray, Fa.HeartCrack, "divorced"),
                         K("أسر بلا هاتف", t.familiesNoPhone, p.gray, Fa.PhoneSlash, "nophone"), K("بلا رقم هوية", t.noId, p.danger, Fa.IdCardClip, "noid"),
                     ) else listOf(
@@ -197,12 +199,12 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
                         K("حوامل", t.pregnant, p.pregnant, Fa.BabyCarriage, "pregnant"), K("أمراض مزمنة", t.chronic, p.warn, Fa.NotesMedical, "chronic"),
                         K("ذوو إعاقة", t.disability, p.blue, Fa.Wheelchair, "disability"), K("أسر بلا هاتف", t.familiesNoPhone, p.gray, Fa.PhoneSlash, "nophone"),
                         K("أطفال 1-5 سنوات", c["preschool"] ?: 0, p.danger, Fa.ChildReaching, "preschool"), K("أطفال 6-18 (سن مدرسي)", c["school"] ?: 0, p.warn, Fa.School, "school"),
-                        K("شباب 18-30", c["youth"] ?: 0, p.pri, Fa.User, "youth"), K("بالغون 30-60", c["mid"] ?: 0, p.navy, Fa.UserTie, "mid"),
+                        K("شباب 18-30", c["youth"] ?: 0, p.pri, Fa.User, "youth"), K("بالغون 30-60", c["midAdult"] ?: 0, p.navy, Fa.UserTie, "midAdult"),
                         K("أرامل", t.widowed, p.gray, Fa.Ring, "widowed"), K("مطلّقات/ين", t.divorced, p.gray, Fa.HeartCrack, "divorced"),
                         K("بلا رقم هوية", t.noId, p.danger, Fa.IdCardClip, "noid"),
                         K("آخر تحديث", 0, p.pri, Fa.ClockRotateLeft, "none", text = lastUpd),
                     )
-                    Grid(items, t.total) { k -> if (k == "camps") onCamps() else if (k != "criticalCamps") onKpi(k) }
+                    Grid(items, t.total) { k -> if (k == "camps" || k == "criticalCamps") onCamps() else onKpi(k) }
                     if (admin) {
                         ins?.let { if (it.tiers.isNotEmpty()) Risk(it.tiers, true) }
                         if (camps.size > 1 || ins?.quality?.isNotEmpty() == true) ins?.let { Quality(camps, it.quality) }
@@ -218,7 +220,7 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
 
 private class K(val label: String, val value: Int, val color: Color, val icon: ImageVector, val key: String, val sub: String? = null, val text: String? = null)
 
-private val ringKeys = setOf("male", "female", "infant", "orphan", "child", "elderly", "pregnant", "chronic", "disability", "preschool", "school", "youth", "mid", "widowed", "divorced", "nophone", "noid")
+private val ringKeys = setOf("male", "female", "infant", "orphan", "child", "elderly", "pregnant", "chronic", "disability", "preschool", "school", "youth", "midAdult", "widowed", "divorced", "nophone", "noid")
 
 private fun pct(a: Int, b: Int) = if (b == 0) "0%" else "${fa(Math.round(a * 100f / b))}%"
 

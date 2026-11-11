@@ -45,7 +45,7 @@ class ShotTest {
         n[idx].performClick(); settle(); return true
     }
 
-    private fun run(role: String, steps: () -> Unit) {
+    private fun run(role: String, content: (@androidx.compose.runtime.Composable (AuthState, DataRepo) -> Unit)? = null, steps: () -> Unit) {
         assumeTrue(out != null)
         val ctx = rule.activity.applicationContext
         val fx = JSONObject(File("../../docs/web-spec/fixture.json").readText())
@@ -60,8 +60,8 @@ class ShotTest {
         val repo = AuthRepo(SessionStore(ctx)); val data = DataRepo(ctx, repo)
         ThemePref.init(ctx); ThemePref.set(if (System.getenv("GRCS_DARK") != null) 2 else 1)
         rule.mainClock.autoAdvance = false
-        rule.setContent { GrcsTheme { AppShell(auth, data) {} } }
-        settle(20); shot("$role-home"); if (System.getenv("GRCS_DUMP") != null) rule.onAllNodes(androidx.compose.ui.test.SemanticsMatcher("any") { it.boundsInRoot.top > 800f }).fetchSemanticsNodes().forEach { println("NODE ${it.boundsInRoot} ${it.config}") }; steps()
+        rule.setContent { GrcsTheme { if (content != null) content(auth, data) else AppShell(auth, data) {} } }
+        settle(20); if (content == null) shot("$role-home"); if (System.getenv("GRCS_DUMP") != null) rule.onAllNodes(androidx.compose.ui.test.SemanticsMatcher("any") { it.boundsInRoot.top > 800f }).fetchSemanticsNodes().forEach { println("NODE ${it.boundsInRoot} ${it.config}") }; steps()
     }
 
     @Test fun login() {
@@ -77,4 +77,7 @@ class ShotTest {
     @Test fun delegateForm() = run("delegate") { tap("الأفراد", -1); settle(10); rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("تعديل"))[0].performClick(); settle(); shot("delegate-person-edit") }
     @Test fun dataentry() = run("dataentry") { tap("الأفراد", -1); shot("dataentry-persons"); tap("الإعدادات", -1); shot("dataentry-settings") }
     @Test fun beneficiary() = run("beneficiary") { }
+    @Test fun rapid() = run("delegate", { a, d -> dev.saged.grcs.ui.more.RapidPage(a, d) {} }) { shot("delegate-rapid") }
+    @Test fun adminCamp() = run("admin") { tap("المخيمات", -1); tap("مخيم الأمل"); shot("admin-camp-dash"); tap("إجمالي الأسر"); shot("admin-camp-heads"); tap("الرئيسية", -1); shot("admin-home-after") }
+    @Test fun benTabs() = run("beneficiary") { tap("أسرتي"); shot("beneficiary-family"); tap("طلباتي"); shot("beneficiary-requests") }
 }

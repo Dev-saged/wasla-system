@@ -16,6 +16,13 @@ object Staff {
             .sortedWith(compareBy({ it.optString("role") }, { it.optString("fullName") }))
 
     /** حسابات المستفيدين لمخيم واحد (تُنشأ تلقائياً لأرباب الأسر). */
+    /** كل حسابات المستفيدين في كل المخيمات المعطاة، مرتّبة أبجدياً بالاسم، مع اسم المخيم. */
+    fun allBeneficiaries(st: AuthState, camps: List<Pair<String, String>>): List<JSONObject> {
+        val col = java.text.Collator.getInstance(java.util.Locale("ar"))
+        return camps.flatMap { (id, name) -> beneficiaries(st, id).onEach { u -> if (u.optString("campName").isEmpty()) u.put("campName", name) } }
+            .sortedWith { a, b -> col.compare(a.optString("fullName"), b.optString("fullName")) }
+    }
+
     fun beneficiaries(st: AuthState, camp: String): List<JSONObject> =
         runCatching { Fs.queryEq("users", listOf("role" to "beneficiary", "campId" to camp), st.idToken, 1000) }.getOrDefault(emptyList()).sortedBy { it.optString("fullName") }
 

@@ -78,6 +78,10 @@ object ShellState {
     var campsRoute by mutableStateOf<String?>(null)
     /** انتقال مباشر لفرد: المخيم، مفتاح الأسرة، معرّف الفرد. */
     var jump by mutableStateOf<Triple<String, String, String>?>(null)
+    /** المخيم الذي يتصفحه المسؤول (adminViewingCampId في الويب). */
+    var adminCamp by mutableStateOf<String?>(null)
+    /** طلب فتح نموذج «إضافة فرد» مرة واحدة من زر الإضافة العائم. */
+    var newPerson by mutableStateOf(false)
 }
 
 /** يخفي الشريط السفلي ما دامت الشاشة معروضة. */
@@ -107,7 +111,6 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     val reduce = rememberReduceMotion()
     val tabs = remember(auth.user.role) { tabsFor(auth.user.role) }
     var sel by rememberSaveable { mutableStateOf(0) }
-    var openCamp by remember { mutableStateOf<String?>(null) }
     var homeFilter by remember { mutableStateOf<String?>(null) }
     dev.saged.grcs.ui.theme.UiPrefs.init(androidx.compose.ui.platform.LocalContext.current)
     var unread by remember { mutableStateOf(0) }
@@ -117,13 +120,20 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             kotlinx.coroutines.delay(180_000)
         }
     }
-    var openFam by remember { mutableStateOf<String?>(null) }
-    var newTrig by remember { mutableStateOf(0) }
     var importing by remember { mutableStateOf(false) }
     val tab = tabs[sel.coerceIn(0, tabs.lastIndex)]
     val ben = auth.user.role == "beneficiary"
+    val admin = auth.user.role == "admin"
+    val adminCamp = if (admin) ShellState.adminCamp else null
+    data.scope = adminCamp
+    fun go(t: Tab) { sel = tabs.indexOf(t).coerceAtLeast(0) }
+    /** الخروج من سياق المخيم والعودة للرئيسية العامة: يُنهي أي شاشة فرعية مفتوحة. */
+    fun leaveCamp() { ShellState.adminCamp = null; homeFilter = null; importing = false; ShellState.newPerson = false }
+    fun enterCamp(id: String) { homeFilter = null; importing = false; ShellState.newPerson = false; ShellState.adminCamp = id; go(Tab.Home) }
     BackHandler(importing) { importing = false }
-    BackHandler(sel != 0 && openCamp == null && !importing) { sel = 0 }
+    BackHandler(!importing && tab == Tab.Home && homeFilter != null) { homeFilter = null }
+    BackHandler(!importing && tab == Tab.Home && homeFilter == null && adminCamp != null) { leaveCamp() }
+    BackHandler(sel != 0 && !importing) { sel = 0 }
     Column(Modifier.fillMaxSize().background(p.bg)) {
         Box(Modifier.weight(1f)) {
         if (importing) { dev.saged.grcs.ui.more.ImportPage(auth, data) { importing = false }; return@Box }
@@ -139,30 +149,41 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             label = "dest",
         ) { t ->
             when (t) {
-                Tab.Home -> if (ben) BenHome(auth, data, onLogout) else if (homeFilter != null) PeopleScreen(auth, data, startFilter = homeFilter, newTrigger = newTrig) { homeFilter = null } else HomeScreen(auth, data, onLogout, { homeFilter = it }, { sel = tabs.indexOf(Tab.Camps).coerceAtLeast(0) })
-                Tab.Camps -> if (openCamp != null) PeopleScreen(auth, data, openCamp, startFamily = openFam, newTrigger = newTrig) { openCamp = null; openFam = null } else CampsScreen(auth, data, { openCamp = it }) { c, f -> openFam = f; openCamp = c }
-                Tab.People -> PeopleScreen(auth, data, newTrigger = newTrig)
+                // الرئيسية: لوحة عامة للمسؤول، أو لوحة المخيم (مع رجوع) إن دخل مخيماً؛ بطاقات الإحصاء تفتح كشف الأفراد بفلترها
+                Tab.Home -> if (ben) BenHome(auth, data, onLogout) else androidx.compose.runtime.key(adminCamp) {
+                    val hf = homeFilter
+                    if (hf != null) PeopleScreen(auth, data, startCamp = adminCamp, startFilter = hf) { homeFilter = null }
+                    else HomeScreen(auth, data, onLogout, { homeFilter = it }, { go(Tab.Camps) }, onlyCamp = adminCamp, onBack = if (adminCamp != null) ({ leaveCamp() }) else null, onPeople = { homeFilter = "head" })
+                }
+                Tab.Camps -> CampsScreen(auth, data, { enterCamp(it) }) { c, f -> enterCamp(c); ShellState.jump = Triple(c, f, ""); homeFilter = "head" }
+                Tab.People -> PeopleScreen(auth, data)
                 Tab.Chat -> MessagesScreen(auth, data)
                 Tab.Accounts -> StaffPage(auth, data) { sel = 0 }
                 Tab.Export -> ExportPage(auth, data) { sel = 0 }
                 Tab.Settings -> MoreScreen(auth, data, onLogout)
             }
         }
-        val field = auth.user.role == "delegate" || auth.user.role == "dataentry" || (auth.user.role == "admin" && openCamp != null)
-        if (field && !importing && ShellState.immersive == 0 && (tab == Tab.Home || tab == Tab.People || (tab == Tab.Camps && openCamp != null))) Column(Modifier.align(Alignment.BottomEnd).padding(start = 16.dp, end = 16.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        // زر الإضافة: للمندوب ومدخل البيانات، وللمسؤول داخل مخيم فقط، على الرئيسية والأفراد
+        val field = auth.user.role == "delegate" || auth.user.role == "dataentry" || adminCamp != null
+        if (field && !importing && ShellState.immersive == 0 && (tab == Tab.Home || tab == Tab.People)) Column(Modifier.align(Alignment.BottomEnd).padding(start = 16.dp, end = 16.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(Modifier.size(44.dp).shadow(4.dp, CircleShape).background(p.surface, CircleShape).border(1.5.dp, p.line, CircleShape).clickable { importing = true }, contentAlignment = Alignment.Center) { Icon(Fa.FileArrowUp, "استيراد Excel", tint = p.head, modifier = Modifier.size(16.dp)) }
-            Box(Modifier.size(56.dp).shadow(8.dp, CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.tealD)), CircleShape).clickable { if (tab == Tab.Home) { homeFilter = null; sel = tabs.indexOf(Tab.People).coerceAtLeast(0) }; newTrig++ }, contentAlignment = Alignment.Center) { Icon(Fa.Plus, "إضافة فرد", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(22.dp)) }
+            Box(Modifier.size(56.dp).shadow(8.dp, CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.tealD)), CircleShape).clickable {
+                if (tab == Tab.Home && homeFilter == null) { if (admin) homeFilter = "head" else go(Tab.People) }
+                ShellState.newPerson = true
+            }, contentAlignment = Alignment.Center) { Icon(Fa.Plus, "إضافة فرد", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(22.dp)) }
         }
         }
         if (ShellState.search && !ben) GlobalSearch(auth, data, { ShellState.search = false },
-            goTab = { t -> importing = t == "import"; if (t != "import") { openCamp = null; homeFilter = null; sel = tabs.indexOfFirst { it.name == t }.coerceAtLeast(0) } },
-            goCamp = { id -> openCamp = null; ShellState.campsRoute = "detail:$id"; sel = tabs.indexOf(Tab.Camps).coerceAtLeast(0) },
+            goTab = { t -> importing = t == "import"; if (t != "import") { homeFilter = null; if (t == "Home" && admin) leaveCamp(); sel = tabs.indexOfFirst { it.name == t }.coerceAtLeast(0) } },
+            goCamp = { id -> enterCamp(id) },
             goPerson = { ps ->
-                val camp = ps.optString("campId"); homeFilter = null; importing = false
+                val camp = ps.optString("campId")
+                if (admin) enterCamp(camp) else { importing = false; go(Tab.People) }
                 ShellState.jump = Triple(camp, ps.optString("familyId").ifEmpty { "i_" + ps.optString("id") }, ps.optString("id"))
-                if (auth.user.role == "admin") { openCamp = camp; sel = tabs.indexOf(Tab.Camps).coerceAtLeast(0) } else sel = tabs.indexOf(Tab.People).coerceAtLeast(0)
+                if (admin) homeFilter = "head"
             })
-        if (!ben && ShellState.immersive == 0) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null; importing = false }
+        // كما في الويب: الضغط على «الرئيسية» يُخرج المسؤول من المخيم، و«الأفراد» تبدأ من فلتر رب الأسرة
+        if (!ben && ShellState.immersive == 0) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { i -> importing = false; ShellState.newPerson = false; if (tabs[i] == Tab.Home) { homeFilter = null; if (admin) ShellState.adminCamp = null }; sel = i }
     }
 }
 

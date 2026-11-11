@@ -80,10 +80,10 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
     var nPw by remember { mutableStateOf("") }
     var nPhone by remember { mutableStateOf("") }
     var nCamp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
-    var benCamp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
     var ben by remember { mutableStateOf<List<org.json.JSONObject>?>(null) }
     LaunchedEffect(rev) { rows = withContext(Dispatchers.IO) { Staff.list(auth) } }
-    LaunchedEffect(rev, tab, benCamp) { if (tab == 2) { ben = null; ben = withContext(Dispatchers.IO) { Staff.beneficiaries(auth, benCamp) } } }
+    LaunchedEffect(rev, tab) { if (tab == 2 && ben == null) ben = withContext(Dispatchers.IO) { Staff.allBeneficiaries(auth, camps) } }
+    LaunchedEffect(rev) { if (rev > 0 && tab == 2) ben = withContext(Dispatchers.IO) { Staff.allBeneficiaries(auth, camps) } }
     Column(Modifier.fillMaxSize()) {
         AppHeader("إدارة الحسابات", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.UsersGear, search = true)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -91,7 +91,6 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("مناديب ومدخلو بيانات", "المدراء", "المستفيدون").forEachIndexed { i, l -> QChip(l, tab == i) { tab = i } } }
             SearchBox(query, { query = it }, "بحث بالاسم، اسم المستخدم، أو المخيم...")
             if (note.isNotEmpty()) Text(note, color = p.mute, fontSize = 12.sp)
-            if (tab == 2 && camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, benCamp == id) { benCamp = id } } }
             if (tab == 2) {
                 if (ben == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)
                 else Text("${ben!!.size} حساب مستفيد — يُنشأ تلقائياً لكل رب أسرة", color = p.mute, fontSize = 12.sp)
@@ -99,7 +98,8 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
             if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)
             val shown = (if (tab == 2) ben else rows)?.filter { (tab == 2 || (it.optString("role") == "admin") == (tab == 1)) && (query.isBlank() || it.optString("fullName").contains(query.trim()) || it.optString("username").contains(query.trim(), true) || it.optString("campName").contains(query.trim())) }
             if (shown != null && shown.isEmpty()) dev.saged.grcs.ui.components.EmptyState(Fa.UsersSlash, "لا توجد حسابات في هذا القسم", "جرّب تبويباً آخر أو امسح كلمة البحث")
-            shown?.forEach { u ->
+            if (shown != null && shown.size > 150) Text("يُعرض أول 150 من ${shown.size} — اكتب في البحث للوصول لحساب محدد", color = p.mute, fontSize = 12.5.sp)
+            shown?.take(150)?.forEach { u ->
                 val id = u.getString("id"); val active = u.optString("isActive") != "false"
                 QCard { Column {
                     Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

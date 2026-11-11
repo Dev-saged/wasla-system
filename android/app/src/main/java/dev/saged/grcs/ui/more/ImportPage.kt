@@ -59,7 +59,7 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val p = LocalPalette.current
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    val camps = remember { data.campList(auth) }
+    val camps = remember { data.ctxCamps(auth) }
     var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
     var rows by remember { mutableStateOf<List<List<String>>?>(null) }
     var map by remember { mutableStateOf<Map<String, Int>?>(null) }

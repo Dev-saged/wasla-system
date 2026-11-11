@@ -41,7 +41,6 @@ import dev.saged.grcs.data.Stats
 import androidx.activity.compose.BackHandler
 import dev.saged.grcs.auth.AuthState
 import dev.saged.grcs.data.Aid
-import dev.saged.grcs.ui.people.EditScreen
 import dev.saged.grcs.ui.components.BtnKind
 import dev.saged.grcs.ui.components.Bar
 import dev.saged.grcs.ui.components.SegTabs
@@ -56,6 +55,7 @@ import dev.saged.grcs.ui.icons.Fa
 import androidx.compose.material3.Icon
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import dev.saged.grcs.ui.components.cardShadow
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.components.QChip
 import dev.saged.grcs.ui.components.QField
@@ -155,7 +155,7 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
         }
     }
     BackHandler(screen != "main" || editing != null) { if (editing != null) editing = null else screen = "main" }
-    editing?.let { ed -> EditScreen(ed, persons, null, { editing = null }) { o, ex -> saveP(o, ex) }; return }
+    editing?.let { ed -> dev.saged.grcs.ui.people.PersonForm(ed, persons, camp, auth.user.id, null, { editing = null }) { r -> scope.launch { withContext(Dispatchers.IO) { data.saveForm(auth, camp, r) }; editing = null; rev++ } }; return }
     if (screen == "chat") { dev.saged.grcs.ui.messages.MessagesScreen(auth, data, null) { screen = "main" }; return }
     if (screen == "changepw") { dev.saged.grcs.ui.more.ChangePwPage(auth) { screen = "main" }; return }
     val campName = info?.name?.ifEmpty { null } ?: data.campList(auth).firstOrNull()?.second.orEmpty()
@@ -308,7 +308,7 @@ private fun ProfileTab(head: JSONObject, onSave: (JSONObject) -> Unit) {
 @Composable
 private fun FamilyTab(head: JSONObject, family: List<JSONObject>, onAdd: () -> Unit, onOpen: (JSONObject) -> Unit) {
     val p = LocalPalette.current
-    Btn("إضافة فرد جديد", onAdd, Modifier.fillMaxWidth(), icon = QIcons.Plus)
+    Btn("إضافة فرد جديد", onAdd, Modifier.fillMaxWidth(), icon = Fa.UserPlus)
     val orphans = family.filter { isOrphan(it) }
     if (orphans.isNotEmpty()) FormCard("أطفال أيتام في رعايتك") {
         orphans.forEach { o ->
@@ -334,13 +334,19 @@ private fun FamilyTab(head: JSONObject, family: List<JSONObject>, onAdd: () -> U
         if (buckets[i].isEmpty()) return@forEachIndexed
         Text(g.first + "  " + buckets[i].size, color = p.mute, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         buckets[i].forEach { m ->
-            val female = m.optString("gender") == "female"
-            Row(Modifier.fillMaxWidth().background(p.surface, RoundedCornerShape(16.dp)).clickable { onOpen(m) }.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.size(44.dp).background(if (m.optString("gender") == "male") p.navy else if (female) p.pregnant else p.gray, RoundedCornerShape(12.dp)))
+            val g = m.optString("gender")
+            val grad = if (g == "male") listOf(p.blue, Color(0xFF1D4ED8)) else if (g == "female") listOf(Color(0xFFDB2777), Color(0xFF9D174D)) else listOf(p.mute, Color(0xFF475569))
+            val orphanT = m.optJSONObject("tagData")?.optJSONObject("orphan")?.optString("type")
+            Row(Modifier.fillMaxWidth().cardShadow().clip(RoundedCornerShape(14.dp)).background(p.surface).clickable { onOpen(m) }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(androidx.compose.ui.graphics.Brush.linearGradient(grad)), contentAlignment = Alignment.Center) { Icon(if (g == "male") Fa.Mars else if (g == "female") Fa.Venus else Fa.Question, null, Modifier.size(19.dp), tint = Color.White) }
                 Column(Modifier.weight(1f)) {
-                    Text(m.optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                    Text((relLabel[m.optString("relation")] ?: "قريب") + (Stats.ageOf(m)?.let { " · $it سنة" } ?: "") + (if (m.optBoolean("isPregnant")) " · حامل" else "") + (if (m.optBoolean("isBreastfeeding")) " · مرضعة" else "") + (if (isOrphan(m)) " · يتيم" else ""), color = p.mute, fontSize = 12.sp)
+                    Text(m.optString("fullName"), color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Row {
+                        Text(dev.saged.grcs.data.Rel.label(m) + (Stats.ageOf(m)?.let { " · $it سنة" } ?: "") + (if (m.optBoolean("isPregnant")) " · حامل" else "") + (if (m.optBoolean("isBreastfeeding")) " · مرضعة" else "") + (if (isOrphan(m)) " · " + (if (orphanT == "both") "يتيم الأبوين" else "يتيم الأب") else ""), color = p.mute, fontSize = 12.5.sp)
+                        if (m.optString("nationalId").isEmpty()) Text(" · " + if (m.optBoolean("noIdYet")) "لا هوية بعد" else "بلا هوية", color = p.warn, fontSize = 12.5.sp)
+                    }
                 }
+                Icon(Fa.ChevronLeft, null, Modifier.size(13.dp), tint = Color(0xFF94A3B8))
             }
         }
     }

@@ -55,23 +55,14 @@ object Stats {
     }
 
     fun compute(persons: List<JSONObject>): CampStats {
-        val fams = HashSet<String>(); val famPhone = HashMap<String, Boolean>()
-        var male = 0; var female = 0; var infant = 0; var child = 0; var elderly = 0; var pregnant = 0
-        var chronic = 0; var dis = 0; var widowed = 0; var divorced = 0; var noId = 0
+        val fams = HashSet<String>(); val famPhone = HashMap<String, Boolean>(); val c = HashMap<String, Int>()
         for (p in persons) {
             val fid = p.optString("familyId")
             if (fid.isNotEmpty()) { fams += fid; famPhone[fid] = (famPhone[fid] == true) || p.optString("phone").isNotEmpty() }
-            when (p.optString("gender")) { "male" -> male++; "female" -> female++ }
-            age(p)?.let { a -> if (a < 1) infant++; if (a in 1..18) child++; if (a >= 60) elderly++ }
-            if (p.optBoolean("isPregnant")) pregnant++
-            if (p.optBoolean("hasChronicDisease")) chronic++
-            if (p.optBoolean("hasDisability")) dis++
-            val ms = p.optString("maritalStatus")
-            if (ms.contains("أرمل")) widowed++
-            if (ms.contains("مطلق")) divorced++
-            if (p.optString("nationalId").isEmpty()) noId++
+            for (k in Derive.keys(p)) c[k] = (c[k] ?: 0) + 1
         }
-        return CampStats(persons.size, fams.size, male, female, infant, child, elderly, pregnant, chronic, dis, widowed,
-            divorced, noId, famPhone.values.count { !it })
+        fun g(k: String) = c[k] ?: 0
+        return CampStats(persons.size, fams.size, g("male"), g("female"), g("infant"), g("child"), g("elderly"), g("pregnant"), g("chronic"), g("disability"), g("widowed"),
+            g("divorced"), g("noid"), famPhone.values.count { !it })
     }
 }

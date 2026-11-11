@@ -32,6 +32,12 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     }
 
     /** المخيمات المتاحة للمستخدم من النسخة المحلية (المعرّف، الاسم). */
+    /** المخيم الذي يتصفحه المسؤول حالياً (adminViewingCampId في الويب)؛ null = كل المخيمات. */
+    @Volatile var scope: String? = null
+
+    /** مخيمات السياق الحالي: مخيم واحد إن كان المسؤول داخل مخيم، وإلا كل ما يتاح للحساب. */
+    fun ctxCamps(st: AuthState): List<Pair<String, String>> = campList(st).let { l -> scope?.let { c -> l.filter { it.first == c }.ifEmpty { l } } ?: l }
+
     fun campList(st: AuthState): List<Pair<String, String>> {
         val names = cache.meta("camps")?.let { runCatching { org.json.JSONObject(it) }.getOrNull() }
         val fromCache = names?.keys()?.asSequence()?.map { it to names.optString(it).ifBlank { it } }?.toList().orEmpty()
@@ -207,6 +213,28 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         if (deleted) accounts.enqueueDelete(camp, p) else accounts.enqueueSave(camp, p)
         val name = campList(st).firstOrNull { it.first == camp }?.second ?: camp
         runCatching { accounts.run(camp, name, st.idToken, secV) }
+    }
+
+    /**
+     * حفظ نموذج الفرد كما في الويب: فحص المخيمات الأخرى للهويات الجديدة أو المعدّلة فقط (NidField.crossCamp)،
+     * ثم حفظ الفرد والزوج/ة والأبناء، وحذف من أُزيل من النموذج، ثم الرفع. يعيد نص الخطأ أو null.
+     */
+    fun saveForm(st: AuthState, camp: String, r: FormResult): String? {
+        val before = people.persons(camp).associateBy { it.optString("id") }
+        if (!st.offline) for (x in listOf(r.main) + r.others) {
+            val n = x.optString("nationalId")
+            if (n.isEmpty() || Nid.status(n) != "valid" || n == before[x.optString("id")]?.optString("nationalId")) continue
+            runCatching { checkNid(st, n, camp) }.getOrNull()?.let { return it }
+        }
+        val saved = people.save(camp, r.main)
+        Thread { Audit.log(st, camp, if (r.isNew) "add_person" else "edit_person", saved.optString("id"), saved.optString("fullName")) }.start()
+        accounts.enqueueSave(camp, saved)
+        for (x in r.others) { x.put("familyId", saved.optString("familyId")); accounts.enqueueSave(camp, people.save(camp, x)) }
+        for (x in r.removed) { runCatching { trash.put(st, camp, "person", x.optString("fullName").ifEmpty { "—" }, listOf(x)) }; people.delete(camp, x); accounts.enqueueDelete(camp, x) }
+        val name = campList(st).firstOrNull { it.first == camp }?.second ?: camp
+        runCatching { accounts.run(camp, name, st.idToken, secV) }
+        pushNow(st, camp)
+        return null
     }
 
     /** رفع فوري لمخيم بعد تعديل (يعيد false إن تعذّر وبقي معلّقاً). */

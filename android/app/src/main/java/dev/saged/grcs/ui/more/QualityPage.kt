@@ -28,7 +28,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import dev.saged.grcs.ui.components.Btn
 import dev.saged.grcs.ui.components.BtnKind
-import dev.saged.grcs.ui.people.EditScreen
 import org.json.JSONObject
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,7 +48,7 @@ import kotlinx.coroutines.withContext
 fun QualityPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
-    val camps = remember { data.campList(auth) }
+    val camps = remember { data.ctxCamps(auth) }
     var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
     var persons by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var pct by remember { mutableStateOf(100) }
@@ -59,24 +58,15 @@ fun QualityPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var edit by remember { mutableStateOf<JSONObject?>(null) }
     var err by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(camp, rev) {
-        val ps = withContext(Dispatchers.IO) { data.people.persons(camp) }
+        val ps = withContext(Dispatchers.IO) { camps.flatMap { data.people.persons(it.first) } }
         val r = withContext(Dispatchers.IO) { Quality.report(ps) }
         persons = ps; pct = r.first; issues = r.second
     }
     edit?.let { ed ->
-        EditScreen(ed, persons, err, { edit = null; err = null }) { o, ex ->
+        dev.saged.grcs.ui.people.PersonForm(ed, persons.filter { it.optString("campId").let { c -> c.isEmpty() || c == ed.optString("campId").ifEmpty { camp } } }, ed.optString("campId").ifEmpty { camp }, auth.user.id, err, { edit = null; err = null }) { r ->
             scope.launch {
-                o.put("updatedBy", auth.user.id)
-                val n = o.optString("nationalId")
-                val bad = if (n.isNotEmpty()) withContext(Dispatchers.IO) { data.checkNid(auth, n, camp) } else null
-                if (bad != null) { err = bad; return@launch }
-                withContext(Dispatchers.IO) {
-                    val saved = data.people.save(camp, o)
-                    data.afterSave(auth, camp, saved, false)
-                    ex.forEach { x -> x.put("updatedBy", auth.user.id); x.put("familyId", saved.optString("familyId")); data.afterSave(auth, camp, data.people.save(camp, x), false) }
-                    data.pushNow(auth, camp)
-                }
-                edit = null; err = null; rev++
+                val e = withContext(Dispatchers.IO) { data.saveForm(auth, r.main.optString("campId").ifEmpty { camp }, r) }
+                if (e != null) err = e else { edit = null; err = null; rev++ }
             }
         }
         return
@@ -89,12 +79,11 @@ fun QualityPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         val tail = extra.ifEmpty { if (x.optBoolean("isFamilyHead")) x.optString("nationalId") else heads[x.optString("familyId")]?.optString("fullName")?.let { "أسرة $it" }.orEmpty() }
         return listOfNotNull(role, a, tail.ifEmpty { null }).joinToString(" · ")
     }
-    val campName = camps.firstOrNull { it.first == camp }?.second ?: camp
+    val campName = if (camps.size > 1) "كل المخيمات" else camps.firstOrNull()?.second ?: camp
     val notes = issues.filter { it.key != "stale" }.sumOf { it.people.size }
     Column(Modifier.fillMaxSize()) {
         AppHeader("مركز الجودة", "$campName — ${persons.size} فرد", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
             val pc = if (pct < 60) p.danger else if (pct < 85) p.warn else p.ok
             Row(Modifier.fillMaxWidth().qcard().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {

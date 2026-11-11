@@ -93,3 +93,5 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 R8: التصنيفات (TagsDialog) من openTagsEditor — يتيم/جريح/أسرة شهيد/مخصصة، زر في تفاصيل الفرد.
 R9: مطابقة بصرية بالمقارنة الآلية — docs/web-spec/{fixture.py,shoot-web.js,shoot-kt.sh} تلتقط الويب وKotlin بنفس البيانات؛ ShotTest يعمل فقط مع GRCS_SHOTS. الأيقونات Fa.kt (مولّد من gen-fa.py) وQIcons تشير إليها.
 R9: Kit: Sheet/ConfirmSheet/SettingsRow/QSwitch/SwitchRow/SegBtns/QSelect/CheckRow/FilterLabel/OfflineBanner؛ خط Cairo بمقاييس رأسية معدّلة (patch-font-metrics.py) وارتفاع سطر 1.6؛ ShellState.immersive يخفي الشريط السفلي في نموذج الفرد.
+R10: نقل منطقي مباشر من الويب: data/{Derive,Rel}.kt، ui/people/PersonForm.kt (بديل EditScreen)، DataRepo.saveForm/ctxCamps/scope، RapidPage مُعاد كتابته. سجل النقل: docs/web-spec/PORT.md.
+R10: سياق المخيم الموحّد ShellState.adminCamp (= adminViewingCampId): الرئيسية تعرض لوحة المخيم وبطاقاتها تفتح كشف الأفراد؛ ShellState.newPerson طلب إضافة لمرة واحدة. الصفحات داخل مخيم تعمل على مخيم السياق فقط.

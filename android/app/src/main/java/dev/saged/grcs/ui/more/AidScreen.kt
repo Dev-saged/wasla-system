@@ -54,7 +54,7 @@ private class AidRow(val camp: String, val campName: String, val p: JSONObject, 
 fun AidScreen(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
-    val camps = remember { data.campList(auth) }
+    val camps = remember { data.ctxCamps(auth) }
     var camp by remember { mutableStateOf(if (camps.size > 1) "*" else camps.firstOrNull()?.first.orEmpty()) }
     var type by remember { mutableStateOf("food") }
     var period by remember { mutableStateOf("month") }

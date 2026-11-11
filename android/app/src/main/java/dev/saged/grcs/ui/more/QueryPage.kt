@@ -52,7 +52,7 @@ fun QueryPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val camps = remember { data.campList(auth) }
     var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
-    val persons = remember(camp) { data.people.persons(camp) }
+    val persons = remember { camps.flatMap { data.people.persons(it.first) } }
     var groups by remember { mutableStateOf<List<List<Cond>>>(emptyList()) }
     var result by remember { mutableStateOf<QResult?>(null) }
     var title by remember { mutableStateOf("") }
@@ -67,9 +67,8 @@ fun QueryPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     fun run(g: List<List<Cond>>, t: String) { groups = g; title = t; result = null; scope.launch { result = withContext(Dispatchers.Default) { Query.run(persons, g) } } }
     fun addCond(c: Cond, newGroup: Boolean) { run(if (newGroup || groups.isEmpty()) groups + listOf(listOf(c)) else groups.dropLast(1) + listOf(groups.last() + c), "استعلام مخصص"); fieldK = null; vMin = ""; vMax = "" }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("منشئ الاستعلامات", camps.firstOrNull { it.first == camp }?.second ?: "كل المخيمات", conn = null, onBack = onBack)
+        AppHeader("منشئ الاستعلامات", if (camps.size > 1) "كل المخيمات" else camps.firstOrNull()?.second.orEmpty(), conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id; groups = emptyList(); result = null } } }
             Text("الفئات", color = p.mute, fontSize = 12.sp)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Query.categories.forEachIndexed { i, c -> QChip(c.label + (counts?.getOrNull(i)?.let { " · $it" } ?: ""), title == c.label) { run(c.groups, c.label) } } }
             Text("استعلامات جاهزة", color = p.mute, fontSize = 12.sp)
@@ -129,7 +128,7 @@ fun QueryPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                         Column(Modifier.weight(1f)) {
                             Text(x.optString("fullName"), color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                             Text(listOf(x.optString("nationalId").ifEmpty { "بلا هوية" }, x.optString("phone").ifEmpty { "بلا هاتف" }).joinToString(" · "), color = p.mute, fontSize = 12.sp)
-                            Text((camps.firstOrNull { it.first == camp }?.second ?: camp) + " · " + (dev.saged.grcs.data.Stats.ageOf(x)?.let { "$it سنة" } ?: "—"), color = p.mute, fontSize = 12.sp)
+                            Text((camps.firstOrNull { it.first == x.optString("campId") }?.second ?: camps.firstOrNull { it.first == camp }?.second ?: camp) + " · " + (dev.saged.grcs.data.Stats.ageOf(x)?.let { "$it سنة" } ?: "—"), color = p.mute, fontSize = 12.sp)
                         }
                     }
                 }

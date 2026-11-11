@@ -49,14 +49,13 @@ fun VulnPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     LaunchedEffect(camp) {
         all = withContext(Dispatchers.IO) {
             runCatching { Vuln.load(auth.idToken) }
-            Vuln.families(data.people.persons(camp))
+            Vuln.families(camps.flatMap { data.people.persons(it.first) })
         }
     }
     fun color(t: String): Color = when (t) { "critical" -> p.danger; "high" -> p.acc; "medium" -> p.warn; else -> p.ok }
     Column(Modifier.fillMaxSize()) {
         AppHeader("مؤشر الهشاشة", "", conn = null, onBack = onBack)
         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Vuln.tiers.forEach { (k, l) -> QChip("$l ${all.count { it.result.tier == k }}", tier == k) { tier = k } }
             }

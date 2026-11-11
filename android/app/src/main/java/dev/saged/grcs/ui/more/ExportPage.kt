@@ -60,8 +60,8 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val p = LocalPalette.current
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    val camps = remember { data.campList(auth) }
-    var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
+    val camps = remember { data.ctxCamps(auth) }
+    var camp by remember { mutableStateOf(if (camps.size > 1) "*" else camps.firstOrNull()?.first.orEmpty()) }
     var mode by remember { mutableStateOf("family") }
     var gender by remember { mutableStateOf("all") }
     var age by remember { mutableStateOf("all") }
@@ -85,16 +85,15 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     fun match(m: JSONObject): Boolean {
         if (gender != "all" && m.optString("gender") != gender) return false
         val a = Stats.ageOf(m)
-        when (age) {
-            "infant" -> if (a == null || a >= 1) return false
-            "preschool" -> if (a == null || a !in 1..5) return false
-            "school" -> if (a == null || a !in 6..18) return false
-            "youth" -> if (a == null || a !in 18..30) return false
-            "midAdult" -> if (a == null || a !in 30..60) return false
-            "elderly" -> if (a == null || a < 60) return false
-            "custom" -> { val lo = ageMin.toIntOrNull() ?: 0; val hi = ageMax.toIntOrNull() ?: 200; if (a == null || a < lo || a > hi) return false }
-        }
-        for (f in flags) if (PFilter.apply(f, listOf(m)).isEmpty()) return false
+        if (age == "custom") { val lo = ageMin.toIntOrNull() ?: 0; val hi = ageMax.toIntOrNull() ?: 200; if (a == null || a < lo || a > hi) return false }
+        else if (age != "all" && dev.saged.grcs.data.Derive.ageBucket(a) != age) return false
+        if ("pregnant" in flags && !m.optBoolean("isPregnant")) return false
+        if ("chronic" in flags && !m.optBoolean("hasChronicDisease")) return false
+        if ("disability" in flags && !m.optBoolean("hasDisability")) return false
+        if ("widowed" in flags && !dev.saged.grcs.data.Derive.isWidowed(m)) return false
+        if ("divorced" in flags && !dev.saged.grcs.data.Derive.isDivorced(m)) return false
+        if ("nophone" in flags && m.optString("phone").isNotEmpty()) return false
+        if ("noid" in flags && m.optString("nationalId").isNotEmpty()) return false
         return true
     }
     val selected = remember(persons, mode, gender, age, ageMin, ageMax, flags.toList(), family) {
@@ -127,10 +126,6 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         AppHeader("تصدير تقرير مخصص", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.FileExport, endBack = onBack.takeIf { auth.user.role == "admin" }, search = true)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-            if (camps.size > 1) {
-                FilterLabel("المخيم", Fa.Tent)
-                FlowRow(Modifier.padding(bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { QChip("كل المخيمات", camp == "*") { camp = "*" }; camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
-            }
             FilterLabel("طريقة العرض", Fa.TableList)
             androidx.compose.foundation.lazy.LazyRow(Modifier.padding(bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { QChip("حسب الأسرة (صف واحد لكل أسرة)", mode == "family") { mode = "family" } }

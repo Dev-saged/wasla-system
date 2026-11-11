@@ -57,17 +57,7 @@ private val reqStatusColor = mapOf("pending" to "w", "approved" to "s", "done" t
 private fun JSONObject.strs(k: String): List<String> = optJSONArray(k)?.let { a -> (0 until a.length()).map { a.optString(it) } }.orEmpty()
 
 /** relationLabel في الويب. */
-private fun relationOf(p: JSONObject): String {
-    val g = p.optString("gender")
-    return when (p.optString("relation")) {
-        "head" -> "رب الأسرة"; "wife" -> "الزوجة"; "husband" -> "الزوج"
-        "orphan" -> if (g == "female") "يتيمة في رعاية الأسرة" else "يتيم في رعاية الأسرة"
-        else -> when (p.optString("memberRelation")) {
-            "son" -> "ابن"; "daughter" -> "ابنة"; "nephew" -> "ابن أخ/عم"; "niece" -> "ابنة أخ/عم"
-            else -> if (p.optString("relation") == "child") (if (g == "female") "ابنة" else if (g == "male") "ابن" else "ابن/ابنة") else p.optString("relationDetail").ifEmpty { "فرد من الأسرة" }
-        }
-    }
-}
+private fun relationOf(p: JSONObject): String = dev.saged.grcs.data.Rel.label(p)
 
 private fun fmtDate(ms: Long): String = if (ms <= 0) "—" else SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date(ms))
 
@@ -127,7 +117,7 @@ private fun CriticalBadges(m: JSONObject) {
         if (ms.contains("أرمل")) add(Triple("أرمل/ة", p.gray, Fa.Ring))
         if (ms.contains("مطلق") || ms.contains("مطلّق")) add(Triple("مطلّق/ة", p.gray, Fa.HeartCrack))
         if (m.optString("nationalId").isEmpty()) add(Triple("بلا هوية", p.danger, Fa.IdCardClip))
-        if (m.optString("phone").isEmpty()) add(Triple("بلا هاتف", p.gray, Fa.PhoneSlash))
+        if (m.optBoolean("isFamilyHead") && m.optString("phone").isEmpty()) add(Triple("بلا هاتف", p.gray, Fa.PhoneSlash))
     }
     if (items.isNotEmpty()) FlowRow(Modifier.padding(bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) { items.forEach { (t, c, ic) -> Pill(t, c, icon = ic) } }
 }
