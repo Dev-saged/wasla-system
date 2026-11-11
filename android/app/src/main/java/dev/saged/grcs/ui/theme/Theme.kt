@@ -80,6 +80,8 @@ fun GrcsTheme(content: @Composable () -> Unit) {
     CompositionLocalProvider(
         LocalPalette provides p,
         LocalLayoutDirection provides LayoutDirection.Rtl,
+        // تكبير خط النظام يُحدّ حتى لا تتجاوز الأزرار والنصوص عرض الشاشة
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.platform.LocalDensity.current.let { androidx.compose.ui.unit.Density(it.density, it.fontScale.coerceAtMost(1.1f)) },
     ) {
         MaterialTheme(colorScheme = scheme) {
             // سطر النص كما في CSS: ارتفاع 1.6 يُحترم حرفياً حتى لسطر واحد

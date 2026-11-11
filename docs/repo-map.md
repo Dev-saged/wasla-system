@@ -95,3 +95,5 @@ R9: مطابقة بصرية بالمقارنة الآلية — docs/web-spec/{f
 R9: Kit: Sheet/ConfirmSheet/SettingsRow/QSwitch/SwitchRow/SegBtns/QSelect/CheckRow/FilterLabel/OfflineBanner؛ خط Cairo بمقاييس رأسية معدّلة (patch-font-metrics.py) وارتفاع سطر 1.6؛ ShellState.immersive يخفي الشريط السفلي في نموذج الفرد.
 R10: نقل منطقي مباشر من الويب: data/{Derive,Rel}.kt، ui/people/PersonForm.kt (بديل EditScreen)، DataRepo.saveForm/ctxCamps/scope، RapidPage مُعاد كتابته. سجل النقل: docs/web-spec/PORT.md.
 R10: سياق المخيم الموحّد ShellState.adminCamp (= adminViewingCampId): الرئيسية تعرض لوحة المخيم وبطاقاتها تفتح كشف الأفراد؛ ShellState.newPerson طلب إضافة لمرة واحدة. الصفحات داخل مخيم تعمل على مخيم السياق فقط.
+R11: data/NatRef.kt = الكشوف الوطنية المحفوظة (NatRef) + كشف الأعمدة (Cells) + محرك المطابقة (Reconcile)؛ ReconcilePage مُعاد كتابته؛ NidInput يعرض تلميح الكشف وزر تعبئة؛ QualityPage يقترح الهويات. اختبار: NatRefTest.
+R11: ui/ben/BenMember.kt = نافذة فرد المستفيد (openBenMemberModal)؛ «طلباتي» بالإلغاء والتاريخ؛ Theme يحدّ تكبير خط النظام عند 1.1.

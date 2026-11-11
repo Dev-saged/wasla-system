@@ -70,7 +70,7 @@ internal val chronicConditions = listOf("heart" to "قلب", "diabetes" to "سك
 private val maritalKeys = listOf("married" to "متزوج/ة", "widowed" to "أرمل/ة", "divorced" to "مطلق/ة", "single" to "أعزب")
 
 /** حالة حقل هوية واحد (NidField): الرقم، «لا هوية بعد»، القيمة الأصلية، ومعرّف صاحب السجل. */
-private class NidState(orig: String, none: Boolean, val self: String) {
+internal class NidState(orig: String, none: Boolean, val self: String) {
     val orig = orig
     var value by mutableStateOf(orig)
     var none by mutableStateOf(orig.isEmpty() && none)
@@ -225,7 +225,7 @@ internal fun PersonForm(src: JSONObject, all: List<JSONObject>, campId: String, 
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Card("البيانات الأساسية", Fa.IdCard) {
                 QField("الاسم الكامل *", name, { name = it })
-                NidInput("رقم الهوية *", nid, byNid)
+                NidInput("رقم الهوية *", nid, byNid) { e -> if (name.isBlank() && e.name.isNotEmpty()) name = e.name; if (dob.isEmpty() && e.dob != null) dob = e.dob }
                 DateField("تاريخ الميلاد", dob, { dob = it })
                 Column {
                     Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -252,7 +252,7 @@ internal fun PersonForm(src: JSONObject, all: List<JSONObject>, campId: String, 
             }
             if (spouseCard) Card("الزوج / الزوجة", Fa.PeoplePulling, "(اختياري)") {
                 QField("الاسم الكامل", sName, { sName = it }, placeholder = "اسم الزوج/ة رباعي")
-                NidInput("رقم الهوية", sNid, byNid, "(مطلوب إن أُدخل الاسم)")
+                NidInput("رقم الهوية", sNid, byNid, "(مطلوب إن أُدخل الاسم)") { e -> if (sName.isBlank() && e.name.isNotEmpty()) sName = e.name; if (sDob.isEmpty() && e.dob != null) sDob = e.dob }
                 Column { DateField("تاريخ الميلاد", sDob, { sDob = it }); Spacer(Modifier.height(4.dp)); AgeChips(sDob, spouseGender.ifEmpty { "unknown" }, "wife", false) }
                 if (sMaternal) Column { IconSwitch("حامل", Fa.BabyCarriage, sPreg) { sPreg = it }; IconSwitch("مرضعة", Fa.Baby, sBf) { sBf = it } }
             }
@@ -265,7 +265,7 @@ internal fun PersonForm(src: JSONObject, all: List<JSONObject>, campId: String, 
                             Box(Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).clickable { kids.removeAt(i); c.id?.let { removedIds.add(it) } }, contentAlignment = Alignment.Center) { Icon(Fa.Trash, "حذف", Modifier.size(15.dp), tint = p.danger) }
                         }
                         QField("الاسم الكامل", c.name, { c.name = it }, placeholder = "الاسم الرباعي")
-                        NidInput("رقم الهوية", c.nid, byNid, "(مطلوب إن أُدخل الاسم)")
+                        NidInput("رقم الهوية", c.nid, byNid, "(مطلوب إن أُدخل الاسم)") { e -> if (c.name.isBlank() && e.name.isNotEmpty()) c.name = e.name; if (c.dob.isEmpty() && e.dob != null) c.dob = e.dob }
                         Column { DateField("تاريخ الميلاد", c.dob, { c.dob = it }); Spacer(Modifier.height(4.dp)); AgeChips(c.dob, Rel.genderOf(c.rel).ifEmpty { "unknown" }, if (c.rel == "orphan") "orphan" else "child", false) }
                         QField("ملاحظة صحية (اختياري)", c.note, { c.note = it }, placeholder = "مثال: يعاني من ربو")
                     }
@@ -320,8 +320,10 @@ private fun Card(title: String, icon: ImageVector, hint: String? = null, content
 
 /** حقل الهوية الموحّد (NidField): 9 أرقام، حالة فورية (مكرر/صالح/خانة التحقق)، وخانة «لا يوجد رقم هوية بعد». */
 @Composable
-private fun NidInput(label: String, st: NidState, byNid: Map<String, JSONObject>, hint: String? = null) {
+internal fun NidInput(label: String, st: NidState, byNid: Map<String, JSONObject>, hint: String? = null, onFill: ((dev.saged.grcs.data.RefEntry) -> Unit)? = null) {
     val p = LocalPalette.current
+    var refReady by remember { mutableStateOf(dev.saged.grcs.data.NatRef.ready()) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { if (!refReady) { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { dev.saged.grcs.data.NatRef.ensure() } }; refReady = true } }
     Column {
         QField(if (hint != null) "$label $hint" else label, st.value, { v -> st.value = Nid.digits(v).filter { it in '0'..'9' }.take(9); if (st.value.isNotEmpty()) st.none = false }, type = KeyboardType.Number, enabled = !st.none)
         val n = st.nid
@@ -330,6 +332,12 @@ private fun NidInput(label: String, st: NidState, byNid: Map<String, JSONObject>
             val s = Nid.status(n)
             val (t, c) = when { dup != null -> "مسجّل مسبقاً بهذا المخيم: ${dup.optString("fullName")}" to p.danger; s == "valid" -> "رقم صالح" to p.success; s == "format" -> "الرقم يجب أن يكون 9 أرقام" to p.warn; else -> "لا يجتاز خانة التحقق — تأكد من الرقم" to p.warn }
             Text(t, color = c, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 4.dp))
+            if (refReady && dup == null) dev.saged.grcs.data.NatRef.hint(n)?.let { (okRef, txt) ->
+                Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(txt, Modifier.weight(1f, false), color = if (okRef) p.success else p.warn, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    if (okRef && onFill != null) Text("تعبئة", Modifier.clip(RoundedCornerShape(50)).border(1.dp, p.pri, RoundedCornerShape(50)).clickable { dev.saged.grcs.data.NatRef.peek(n)?.let(onFill) }.padding(horizontal = 12.dp, vertical = 6.dp), color = p.pri, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
         }
         Row(Modifier.padding(top = 6.dp).clickable { st.none = !st.none; if (st.none) st.value = "" }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val sh = RoundedCornerShape(3.dp)

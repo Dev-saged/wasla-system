@@ -126,6 +126,7 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
     var screen by remember { mutableStateOf("main") }
     var tab by remember { mutableIntStateOf(0) }
     var editing by remember { mutableStateOf<JSONObject?>(null) }
+    var adding by remember { mutableStateOf(false) }
     var msgs by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var info by remember { mutableStateOf<dev.saged.grcs.data.CampInfo?>(null) }
     val camp = auth.user.campId
@@ -154,8 +155,7 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
             editing = null; rev++
         }
     }
-    BackHandler(screen != "main" || editing != null) { if (editing != null) editing = null else screen = "main" }
-    editing?.let { ed -> dev.saged.grcs.ui.people.PersonForm(ed, persons, camp, auth.user.id, null, { editing = null }) { r -> scope.launch { withContext(Dispatchers.IO) { data.saveForm(auth, camp, r) }; editing = null; rev++ } }; return }
+    BackHandler(screen != "main") { screen = "main" }
     if (screen == "chat") { dev.saged.grcs.ui.messages.MessagesScreen(auth, data, null) { screen = "main" }; return }
     if (screen == "changepw") { dev.saged.grcs.ui.more.ChangePwPage(auth) { screen = "main" }; return }
     val campName = info?.name?.ifEmpty { null } ?: data.campList(auth).firstOrNull()?.second.orEmpty()
@@ -182,24 +182,26 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
                     if (head.optString("phone").isEmpty()) add(Triple("بلا هاتف", p.gray, Fa.PhoneSlash))
                 }
                 if (pills.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { pills.forEach { (t, c, ic) -> dev.saged.grcs.ui.components.Pill(t, c, icon = ic) } }
-                Completeness(head, family) { t -> tab = t }
+                Completeness(head, family, { tab = 1; editing = it }) { t -> tab = t }
                 Btn("تواصل مع إدارة المخيم", { screen = "chat" }, Modifier.fillMaxWidth(), icon = Fa.CommentDots)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("ملفي" to Fa.IdCard, "أسرتي" to Fa.PeopleRoof, "طلباتي" to Fa.HandHoldingHeart, "إشعاراتي" to Fa.Bell).forEachIndexed { i, (t, ic) ->
                         val on = tab == i; val sh = RoundedCornerShape(50)
                         Column(Modifier.weight(1f).background(if (on) p.navy else p.surface, sh).border(1.5.dp, if (on) p.navy else p.line, sh).clip(sh).clickable { tab = i }.padding(horizontal = 4.dp, vertical = 9.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Icon(ic, null, Modifier.size(18.dp), tint = if (on) Color.White else p.mute)
-                            Text(t, color = if (on) Color.White else p.mute, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                            val pend = if (i == 2) Aid.requests(head).count { it.optString("status") == "pending" } else 0
+                            Text(if (pend > 0) "$t $pend" else t, color = if (on) Color.White else p.mute, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                         }
                     }
                 }
                 when (tab) {
                     0 -> ProfileTab(head, onSave = { o -> saveP(o, emptyList()) })
-                    1 -> FamilyTab(head, family, onAdd = { editing = JSONObject().put("familyId", head.optString("familyId")).put("isFamilyHead", false).put("relation", "son") }, onOpen = { editing = it })
-                    2 -> RequestsTab(head, type, { type = it }, details, { details = it }) { o -> scope.launch { withContext(Dispatchers.IO) { data.people.save(camp, o.put("updatedBy", auth.user.id)); data.pushNow(auth, camp) }; details = ""; rev++ } }
+                    1 -> FamilyTab(head, family, onAdd = { adding = true }, onOpen = { editing = it })
+                    2 -> RequestsTab(head, auth.user.id, auth.offline, type, { type = it }, details, { details = it }, { o -> scope.launch { withContext(Dispatchers.IO) { data.people.save(camp, o.put("updatedBy", auth.user.id)); data.pushNow(auth, camp) }; rev++ } }) { o -> scope.launch { withContext(Dispatchers.IO) { data.people.save(camp, o.put("updatedBy", auth.user.id)); data.pushNow(auth, camp) }; details = ""; rev++ } }
                     3 -> NotifyTab(head, msgs, auth.user.id)
                 }
             }
+            if (head != null && (adding || editing != null)) BenMemberSheet(auth, data, camp, head, family, editing, { adding = false; editing = null }) { adding = false; editing = null; rev++ }
             FormCard("المظهر", Fa.CircleHalfStroke) { dev.saged.grcs.ui.components.SegBtns(listOf("تلقائي" to Fa.CircleHalfStroke, "فاتح" to Fa.Sun, "داكن" to Fa.Moon), dev.saged.grcs.ui.theme.ThemePref.mode) { dev.saged.grcs.ui.theme.ThemePref.set(it) } }
             Btn("تغيير كلمة المرور", { screen = "changepw" }, Modifier.fillMaxWidth(), BtnKind.Outline, Fa.Key)
             Btn("تسجيل الخروج", onLogout, Modifier.fillMaxWidth(), BtnKind.Danger, Fa.ArrowRightFromBracket)
@@ -212,14 +214,14 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
 }
 
 @Composable
-private fun Completeness(head: JSONObject, family: List<JSONObject>, goTab: (Int) -> Unit) {
+private fun Completeness(head: JSONObject, family: List<JSONObject>, onMember: (JSONObject) -> Unit, goTab: (Int) -> Unit) {
     val p = LocalPalette.current
-    class Item(val ok: Boolean, val label: String, val tab: Int)
+    class Item(val ok: Boolean, val label: String, val tab: Int, val m: JSONObject? = null)
     val items = buildList {
         add(Item(head.optString("phone").isNotEmpty(), "رقم الهاتف", 0)); add(Item(PFields.phone2(head).isNotEmpty(), "هاتف إضافي", 0))
         add(Item(head.optString("address").isNotEmpty(), "العنوان", 0)); add(Item(head.optString("shelterType").isNotEmpty(), "نوع المأوى", 0))
-        family.filter { it.optString("relation") != "wife" && !it.optBoolean("isFamilyHead") }.forEach { m -> add(Item(m.optString("birthDate").let { it.isNotEmpty() && it != "null" }, "تاريخ ميلاد " + m.optString("fullName").substringBefore(" ").ifEmpty { "فرد" }, 1)) }
-        family.filter { it.optString("nationalId").isEmpty() && !it.optBoolean("noIdYet") }.forEach { m -> add(Item(false, "هوية " + m.optString("fullName").substringBefore(" ").ifEmpty { "فرد" }, 1)) }
+        family.filter { it.optString("relation") != "wife" && !it.optBoolean("isFamilyHead") }.forEach { m -> add(Item(m.optString("birthDate").let { it.isNotEmpty() && it != "null" }, "تاريخ ميلاد " + m.optString("fullName").substringBefore(" ").ifEmpty { "فرد" }, 1, m)) }
+        family.filter { it.optString("nationalId").isEmpty() && !it.optBoolean("noIdYet") }.forEach { m -> add(Item(false, "هوية " + m.optString("fullName").substringBefore(" ").ifEmpty { "فرد" }, 1, m)) }
     }
     val done = items.count { it.ok }; val pct = if (items.isEmpty()) 100 else Math.round(done * 100f / items.size)
     val missing = items.filter { !it.ok }
@@ -239,7 +241,7 @@ private fun Completeness(head: JSONObject, family: List<JSONObject>, goTab: (Int
                 if (missing.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     missing.forEach { m ->
                         val sh = RoundedCornerShape(50)
-                        Box(Modifier.heightIn(min = 34.dp).clip(sh).background(if (p.dark) p.warn.copy(alpha = .12f) else Color(0xFFFFFBEB)).drawBehind { drawRoundRect(p.warn.copy(alpha = .6f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height / 2), style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 2.dp.toPx())))) }.clickable { goTab(m.tab) }.padding(horizontal = 12.dp, vertical = 6.dp), contentAlignment = Alignment.Center) {
+                        Box(Modifier.heightIn(min = 34.dp).clip(sh).background(if (p.dark) p.warn.copy(alpha = .12f) else Color(0xFFFFFBEB)).drawBehind { drawRoundRect(p.warn.copy(alpha = .6f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height / 2), style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 2.dp.toPx())))) }.clickable { m.m?.let(onMember) ?: goTab(m.tab) }.padding(horizontal = 12.dp, vertical = 6.dp), contentAlignment = Alignment.Center) {
                             Text(m.label, color = p.warn, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -354,14 +356,19 @@ private fun FamilyTab(head: JSONObject, family: List<JSONObject>, onAdd: () -> U
 }
 
 @Composable
-private fun RequestsTab(head: JSONObject, type: String, onType: (String) -> Unit, details: String, onDetails: (String) -> Unit, onSend: (JSONObject) -> Unit) {
+private fun RequestsTab(head: JSONObject, uid: String, offline: Boolean, type: String, onType: (String) -> Unit, details: String, onDetails: (String) -> Unit, onCancel: (JSONObject) -> Unit, onSend: (JSONObject) -> Unit) {
     val p = LocalPalette.current
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    fun toast(t: String) = android.widget.Toast.makeText(ctx, t, android.widget.Toast.LENGTH_LONG).show()
+    val fmt = remember { java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US) }
     var cancelId by remember { mutableStateOf<String?>(null) }
     FormCard("طلب جديد", Fa.HandHoldingHeart) {
-        Text("نوع الطلب", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Aid.reqTypes.forEach { (k, l) -> QChip(l, type == k) { onType(k) } } }
-        QField("التفاصيل", details, onDetails, multiline = true)
-        Btn("إرسال الطلب", { if (details.trim().isNotEmpty()) onSend(Aid.addRequest(head, type, details.trim(), head.optString("updatedBy"))) }, Modifier.fillMaxWidth(), icon = QIcons.Broadcast)
+        dev.saged.grcs.ui.components.QSelect(type, Aid.reqTypes, label = "نوع الطلب") { onType(it) }
+        QField("التفاصيل", details, onDetails, multiline = true, placeholder = "اشرح احتياجك باختصار...")
+        Btn("إرسال الطلب", {
+            if (details.trim().isEmpty()) toast("اكتب تفاصيل الطلب")
+            else { onSend(Aid.addRequest(head, type, details.trim(), uid)); toast(if (offline) "حُفظ الطلب — سيُرسل عند الاتصال" else "تم إرسال الطلب للمندوب") }
+        }, Modifier.fillMaxWidth(), icon = Fa.PaperPlane)
     }
     SectionTitle("طلباتي السابقة")
     val reqs = Aid.requests(head).sortedByDescending { it.optLong("createdAt") }
@@ -375,8 +382,15 @@ private fun RequestsTab(head: JSONObject, type: String, onType: (String) -> Unit
                 dev.saged.grcs.ui.components.Pill(Aid.reqStatus[st] ?: st, c)
             }
             if (r.optString("details").isNotEmpty()) Text(r.optString("details"), color = p.mute, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
-            if (r.optString("reply").isNotEmpty()) Text("↩ " + r.optString("reply"), color = p.ink, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+            if (r.optString("reply").isNotEmpty()) Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { Icon(Fa.Reply, null, Modifier.size(12.dp), tint = p.mute); Text(r.optString("reply"), color = p.ink, fontSize = 12.sp) }
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(r.optLong("createdAt").let { if (it > 0) fmt.format(java.util.Date(it)) else "" }, color = p.mute, fontSize = 12.sp)
+                if (st == "pending") Btn("إلغاء", { cancelId = r.optString("id") }, kind = BtnKind.Outline, small = true)
+            }
         }
+    }
+    cancelId?.let { id ->
+        dev.saged.grcs.ui.components.ConfirmSheet("إلغاء هذا الطلب؟", "إلغاء الطلب", "إلغاء الطلب", onCancel = { cancelId = null }) { cancelId = null; onCancel(Merge.copy(head).also { o -> Aid.requests(o).firstOrNull { it.optString("id") == id }?.put("status", "cancelled")?.put("updatedAt", System.currentTimeMillis()) }); toast("تم إلغاء الطلب") }
     }
 }
 

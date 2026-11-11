@@ -48,7 +48,7 @@ object Importer {
         return out
     }
 
-    private fun date(raw: String): String {
+    internal fun date(raw: String): String {
         val s = digits(raw)
         if (s.isEmpty()) return ""
         Regex("^(\\d{4})-(\\d{1,2})-(\\d{1,2})").find(s)?.let { return "%s-%02d-%02d".format(it.groupValues[1], it.groupValues[2].toInt(), it.groupValues[3].toInt()) }
@@ -100,10 +100,10 @@ object Importer {
         return ImportPreview(out, dupes, bad, mapped, out.count { it.optBoolean("isFamilyHead") }, ex)
     }
 
-    private class Kid(val name: Int, val nid: Int?, val dob: Int?)
+    class Kid(val name: Int, val nid: Int?, val dob: Int?)
 
     /** مجموعات أعمدة الأبناء المرقّمة (اسم/هوية/ميلاد) كما detectRepeatingChildGroups. */
-    private fun childGroups(h: List<String>): List<Kid> {
+    internal fun childGroups(h: List<String>): List<Kid> {
         val g = sortedMapOf<Int, Array<Int?>>()
         h.forEachIndexed { i, raw ->
             val n = Regex("(\\d+)").find(digits(raw))?.value?.toIntOrNull() ?: return@forEachIndexed
