@@ -23,7 +23,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     val transfer by lazy { Transfer(this) }
     private var secV = 2L
 
-    init { Clock.init(ctx); Usage.init(ctx); Messages.Outbox.init(ctx); Messages.Seen.init(ctx); GenderInfer.init(ctx); NatRef.dir = java.io.File(ctx.filesDir, "natrefs") }
+    init { Clock.init(ctx); Usage.init(ctx); Messages.Outbox.init(ctx); Messages.Seen.init(ctx); GenderInfer.init(ctx); NatRef.dir = java.io.File(ctx.filesDir, "natrefs"); ImportBatch.dir = java.io.File(ctx.filesDir, "import_batches") }
 
     private fun campsOf(st: AuthState, token: String): List<Pair<String, String>> = when (st.user.role) {
         "admin" -> Fs.listCamps(token)

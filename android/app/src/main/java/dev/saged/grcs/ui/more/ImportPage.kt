@@ -67,8 +67,14 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var prev by remember { mutableStateOf<ImportPreview?>(null) }
     var msg by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
-    val prefs = remember { ctx.getSharedPreferences("grcs_import", android.content.Context.MODE_PRIVATE) }
-    var lastIds by remember(camp) { mutableStateOf(prefs.getStringSet("last_$camp", emptySet()).orEmpty()) }
+    var fileName by remember { mutableStateOf("") }
+    var undoId by remember { mutableStateOf<String?>(null) }
+    var askUndo by remember { mutableStateOf<String?>(null) }
+    var history by remember { mutableStateOf<List<dev.saged.grcs.data.BatchRec>?>(null) }
+    var picks by remember { mutableStateOf(setOf<String>()) }
+    var diffOf by remember { mutableStateOf<Pair<dev.saged.grcs.data.BatchRec, dev.saged.grcs.data.BatchRec>?>(null) }
+    val fmt = remember { java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US) }
+    fun toast(t: String) = android.widget.Toast.makeText(ctx, t, android.widget.Toast.LENGTH_LONG).show()
     val headers = rows?.firstOrNull().orEmpty()
     val flat = rows != null && Importer.isFlat(headers)
 
@@ -76,13 +82,15 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
             msg = null; prev = null; rows = null; map = null; tplBy = null; busy = true
+            fileName = runCatching { ctx.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null } }.getOrNull() ?: "ملف"
+            undoId = null
             val r = withContext(Dispatchers.IO) {
                 runCatching {
-                    val name = uri.toString().lowercase()
+                    val name = fileName.lowercase()
                     ctx.contentResolver.openInputStream(uri)!!.use { s ->
                         if (name.endsWith(".csv") || ctx.contentResolver.getType(uri)?.contains("csv") == true) Xlsx.readCsv(s.bufferedReader(Charsets.UTF_8).readText()) else Xlsx.read(s)
                     }
-                }.getOrNull()
+                }.getOrNull()?.let { all -> all.drop(dev.saged.grcs.data.Cells.headerRow(all)) }
             }
             if (r == null || r.size < 2) { busy = false; msg = "تعذّرت قراءة الملف — استخدم xlsx أو csv"; return@launch }
             if (Importer.isFlat(r[0])) {
@@ -104,7 +112,7 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         AppHeader("استيراد Excel", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.FileImport, endBack = onBack.takeIf { auth.user.role == "admin" })
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
+            if (camps.size != 1) { dev.saged.grcs.ui.components.EmptyState(dev.saged.grcs.ui.icons.Fa.Tent, "ادخل مخيماً أولاً", "الاستيراد يكتب في المخيم الذي أنت بداخله — افتح المخيم من «المخيمات» ثم اختر الاستيراد"); return@Column }
             val tplSave = {
                 scope.launch { val h = Importer.fieldLabels.map { it.second }; val r = withContext(Dispatchers.IO) { data.export.save("قالب-الاستيراد.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(emptyList(), "قالب", h), 0) }; msg = if (r.ok) "حُفظ القالب في المستندات: ${r.name}" else "تعذّر الحفظ" }
                 Unit
@@ -139,19 +147,9 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                     }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (lastIds.isNotEmpty()) Btn("تراجع عن آخر استيراد (${lastIds.size})", {
-                    scope.launch {
-                        busy = true
-                        withContext(Dispatchers.IO) {
-                            val del = data.people.persons(camp).filter { it.optString("id") in lastIds }
-                            runCatching { data.trash.put(auth, camp, "import_undo", "تراجع استيراد", del) }
-                            del.forEach { data.people.delete(camp, it); data.afterSave(auth, camp, it, true) }
-                            data.pushNow(auth, camp)
-                        }
-                        prefs.edit().remove("last_$camp").apply(); lastIds = emptySet(); msg = "تم التراجع عن آخر استيراد"; busy = false
-                    }
-                }, kind = BtnKind.Danger, small = true, enabled = !busy)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Btn("سجل الاستيراد والتراجع", { scope.launch { picks = emptySet(); history = withContext(Dispatchers.IO) { dev.saged.grcs.data.ImportBatch.latest(camp) } } }, Modifier.weight(1f), kind = BtnKind.Outline, icon = dev.saged.grcs.ui.icons.Fa.ClockRotateLeft, small = true)
+                undoId?.let { id -> Btn("تراجع عن هذا الاستيراد", { askUndo = id }, Modifier.weight(1f), kind = BtnKind.Danger, icon = dev.saged.grcs.ui.icons.Fa.RotateLeft, small = true, enabled = !busy) }
             }
             prev?.let { r ->
                 Column(Modifier.fillMaxWidth().qcard().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -165,18 +163,69 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 if (r.toAdd.isNotEmpty()) Btn("تأكيد الإضافة", {
                     scope.launch {
                         busy = true
-                        withContext(Dispatchers.IO) {
+                        val bid = withContext(Dispatchers.IO) {
+                            val at = System.currentTimeMillis()
                             r.toAdd.forEach { data.people.save(camp, it) }
                             r.toAdd.filter { it.optBoolean("isFamilyHead") }.forEach { data.afterSave(auth, camp, it, false) }
                             data.pushNow(auth, camp)
-                            prefs.edit().putStringSet("last_$camp", r.toAdd.map { it.optString("id") }.toSet()).apply()
                             map?.let { if (flat) Templates.remember(auth, Importer.fingerprint(headers), headers, it) }
+                            dev.saged.grcs.data.ImportBatch.commit(auth, camp, if (flat) "flat" else "horizontal", fileName, at, emptyList(), r.toAdd, r.toAdd)
                         }
-                        lastIds = r.toAdd.map { it.optString("id") }.toSet(); msg = "تمت إضافة ${r.toAdd.size} فرداً"; prev = null; rows = null; map = null; busy = false
+                        undoId = bid; msg = "تمت إضافة ${r.toAdd.size} فرداً"; prev = null; rows = null; map = null; busy = false
                     }
                 }, Modifier.fillMaxWidth(), enabled = !busy, icon = QIcons.Check)
             }
             msg?.let { Text(it, color = p.ok, fontSize = 13.sp) }
+        }
+    }
+    askUndo?.let { id ->
+        dev.saged.grcs.ui.components.ConfirmSheet("سيُحذف كل من أضافه هذا الاستيراد وتُعاد بيانات من حدّثهم لما كانت عليه قبله، مع حذف حسابات المستفيدين التي أنشأها. السجلات المعدّلة بعد الاستيراد تبقى كما هي.", "التراجع عن الاستيراد", "تراجع", icon = dev.saged.grcs.ui.icons.Fa.RotateLeft, onCancel = { askUndo = null }) {
+            askUndo = null
+            scope.launch {
+                busy = true
+                val res = withContext(Dispatchers.IO) { runCatching { dev.saged.grcs.data.ImportBatch.undo(auth, data, camp, id) } }
+                busy = false
+                res.onSuccess { u -> toast("تم التراجع: حُذف ${u.removed} وأُعيد ${u.restored}" + if (u.skipped.isNotEmpty()) " — تُرك ${u.skipped.size} سجل عُدّل بعد الاستيراد" else ""); if (undoId == id) undoId = null; history = null }
+                    .onFailure { toast(it.message ?: "تعذّر التراجع") }
+            }
+        }
+    }
+    history?.let { list ->
+        dev.saged.grcs.ui.components.Sheet({ history = null }, "سجل الاستيراد") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (list.isEmpty()) dev.saged.grcs.ui.components.EmptyState(dev.saged.grcs.ui.icons.Fa.ClockRotateLeft, "لا يوجد استيراد مسجّل بعد", "كل استيراد جديد يُسجَّل هنا ويمكن التراجع عنه أو مقارنته")
+                else Text("اختر دفعتين للمقارنة بينهما، أو قارن أي دفعة بالتي قبلها", color = p.mute, fontSize = 12.sp)
+                list.forEachIndexed { i, b ->
+                    Row(Modifier.fillMaxWidth().qcard().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        dev.saged.grcs.ui.components.CheckRow("", b.id in picks) { on -> picks = if (!on) picks - b.id else if (picks.size >= 2) picks else picks + b.id }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(b.fileName.ifEmpty { "ملف" }, color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("${fmt.format(java.util.Date(b.at))} · ${dev.saged.grcs.data.ImportBatch.modeLabels[b.mode] ?: b.mode} · ${b.userName}", color = p.mute, fontSize = 12.sp)
+                            Text("أُضيف ${b.added} · حُدِّث ${b.updated}" + if (b.undone) " · تم التراجع" else "", color = if (b.undone) p.danger else p.mute, fontSize = 12.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                list.getOrNull(i + 1)?.let { prevB -> Btn("مقارنة بالسابقة", { diffOf = prevB to b }, kind = BtnKind.Outline, icon = dev.saged.grcs.ui.icons.Fa.CodeCompare, small = true) }
+                                if (dev.saged.grcs.data.ImportBatch.canUndo(b, list)) Btn("تراجع", { askUndo = b.id }, kind = BtnKind.Outline, icon = dev.saged.grcs.ui.icons.Fa.RotateLeft, small = true)
+                            }
+                        }
+                    }
+                }
+                if (list.isNotEmpty()) Btn("مقارنة الدفعتين المحددتين", { val (x, y) = list.filter { it.id in picks }.sortedBy { it.at }; diffOf = x to y }, Modifier.fillMaxWidth(), icon = dev.saged.grcs.ui.icons.Fa.CodeCompare, enabled = picks.size == 2)
+            }
+        }
+    }
+    diffOf?.let { (older, newer) ->
+        val d = remember(older, newer) { dev.saged.grcs.data.ImportBatch.diff(older, newer) }
+        dev.saged.grcs.ui.components.Sheet({ diffOf = null }, "مقارنة كشفين") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("${older.fileName} (${fmt.format(java.util.Date(older.at))}) ← ${newer.fileName} (${fmt.format(java.util.Date(newer.at))})", color = p.mute, fontSize = 12.sp)
+                listOf(Triple("أُضيف", p.ok, d.added), Triple("اختفى", p.danger, d.removed), Triple("تغيّر", p.warn, d.changed)).forEach { (t, c, arr) ->
+                    Column(Modifier.fillMaxWidth().qcard().padding(10.dp)) {
+                        Text("$t ${arr.size}", color = c, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        arr.take(80).forEach { r -> Text(r.n + if (r.k.all { it.isDigit() } && r.k.isNotEmpty()) " — ${r.k}" else "", color = p.ink, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
+                        if (arr.size > 80) Text("و${arr.size - 80} آخرون…", color = p.mute, fontSize = 12.sp)
+                    }
+                }
+            }
         }
     }
 }

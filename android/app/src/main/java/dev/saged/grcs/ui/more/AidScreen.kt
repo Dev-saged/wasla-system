@@ -58,7 +58,12 @@ fun AidScreen(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var camp by remember { mutableStateOf(if (camps.size > 1) "*" else camps.firstOrNull()?.first.orEmpty()) }
     var type by remember { mutableStateOf("food") }
     var period by remember { mutableStateOf("month") }
-    var status by remember { mutableStateOf("all") }
+    var status by remember { mutableStateOf("not") }
+    var askAmt by remember { mutableStateOf<AidRow?>(null) }
+    var amt by remember { mutableStateOf("") }
+    var askBulk by remember { mutableStateOf(false) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    fun toast(m: String) = android.widget.Toast.makeText(ctx, m, android.widget.Toast.LENGTH_LONG).show()
     var q by remember { mutableStateOf("") }
     var rows by remember { mutableStateOf<List<AidRow>>(emptyList()) }
     var rev by remember { mutableIntStateOf(0) }
@@ -81,23 +86,64 @@ fun AidScreen(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         busy = false
     }
 
-    fun give(r: AidRow) = scope.launch {
+    fun give(r: AidRow, qty: Double = 1.0) = scope.launch {
         withContext(Dispatchers.IO) {
-            val o = data.people.save(r.camp, Aid.give(r.p, type, 1.0, "", auth.user.id))
-            data.afterSave(auth, r.camp, o, false); data.pushNow(auth, r.camp)
+            val o = data.people.save(r.camp, Aid.give(r.p, type, qty, "", auth.user.id))
+            data.afterSave(auth, r.camp, o, false)
+            dev.saged.grcs.data.Audit.log(auth, r.camp, "aid_give", o.optString("id"), o.optString("fullName"), org.json.JSONObject().put("t", type).put("q", qty).toString())
+            data.pushNow(auth, r.camp)
         }
         rev++
     }
     fun undo(r: AidRow) = scope.launch {
         withContext(Dispatchers.IO) {
             val o = data.people.save(r.camp, Aid.undo(r.p, r.entry!!.optString("id")))
-            data.afterSave(auth, r.camp, o, false); data.pushNow(auth, r.camp)
+            data.afterSave(auth, r.camp, o, false)
+            dev.saged.grcs.data.Audit.log(auth, r.camp, "aid_undo", o.optString("id"), o.optString("fullName"))
+            data.pushNow(auth, r.camp)
         }
         rev++
     }
 
     val nq = q.trim()
-    val shown = rows.filter { (status == "all" || (status == "got") == (it.entry != null)) && (nq.isEmpty() || it.p.optString("fullName").contains(nq) || it.p.optString("nationalId").contains(nq)) }
+    val coll = remember { java.text.Collator.getInstance(Locale("ar")) }
+    val shown = remember(rows, status, nq) { rows.filter { (status == "all" || (status == "got") == (it.entry != null)) && (nq.isEmpty() || it.p.optString("fullName").contains(nq) || it.p.optString("nationalId").contains(nq)) }.sortedWith { a, b -> coll.compare(a.p.optString("fullName"), b.p.optString("fullName")) } }
+    val heads = remember(rows) { rows.map { it.camp }.distinct().associateWith { c -> data.people.persons(c).filter { it.optBoolean("isFamilyHead") }.associateBy { it.optString("familyId") } } }
+    fun bulk() = scope.launch {
+        val list = shown
+        withContext(Dispatchers.IO) {
+            list.groupBy { it.camp }.forEach { (c, l) ->
+                l.forEach { r -> data.afterSave(auth, c, data.people.save(c, Aid.give(r.p, type, 1.0, "", auth.user.id)), false) }
+                dev.saged.grcs.data.Audit.log(auth, c, "aid_bulk", c, t.label, org.json.JSONObject().put("t", type).put("n", l.size).toString())
+                data.pushNow(auth, c)
+            }
+        }
+        toast("سُجّل تسليم ${list.size}"); rev++
+    }
+    fun export() = scope.launch {
+        if (rows.isEmpty()) { toast("لا يوجد مؤهلون لهذا النوع"); return@launch }
+        val per = mapOf("today" to "اليوم", "month" to "هذا الشهر", "all" to "كل الفترات")[period]
+        val cn = camps.firstOrNull { it.first == camp }?.second ?: camp
+        val r = withContext(Dispatchers.IO) {
+            val body = rows.map { x -> val h = if (x.p.optBoolean("isFamilyHead")) x.p else heads[x.camp]?.get(x.p.optString("familyId")) ?: x.p; val g = x.entry
+                listOf(x.p.optString("fullName"), x.p.optString("nationalId"), dev.saged.grcs.data.Rel.label(x.p), dev.saged.grcs.data.Stats.ageOf(x.p)?.toString().orEmpty(), h.optString("fullName"), h.optString("phone"), if (g != null) "استلم" else "لم يستلم", g?.optString("d").orEmpty(), g?.opt("q")?.toString().orEmpty(), g?.optString("n").orEmpty()) }
+            data.export.save("كشف_توزيع_${t.label}_${cn}_${SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                data.export.xlsx(body, t.label.take(31), listOf("الاسم", "رقم الهوية", "الصلة", "العمر", "اسم رب الأسرة", "هاتف رب الأسرة", "الحالة", "تاريخ التسليم", t.ask ?: "الكمية", "ملاحظة")), body.size)
+        }
+        toast(if (r.ok) "تم تجهيز كشف التوزيع ($per): ${r.name}" else "تعذّر تجهيز الكشف")
+    }
+    askAmt?.let { r ->
+        dev.saged.grcs.ui.components.Sheet({ askAmt = null }, "${t.ask} (${t.label})") {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                dev.saged.grcs.ui.components.QField("", amt, { amt = it }, type = androidx.compose.ui.text.input.KeyboardType.Decimal)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Btn("إلغاء", { askAmt = null }, Modifier.weight(1f), kind = BtnKind.Outline)
+                    Btn("حفظ", { val v = dev.saged.grcs.data.Nid.digits(amt).toDoubleOrNull(); if (v == null || v <= 0) toast("أدخل قيمة صحيحة") else { askAmt = null; give(r, v) } }, Modifier.weight(1f))
+                }
+            }
+        }
+    }
+    if (askBulk) dev.saged.grcs.ui.components.ConfirmSheet("تعليم ${shown.size} كمُسلَّمين «${t.label}» بتاريخ اليوم؟", "تسليم جماعي", "تأكيد التسليم", BtnKind.Primary, dev.saged.grcs.ui.icons.Fa.CheckDouble, onCancel = { askBulk = false }) { askBulk = false; bulk() }
     val got = rows.count { it.entry != null }
 
     Column(Modifier.fillMaxSize()) {
@@ -123,6 +169,10 @@ fun AidScreen(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                     QChip("الكل", status == "all") { status = "all" }; QChip("استلموا", status == "got") { status = "got" }; QChip("لم يستلموا", status == "not") { status = "not" }
                 }
                 SearchBox(q, { q = it }, "بحث بالاسم أو الهوية")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (canWrite && status == "not" && shown.isNotEmpty()) Btn("تعليم كل المعروض كمُسلَّم (${shown.size})", { if (t.ask != null) toast("المساعدة النقدية تُسجَّل لكل أسرة على حدة بمبلغها") else askBulk = true }, Modifier.weight(1f), kind = BtnKind.Outline, icon = dev.saged.grcs.ui.icons.Fa.CheckDouble, small = true)
+                    Btn("كشف التوزيع", { export() }, kind = BtnKind.Outline, icon = dev.saged.grcs.ui.icons.Fa.FileExcel, small = true)
+                }
             }
         }
         if (camp == "*") {
@@ -145,20 +195,21 @@ fun AidScreen(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             }
             return@Column
         }
-        if (!busy && shown.isEmpty()) EmptyState(QIcons.Heart, "لا يوجد مستحقون", "غيّر النوع أو الفترة أو الحالة")
+        if (!busy && shown.isEmpty()) EmptyState(dev.saged.grcs.ui.icons.Fa.BoxOpen, if (rows.isNotEmpty()) "لا نتائج" else "لا يوجد مؤهلون", if (rows.isNotEmpty()) "غيّر الفلتر أو البحث" else "لا أحد بالمخيم ينطبق عليه هذا النوع حالياً")
         LazyColumn(Modifier.weight(1f).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(shown.take(300), key = { it.camp + it.p.optString("id") }) { r ->
                 QCard {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Column(Modifier.weight(1f)) {
                             Text(r.p.optString("fullName"), color = p.ink, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, maxLines = 1)
-                            Text((if (camp == "*") r.campName + " · " else "") + r.p.optString("nationalId").ifEmpty { "بلا هوية" }, color = p.mute, fontSize = 12.sp)
+                            val h = if (r.p.optBoolean("isFamilyHead")) null else heads[r.camp]?.get(r.p.optString("familyId"))
+                            Text(dev.saged.grcs.data.Rel.label(r.p) + (dev.saged.grcs.data.Stats.ageOf(r.p)?.let { " · $it سنة" } ?: "") + (h?.let { " · أسرة " + it.optString("fullName") } ?: ""), color = p.mute, fontSize = 12.sp, maxLines = 1)
                         }
                         if (r.entry != null) {
-                            Pill("استلم ${r.entry.optString("d")}", p.success)
+                            Pill(r.entry.optString("d") + if (t.ask != null && r.entry.has("q")) " · " + r.entry.opt("q") else "", p.success)
                             if (canWrite) Btn("تراجع", { undo(r) }, kind = BtnKind.Ghost, small = true)
-                        } else if (canWrite && t.ask == null) Btn("تسليم", { give(r) }, small = true, icon = QIcons.Check)
-                        else Pill(if (t.ask != null) "افتح الأسرة" else "لم يستلم", p.warn)
+                        } else if (canWrite) Btn("تسليم", { if (t.ask != null) { amt = ""; askAmt = r } else give(r) }, small = true, icon = QIcons.Check)
+                        else Pill("لم يستلم", p.warn)
                     }
                 }
             }

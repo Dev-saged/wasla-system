@@ -57,10 +57,6 @@ import java.util.Locale
 private val dateFmt = SimpleDateFormat("yyyy/MM/dd  HH:mm", Locale.US)
 private fun d(ms: Long) = if (ms <= 0) "—" else dateFmt.format(Date(ms))
 
-@Composable
-private fun CampChips(camps: List<Pair<String, String>>, sel: String, onSel: (String) -> Unit) {
-    if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == sel) { onSel(id) } } }
-}
 
 /** معلومات المخيم: الاسم، المنطقة، المسؤول ونائبه ومدخل البيانات، وملاحظات. */
 @Composable
@@ -87,7 +83,7 @@ fun CampInfoPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         AppHeader("معلومات المخيم", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.Tent, endBack = onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            CampChips(camps, camp) { camp = it; msg = null }
+            if (camps.size != 1) { EmptyState(dev.saged.grcs.ui.icons.Fa.Tent, "ادخل مخيماً أولاً", "معلومات المخيم تُعرض للمخيم الذي أنت بداخله — افتحه من «المخيمات»"); return@Column }
             QCard {
                 QField("اسم المخيم الرسمي", name, { name = it }); Spacer(Modifier.height(8.dp))
                 QField("رقم المخيم", camp, { }, enabled = false); Spacer(Modifier.height(8.dp))
@@ -133,17 +129,14 @@ fun CampInfoPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
 @Composable
 fun TransferLogPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val p = LocalPalette.current
-    val camps = remember { data.campList(auth) }
-    var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
+    val camps = remember { data.ctxCamps(auth) }
     var rows by remember { mutableStateOf<List<AuditEntry>?>(null) }
-    LaunchedEffect(camp) {
-        rows = null
-        rows = withContext(Dispatchers.IO) { runCatching { Audit.list(auth, camp, 300).filter { it.action == "family_transfer" || it.action == "transfer_family" } }.getOrDefault(emptyList()) }
+    LaunchedEffect(Unit) {
+        rows = withContext(Dispatchers.IO) { camps.flatMap { c -> runCatching { Audit.list(auth, c.first, 300).filter { it.action == "family_transfer" || it.action == "transfer_family" } }.getOrDefault(emptyList()) }.distinctBy { it.targetName + it.at }.sortedByDescending { it.at } }
     }
     Column(Modifier.fillMaxSize()) {
         AppHeader("سجل نقل الأسر", "", conn = null, onBack = onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            CampChips(camps, camp) { camp = it }
             val r = rows
             if (r == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)
             else if (r.isEmpty()) EmptyState(QIcons.Transfer, "لا عمليات نقل", "ستظهر هنا الأسر المنقولة من هذا المخيم أو إليه")

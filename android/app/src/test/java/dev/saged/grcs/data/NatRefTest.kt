@@ -96,3 +96,16 @@ class MergeTest {
         assertTrue(m.optBoolean("hasDisability")); assertEquals("أ — ب", m.optString("notes")); assertEquals("a", m.optString("id"))
     }
 }
+
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
+class ImportBatchTest {
+    @Test
+    fun diffDetectsAddedRemovedChanged() {
+        fun rec(vararg ps: JSONObject) = BatchRec(JSONObject().put("rows", org.json.JSONArray(ps.map { ImportBatch.sig(it).let { s -> JSONObject().put("k", s.k).put("n", s.n).put("h", s.h) } })))
+        val a = rec(JSONObject().put("fullName", "محمد").put("nationalId", "123456782").put("phone", "1"), JSONObject().put("fullName", "علي").put("nationalId", "400000009"))
+        val b = rec(JSONObject().put("fullName", "محمد").put("nationalId", "123456782").put("phone", "2"), JSONObject().put("fullName", "سارة").put("nationalId", "999999998"))
+        val d = ImportBatch.diff(a, b)
+        assertEquals(listOf("سارة"), d.added.map { it.n }); assertEquals(listOf("علي"), d.removed.map { it.n }); assertEquals(listOf("محمد"), d.changed.map { it.n })
+    }
+}

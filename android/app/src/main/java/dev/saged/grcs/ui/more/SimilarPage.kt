@@ -37,6 +37,10 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import dev.saged.grcs.ui.components.QChip
 import dev.saged.grcs.ui.theme.GrcsFonts
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
 import dev.saged.grcs.ui.theme.LocalPalette
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -51,22 +55,34 @@ fun SimilarPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var rev by remember { mutableStateOf(0) }
     var note by remember { mutableStateOf("") }
     LaunchedEffect(rev) { pairs = null; pairs = withContext(Dispatchers.Default) { camps.flatMap { data.similar(it.first) } } }
-    fun drop(o: JSONObject) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    fun toast(t: String) = android.widget.Toast.makeText(ctx, t, android.widget.Toast.LENGTH_LONG).show()
+    var sel by remember { mutableStateOf(mapOf<String, String>()) }
+    var ask by remember { mutableStateOf<Pair<JSONObject, JSONObject>?>(null) }
+    fun merge(keep: JSONObject, drop: JSONObject) {
         scope.launch {
             withContext(Dispatchers.IO) {
-                val c = o.optString("campId").ifEmpty { camp }
-                runCatching { data.trash.put(auth, c, "person", o.optString("fullName").ifEmpty { "—" }, listOf(o)) }
-                data.people.delete(c, o); data.afterSave(auth, c, o, true); data.pushNow(auth, c)
+                val c = keep.optString("campId").ifEmpty { camp }
+                val k = dev.saged.grcs.data.Merge.persons(keep, drop).put("updatedBy", auth.user.id)
+                data.people.delete(c, drop); data.afterSave(auth, c, drop, true)
+                data.afterSave(auth, c, data.people.save(c, k), false)
+                dev.saged.grcs.data.Audit.log(auth, c, "merge_person", k.optString("id"), k.optString("fullName"))
+                data.pushNow(auth, c)
             }
-            note = "حُذف السجل المكرر (محفوظ في السلة 30 يوماً)"; rev++
+            toast("تم الدمج"); rev++
         }
     }
-    @Composable fun Side(x: JSONObject, keep: Boolean) {
-        Column(Modifier.fillMaxWidth().background(if (keep) p.bg else p.surface, RoundedCornerShape(12.dp)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(x.optString("fullName"), color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(listOfNotNull(if (x.optBoolean("isFamilyHead")) "رب أسرة" else null, x.optString("nationalId").takeIf { it.isNotEmpty() },
-                x.optString("birthDate").takeIf { it.isNotEmpty() && it != "null" }, x.optString("phone").takeIf { it.isNotEmpty() }).joinToString(" · ").ifEmpty { "بلا بيانات إضافية" }, color = p.mute, fontSize = 11.sp)
+    @Composable fun Side(x: JSONObject, keep: Boolean, onPick: () -> Unit) {
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (keep) p.pri.copy(alpha = .08f) else p.surface).clickable(onClick = onPick).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.size(18.dp).border(2.dp, if (keep) p.pri else p.mute, RoundedCornerShape(50)), contentAlignment = Alignment.Center) { if (keep) Box(Modifier.size(9.dp).background(p.pri, RoundedCornerShape(50))) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(x.optString("fullName"), color = p.ink, fontSize = 14.5.sp, fontWeight = FontWeight.Bold)
+                Text(dev.saged.grcs.data.Rel.label(x) + x.optString("birthDate").let { if (it.isNotEmpty() && it != "null") " · $it" else "" } + x.optString("nationalId").let { if (it.isNotEmpty()) " · $it" else " · بلا هوية" }, color = p.mute, fontSize = 12.sp)
+            }
         }
+    }
+    ask?.let { (keep, drop) ->
+        dev.saged.grcs.ui.components.ConfirmSheet("سيُبقى \"${keep.optString("fullName")}\" ويُحذف \"${drop.optString("fullName")}\" بعد نقل أي بيانات ناقصة منه.", "دمج سجلين", "دمج", dev.saged.grcs.ui.components.BtnKind.Primary, dev.saged.grcs.ui.icons.Fa.CodeMerge, onCancel = { ask = null }) { ask = null; merge(keep, drop) }
     }
     Column(Modifier.fillMaxSize()) {
         AppHeader("أسماء متشابهة", "${if (camps.size > 1) "كل المخيمات" else camps.firstOrNull()?.second ?: camp} — ${pairs?.size ?: 0} زوج", conn = null, onBack = onBack)
@@ -79,13 +95,21 @@ fun SimilarPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 Text("البيانات نظيفة من التكرار المحتمل داخل الأسر", color = p.mute, fontSize = 14.sp)
             }
             pairs?.take(80)?.forEach { pr ->
-                val keepA = Similar.keepFirst(pr)
+                val key = listOf(pr.a.optString("id"), pr.b.optString("id")).sorted().joinToString("|")
+                val keepA = (sel[key] ?: if (Similar.keepFirst(pr)) pr.a.optString("id") else pr.b.optString("id")) == pr.a.optString("id")
                 Column(Modifier.fillMaxWidth().qcard().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Side(pr.a, keepA); Side(pr.b, !keepA)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        QAct("احذف الأول", false) { drop(pr.a) }
-                        QAct("احذف الثاني", false) { drop(pr.b) }
-                        QAct("ليسا مكررين", false) { data.ignoreSimilar(pr.a, pr.b); rev++ }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        dev.saged.grcs.ui.components.Bar(pr.score.toFloat(), p.pri, Modifier.weight(1f))
+                        Text("${Math.round(pr.score * 100)}%", color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Side(pr.a, keepA) { sel = sel + (key to pr.a.optString("id")) }
+                    Side(pr.b, !keepA) { sel = sel + (key to pr.b.optString("id")) }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        dev.saged.grcs.ui.components.Btn("ليسا نفس الشخص", { data.ignoreSimilar(pr.a, pr.b); rev++ }, Modifier.weight(1f), kind = dev.saged.grcs.ui.components.BtnKind.Outline, small = true)
+                        dev.saged.grcs.ui.components.Btn("دمج بالمختار", {
+                            val keep = if (keepA) pr.a else pr.b; val drop = if (keepA) pr.b else pr.a
+                            if (drop.optBoolean("isFamilyHead")) toast("لا يمكن حذف رب الأسرة بالدمج — اختر سجله للإبقاء") else ask = keep to drop
+                        }, Modifier.weight(1f), icon = dev.saged.grcs.ui.icons.Fa.CodeMerge, small = true)
                     }
                 }
             }

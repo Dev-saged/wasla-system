@@ -11,9 +11,10 @@ class AuditEntry(val action: String, val userName: String, val targetName: Strin
 /** سجل النشاط في camps/{camp}/activityLogs بنفس حقول الويب؛ فشل الكتابة لا يمنع العملية. */
 object Audit {
     val labels = mapOf(
-        "login" to "تسجيل دخول", "import_excel" to "استيراد", "edit_person" to "تعديل فرد", "add_person" to "إضافة فرد", "delete_person" to "حذف فرد",
+        "login" to "تسجيل دخول", "logout" to "تسجيل خروج", "import_excel" to "استيراد Excel", "undo_import" to "تراجع عن استيراد", "family_repair" to "إصلاح أسر منفصلة", "gender_reindex" to "فهرسة الجنس تلقائياً", "category_import" to "استيراد كشف تصنيفي",
+        "merge_person" to "دمج سجلين", "sync" to "مزامنة", "add_message" to "رسالة", "change_password" to "تغيير كلمة المرور", "security_upgrade" to "ترقية حماية الحسابات", "aid_bulk" to "تسليم جماعي", "edit_person" to "تعديل فرد", "add_person" to "إضافة فرد", "delete_person" to "حذف فرد",
         "export" to "تصدير", "create_user" to "إنشاء حساب", "update_user" to "تعديل حساب", "camp_info" to "تحديث معلومات المخيم", "restore_backup" to "استعادة نسخة احتياطية",
-        "aid_give" to "تسليم مساعدة", "aid_undo" to "تراجع عن مساعدة", "restore_trash" to "استعادة من السلة", "purge_trash" to "حذف نهائي من السلة", "transfer_family" to "نقل أسرة", "family_transfer" to "نقل أسرة", "clear_camp" to "إفراغ بيانات المخيم", "delete_camp" to "حذف مخيم",
+        "aid_give" to "تسليم مساعدة", "aid_undo" to "تراجع عن مساعدة", "restore_trash" to "استعادة من سلة المحذوفات", "purge_trash" to "حذف نهائي من السلة", "transfer_family" to "نقل أسرة", "family_transfer" to "نقل أسرة", "clear_camp" to "إفراغ بيانات المخيم", "delete_camp" to "حذف مخيم",
     )
 
     fun log(st: AuthState, camp: String, action: String, targetId: String, targetName: String, detail: String? = null) {

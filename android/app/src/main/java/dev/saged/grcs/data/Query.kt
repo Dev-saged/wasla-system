@@ -15,13 +15,21 @@ class Saved(val name: String, val groups: List<List<Cond>>)
 class QResult(val persons: List<JSONObject>, val families: Int)
 
 object Query {
+    /** خيارات حقل «المخيم» تُملأ من الشاشة. */
+    @Volatile var camps: List<Pair<String, String>> = emptyList()
+    fun optionsOf(f: QFieldDef) = if (f.k == "camp") camps else f.options
+    val chronic = listOf("any" to "أي مرض مزمن", "heart" to "قلب", "diabetes" to "سكري", "hypertension" to "ضغط الدم", "kidney" to "كلى", "cancer" to "سرطان", "respiratory" to "ربو / جهاز تنفسي",
+        "liver" to "كبد", "thyroid" to "غدة درقية", "mental" to "أمراض نفسية", "blood" to "أمراض دم", "neuro" to "أمراض عصبية", "bone" to "مفاصل / عظام", "other" to "أخرى")
+
     val fields = listOf<QFieldDef>(
+        QFieldDef("camp", "المخيم", false),
         QFieldDef("gender", "الجنس", false, listOf("male" to "ذكر", "female" to "أنثى", "unknown" to "غير محدد")),
         QFieldDef("age", "العمر", true),
         QFieldDef("relation", "صلة القرابة", false, listOf("head" to "رب أسرة", "wife" to "زوجة", "child" to "ابن/ابنة", "other" to "فرد آخر")),
         QFieldDef("marital", "الحالة الاجتماعية", false, listOf("widowed" to "أرمل/ة", "divorced" to "مطلق/ة", "married" to "متزوج/ة", "single" to "أعزب/عزباء")),
-        QFieldDef("flag", "حالة خاصة", false, listOf("disability" to "ذو إعاقة", "pregnant" to "حامل", "breastfeeding" to "مرضعة", "chronic" to "مرض مزمن", "urgent" to "احتياج طارئ",
-            "nophone" to "بلا هاتف", "noid" to "بلا هوية", "nobirth" to "بلا تاريخ ميلاد")),
+        QFieldDef("chronic", "مرض مزمن", false, chronic),
+        QFieldDef("flag", "حالة خاصة", false, listOf("disability" to "ذو إعاقة", "pregnant" to "حامل", "breastfeeding" to "مرضعة", "urgent" to "احتياج طارئ",
+            "nophone" to "بلا هاتف", "noid" to "بلا هوية", "badid" to "هوية غير صحيحة", "nodob" to "بلا تاريخ ميلاد")),
         QFieldDef("tier", "مستوى هشاشة الأسرة", false, Vuln.tiers),
         QFieldDef("score", "مؤشر الهشاشة", true),
         QFieldDef("shelter", "نوع مأوى الأسرة", false, listOf("tent_ok" to "خيمة سليمة", "tent_damaged" to "خيمة تالفة", "shared" to "مأوى مشترك", "building_damaged" to "مبنى متضرر", "none" to "بلا مأوى")),
@@ -31,29 +39,10 @@ object Query {
     private fun c(k: String, v: String = "", min: String = "", max: String = "", not: Boolean = false) = Cond(k, v, min, max, not)
 
     val presets = listOf(
-        Preset("إناث فوق 60 + مرض مزمن", listOf(listOf(c("gender", "female"), c("age", min = "60"), c("flag", "chronic")))),
+        Preset("إناث فوق 60 + مرض مزمن", listOf(listOf(c("gender", "female"), c("age", min = "60"), c("chronic", "any")))),
         Preset("أسر حرجة بلا مأوى سليم", listOf(listOf(c("relation", "head"), c("tier", "critical"), c("shelter", "tent_ok", not = true)))),
         Preset("رضّع دون سنتين", listOf(listOf(c("age", min = "0", max = "1")))),
         Preset("ذوو إعاقة أو حوامل", listOf(listOf(c("flag", "disability")), listOf(c("flag", "pregnant")))),
-    )
-
-    /** فئات الشاشة الشاملة: كل فئة استعلام جاهز. */
-    val categories = listOf(
-        Preset("أطفال دون سنتين", listOf(listOf(c("age", min = "0", max = "1")))),
-        Preset("أطفال 2 – 5", listOf(listOf(c("age", min = "2", max = "5")))),
-        Preset("أطفال 6 – 12", listOf(listOf(c("age", min = "6", max = "12")))),
-        Preset("مراهقون 13 – 17", listOf(listOf(c("age", min = "13", max = "17")))),
-        Preset("بالغون 18 – 59", listOf(listOf(c("age", min = "18", max = "59")))),
-        Preset("كبار السن 60+", listOf(listOf(c("age", min = "60")))),
-        Preset("حوامل", listOf(listOf(c("flag", "pregnant")))),
-        Preset("مرضعات", listOf(listOf(c("flag", "breastfeeding")))),
-        Preset("ذوو إعاقة", listOf(listOf(c("flag", "disability")))),
-        Preset("أمراض مزمنة", listOf(listOf(c("flag", "chronic")))),
-        Preset("أرامل", listOf(listOf(c("marital", "widowed")))),
-        Preset("مطلقات ومطلقون", listOf(listOf(c("marital", "divorced")))),
-        Preset("احتياج طارئ", listOf(listOf(c("flag", "urgent")))),
-        Preset("بلا هوية", listOf(listOf(c("flag", "noid")))),
-        Preset("بلا هاتف", listOf(listOf(c("flag", "nophone")))),
     )
 
     private class Ctx(val persons: List<JSONObject>) {
@@ -74,13 +63,15 @@ object Query {
         }
         val ms = p.optString("maritalStatus")
         val hit = when (c.k) {
+            "camp" -> p.optString("campId") == c.v
+            "chronic" -> if (c.v == "any") p.optBoolean("hasChronicDisease") else p.optJSONArray("chronicConditions")?.let { a -> (0 until a.length()).any { a.optString(it) == c.v } } == true
             "gender" -> p.optString("gender").ifEmpty { "unknown" } == c.v
             "relation" -> when (c.v) { "head" -> p.optBoolean("isFamilyHead"); "child" -> p.optString("relation") in listOf("child", "son", "daughter")
                 "wife" -> p.optString("relation") in listOf("wife", "husband"); else -> !p.optBoolean("isFamilyHead") && p.optString("relation") !in listOf("child", "son", "daughter", "wife", "husband", "head") }
             "marital" -> when (c.v) { "widowed" -> ms.contains("أرمل"); "divorced" -> ms.contains("مطلق"); "married" -> ms.contains("متزوج"); else -> Regex("اعزب|أعزب|عزباء").containsMatchIn(ms) }
             "flag" -> when (c.v) { "disability" -> p.optBoolean("hasDisability"); "pregnant" -> p.optBoolean("isPregnant"); "breastfeeding" -> p.optBoolean("isBreastfeeding")
                 "chronic" -> p.optBoolean("hasChronicDisease"); "urgent" -> p.optBoolean("urgentNeed"); "nophone" -> p.optString("phone").isEmpty()
-                "noid" -> p.optString("nationalId").isEmpty(); else -> p.optString("birthDate").let { it.isEmpty() || it == "null" } }
+                "noid" -> Nid.norm(p.optString("nationalId")).isEmpty(); "badid" -> Nid.status(p.optString("nationalId")) in listOf("invalid", "format"); else -> p.optString("birthDate").let { it.isEmpty() || it == "null" } }
             "tier" -> x.vuln(p).tier == c.v
             "shelter" -> Vuln.effectiveShelter(x.head(p)) == c.v
             else -> true
@@ -99,7 +90,7 @@ object Query {
     fun describe(c: Cond): String {
         val f = fields.firstOrNull { it.k == c.k } ?: return c.k
         if (f.range) return f.label + ": " + listOf(c.min.takeIf { it.isNotEmpty() }?.let { "من $it" }, c.max.takeIf { it.isNotEmpty() }?.let { "إلى $it" }).filterNotNull().joinToString(" ")
-        return f.label + (if (c.not) " ليس " else ": ") + (f.options.firstOrNull { it.first == c.v }?.second ?: c.v)
+        return f.label + (if (c.not) " ليس " else ": ") + (optionsOf(f).firstOrNull { it.first == c.v }?.second ?: c.v)
     }
 
     fun loadSaved(cache: FamCache): List<Saved> = runCatching {
