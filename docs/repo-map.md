@@ -99,3 +99,5 @@ R11: data/NatRef.kt = الكشوف الوطنية المحفوظة (NatRef) + ك
 R11: ui/ben/BenMember.kt = نافذة فرد المستفيد (openBenMemberModal)؛ «طلباتي» بالإلغاء والتاريخ؛ Theme يحدّ تكبير خط النظام عند 1.1.
 R12: StaffPage: إنشاء الحساب يبدأ بنوع الحساب (acctTypes) ثم حقوله؛ Staff.create يقبل newCamp ومخيماً فارغاً؛ AppShell يعرض «غير مرتبط بمخيم» لطاقم بلا مخيم؛ onPerson يفتح سجل المستفيد.
 R12: Cells.date/headerRow و FamilyRepair و Merge.persons (دمج مكررات مركز الجودة) و DataRepo.benLog؛ اختبارات CellsTest/MergeTest في NatRefTest.kt.
+R13: data/ImportBatch.kt = سجل دفعات الاستيراد لكل مخيم (ملفات filesDir/import_batches) مع التراجع والمقارنة؛ ImportPage يحدد صف العناوين ويعرض السجل؛ لا شرائح مخيم في الاستيراد/معلومات المخيم/سجل النقل.
+R13: SimilarPage دمج بالمختار؛ AidScreen مبلغ/جماعي/كشف توزيع؛ QueryPage صفوف شروط (حقل/عملية/قيمة) مع حفظ وحذف بالضغط المطوّل؛ Query.fields أضيف لها camp و chronic.
