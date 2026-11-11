@@ -97,3 +97,5 @@ R10: نقل منطقي مباشر من الويب: data/{Derive,Rel}.kt، ui/peo
 R10: سياق المخيم الموحّد ShellState.adminCamp (= adminViewingCampId): الرئيسية تعرض لوحة المخيم وبطاقاتها تفتح كشف الأفراد؛ ShellState.newPerson طلب إضافة لمرة واحدة. الصفحات داخل مخيم تعمل على مخيم السياق فقط.
 R11: data/NatRef.kt = الكشوف الوطنية المحفوظة (NatRef) + كشف الأعمدة (Cells) + محرك المطابقة (Reconcile)؛ ReconcilePage مُعاد كتابته؛ NidInput يعرض تلميح الكشف وزر تعبئة؛ QualityPage يقترح الهويات. اختبار: NatRefTest.
 R11: ui/ben/BenMember.kt = نافذة فرد المستفيد (openBenMemberModal)؛ «طلباتي» بالإلغاء والتاريخ؛ Theme يحدّ تكبير خط النظام عند 1.1.
+R12: StaffPage: إنشاء الحساب يبدأ بنوع الحساب (acctTypes) ثم حقوله؛ Staff.create يقبل newCamp ومخيماً فارغاً؛ AppShell يعرض «غير مرتبط بمخيم» لطاقم بلا مخيم؛ onPerson يفتح سجل المستفيد.
+R12: Cells.date/headerRow و FamilyRepair و Merge.persons (دمج مكررات مركز الجودة) و DataRepo.benLog؛ اختبارات CellsTest/MergeTest في NatRefTest.kt.

@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
 import dev.saged.grcs.data.Stats
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
@@ -58,6 +60,9 @@ fun QualityPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var edit by remember { mutableStateOf<JSONObject?>(null) }
     var err by remember { mutableStateOf<String?>(null) }
     var refSize by remember { mutableStateOf(0) }
+    var keepSel by remember { mutableStateOf(mapOf<String, String>()) }
+    var ask by remember { mutableStateOf<Triple<String, List<JSONObject>, JSONObject>?>(null) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     var sugg by remember { mutableStateOf(mapOf<String, dev.saged.grcs.data.RefEntry>()) }
     LaunchedEffect(camp, rev) {
         val ps = withContext(Dispatchers.IO) { camps.flatMap { data.people.persons(it.first) } }
@@ -106,6 +111,33 @@ fun QualityPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         val tail = extra.ifEmpty { if (x.optBoolean("isFamilyHead")) x.optString("nationalId") else heads[x.optString("familyId")]?.optString("fullName")?.let { "أسرة $it" }.orEmpty() }
         return listOfNotNull(role, a, tail.ifEmpty { null }).joinToString(" · ")
     }
+    ask?.let { (kind, drops, keep) ->
+        val msg = when (kind) {
+            "merge" -> "سيُبقى «${keep.optString("fullName")}» ويُحذف ${drops.size} سجل بعد نقل ناقص بياناته إليه."
+            "clear" -> "ستُزال الهوية من ${drops.size} سجل وتبقى لـ«${keep.optString("fullName")}» فقط."
+            else -> "إزالة رقم الهوية من «${keep.optString("fullName")}»؟ يبقى السجل ويظهر ضمن «بلا هوية»."
+        }
+        dev.saged.grcs.ui.components.ConfirmSheet(msg, if (kind == "merge") "دمج مكررات الهوية" else "إزالة الهوية", if (kind == "merge") "دمج" else "إزالة", if (kind == "merge") BtnKind.Primary else BtnKind.Danger, if (kind == "merge") dev.saged.grcs.ui.icons.Fa.CodeMerge else dev.saged.grcs.ui.icons.Fa.Eraser, onCancel = { ask = null }) {
+            ask = null
+            scope.launch {
+                withContext(Dispatchers.IO) {
+                    val c = keep.optString("campId").ifEmpty { camp }
+                    if (kind == "merge") {
+                        var k = keep
+                        for (d in drops) { k = dev.saged.grcs.data.Merge.persons(k, d); data.people.delete(c, d); data.afterSave(auth, c, d, true) }
+                        data.afterSave(auth, c, data.people.save(c, k.put("updatedBy", auth.user.id)), false)
+                        dev.saged.grcs.data.Audit.log(auth, c, "merge_person", k.optString("id"), k.optString("fullName"))
+                        data.pushNow(auth, c)
+                    } else drops.groupBy { it.optString("campId").ifEmpty { camp } }.forEach { (dc, l) ->
+                        l.forEach { d -> data.afterSave(auth, dc, data.people.save(dc, JSONObject(d.toString()).put("nationalId", "").put("updatedBy", auth.user.id)), false) }
+                        data.pushNow(auth, dc)
+                    }
+                }
+                android.widget.Toast.makeText(ctx, when (kind) { "merge" -> "تم الدمج"; "clear" -> "أُزيلت الهوية من الباقين"; else -> "أُزيلت الهوية من السجل" }, android.widget.Toast.LENGTH_LONG).show()
+                rev++
+            }
+        }
+    }
     val campName = if (camps.size > 1) "كل المخيمات" else camps.firstOrNull()?.second ?: camp
     val notes = issues.filter { it.key != "stale" && it.key != "ref" }.sumOf { it.people.size }
     Column(Modifier.fillMaxSize()) {
@@ -131,7 +163,29 @@ fun QualityPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                     }
                     if (n > 0) {
                         Text(i.hint, color = p.mute, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-                        i.people.take(lim).forEach { x ->
+                        if (i.key == "dup") i.people.groupBy { dev.saged.grcs.data.Nid.norm(it.optString("nationalId")) }.entries.take(lim).forEach { (nid, list) ->
+                            val cross = list.map { it.optString("campId") }.distinct().size > 1
+                            val keepDef = list.sortedWith(compareByDescending<JSONObject> { it.optBoolean("isFamilyHead") }.thenByDescending { x -> listOf("birthDate", "nationalId", "phone", "address", "gender", "maritalStatus").count { k -> x.optString(k).let { it.isNotEmpty() && it != "null" && it != "unknown" } } }).first()
+                            val keep = list.firstOrNull { it.optString("id") == keepSel[nid] } ?: keepDef
+                            Column(Modifier.fillMaxWidth().padding(vertical = 6.dp).border(1.dp, p.line, RoundedCornerShape(12.dp)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("هوية $nid — ${list.size} سجلات" + if (cross) " (بين مخيمات)" else "", color = p.ink, fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
+                                list.forEach { x ->
+                                    Row(Modifier.fillMaxWidth().clickable { keepSel = keepSel + (nid to x.optString("id")) }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        if (!cross) Box(Modifier.size(18.dp).border(2.dp, if (x === keep) p.pri else p.mute, RoundedCornerShape(50)), contentAlignment = Alignment.Center) { if (x === keep) Box(Modifier.size(9.dp).background(p.pri, RoundedCornerShape(50))) }
+                                        Column(Modifier.weight(1f)) {
+                                            Text(x.optString("fullName"), color = p.ink, fontSize = 14.5.sp, fontWeight = FontWeight.Bold)
+                                            Text(line(x, if (cross) "مخيم " + (camps.firstOrNull { it.first == x.optString("campId") }?.second ?: x.optString("campId")) else if (x.optString("birthDate").let { it.isEmpty() || it == "null" }) "بلا ميلاد" else ""), color = p.mute, fontSize = 12.sp)
+                                        }
+                                        if (cross) { Btn("فتح", { edit = x }, kind = BtnKind.Outline, small = true); Btn("إزالة الهوية", { ask = Triple("clear1", listOf(x), x) }, kind = BtnKind.Outline, small = true) }
+                                    }
+                                }
+                                if (!cross) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Btn("دمج بالمختار", { val drops = list.filter { it !== keep }; if (drops.any { it.optBoolean("isFamilyHead") }) android.widget.Toast.makeText(ctx, "لا يمكن حذف رب أسرة بالدمج — اختر سجل رب الأسرة للإبقاء", android.widget.Toast.LENGTH_LONG).show() else ask = Triple("merge", drops, keep) }, Modifier.weight(1f), icon = dev.saged.grcs.ui.icons.Fa.CodeMerge, small = true)
+                                    Btn("إزالة الهوية من الباقين", { ask = Triple("clear", list.filter { it !== keep }, keep) }, Modifier.weight(1f), kind = BtnKind.Outline, small = true)
+                                }
+                            }
+                        }
+                        else i.people.take(lim).forEach { x ->
                             val extra = when (i.key) { "bad", "ref" -> x.optString("nationalId"); "dob" -> x.optString("birthDate") + " — " + Quality.dobWhy(x, heads[x.optString("familyId")]); else -> "" }
                             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {

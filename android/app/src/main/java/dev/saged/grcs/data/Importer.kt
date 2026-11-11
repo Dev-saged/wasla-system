@@ -48,14 +48,8 @@ object Importer {
         return out
     }
 
-    internal fun date(raw: String): String {
-        val s = digits(raw)
-        if (s.isEmpty()) return ""
-        Regex("^(\\d{4})-(\\d{1,2})-(\\d{1,2})").find(s)?.let { return "%s-%02d-%02d".format(it.groupValues[1], it.groupValues[2].toInt(), it.groupValues[3].toInt()) }
-        Regex("^(\\d{1,2})[/.-](\\d{1,2})[/.-](\\d{4})").find(s)?.let { return "%s-%02d-%02d".format(it.groupValues[3], it.groupValues[2].toInt(), it.groupValues[1].toInt()) }
-        s.toDoubleOrNull()?.takeIf { it in 1.0..80000.0 }?.let { return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(((it - 25569) * 86400000).toLong() - java.util.TimeZone.getDefault().rawOffset.toLong())) }
-        return ""
-    }
+    /** parseDateCell بمحرك التواريخ الموحّد. */
+    internal fun date(raw: String): String = Cells.date(raw).orEmpty()
 
     private fun gender(raw: String): String {
         val s = norm(raw).lowercase()

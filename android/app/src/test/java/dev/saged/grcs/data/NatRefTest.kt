@@ -83,3 +83,16 @@ class CellsTest {
         assertEquals(1, n); assertEquals("F1", kid.optString("familyId")); assertEquals(1, w.size)
     }
 }
+
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
+class MergeTest {
+    @Test
+    fun mergeFillsMissingOnly() {
+        val keep = JSONObject().put("id", "a").put("fullName", "محمد").put("phone", "0599").put("notes", "أ")
+        val drop = JSONObject().put("id", "b").put("fullName", "محمد").put("phone", "0598").put("birthDate", "1990-01-01").put("hasDisability", true).put("notes", "ب")
+        val m = Merge.persons(keep, drop)
+        assertEquals("0599", m.optString("phone")); assertEquals("1990-01-01", m.optString("birthDate"))
+        assertTrue(m.optBoolean("hasDisability")); assertEquals("أ — ب", m.optString("notes")); assertEquals("a", m.optString("id"))
+    }
+}
