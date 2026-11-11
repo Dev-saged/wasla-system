@@ -50,8 +50,15 @@ import dev.saged.grcs.ui.theme.LocalPalette
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+private class AcctType(val role: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val label: String, val hint: String, val short: String)
+/** ACCOUNT_TYPES. */
+private val acctTypes = listOf(
+    AcctType("delegate", Fa.UserTie, "مندوب مخيم", "يدير مخيماً كاملاً", "مندوب"), AcctType("dataentry", Fa.Keyboard, "مدخل بيانات", "يُدخل بيانات مخيم موجود", "مدخل بيانات"),
+    AcctType("admin", Fa.UserShield, "الإدارة", "صلاحية على كل المخيمات", "إدارة"), AcctType("beneficiary", Fa.HouseUser, "مستفيد", "رب أسرة بمخيم", "مستفيد"),
+)
+
 @Composable
-fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () -> Unit) {
+fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onPerson: ((JSONObject) -> Unit)? = null, onBack: () -> Unit) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
     var rows by remember { mutableStateOf<List<JSONObject>?>(null) }
@@ -74,12 +81,14 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
     var adding by remember { mutableStateOf(false) }
     var tab by remember { mutableStateOf(0) }
     var query by remember { mutableStateOf("") }
-    var nRole by remember { mutableStateOf("delegate") }
+    var nRole by remember { mutableStateOf("") }
+    var nNewCamp by remember { mutableStateOf(true) }
+    var nCampName by remember { mutableStateOf("") }
     var nName by remember { mutableStateOf("") }
     var nUser by remember { mutableStateOf("") }
     var nPw by remember { mutableStateOf("") }
     var nPhone by remember { mutableStateOf("") }
-    var nCamp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
+    var nCamp by remember { mutableStateOf("") }
     var ben by remember { mutableStateOf<List<org.json.JSONObject>?>(null) }
     LaunchedEffect(rev) { rows = withContext(Dispatchers.IO) { Staff.list(auth) } }
     LaunchedEffect(rev, tab) { if (tab == 2 && ben == null) ben = withContext(Dispatchers.IO) { Staff.allBeneficiaries(auth, camps) } }
@@ -87,7 +96,7 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
     Column(Modifier.fillMaxSize()) {
         AppHeader("إدارة الحسابات", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.UsersGear, search = true)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (tab != 2 && !adding) Btn("إنشاء مستخدم جديد", { adding = true }, Modifier.fillMaxWidth(), icon = Fa.UserPlus)
+            if (!adding) Btn("إنشاء حساب جديد", { nRole = ""; note = ""; adding = true }, Modifier.fillMaxWidth(), icon = Fa.UserPlus)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("مناديب ومدخلو بيانات", "المدراء", "المستفيدون").forEachIndexed { i, l -> QChip(l, tab == i) { tab = i } } }
             SearchBox(query, { query = it }, "بحث بالاسم، اسم المستخدم، أو المخيم...")
             if (note.isNotEmpty()) Text(note, color = p.mute, fontSize = 12.sp)
@@ -101,7 +110,13 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
             if (shown != null && shown.size > 150) Text("يُعرض أول 150 من ${shown.size} — اكتب في البحث للوصول لحساب محدد", color = p.mute, fontSize = 12.5.sp)
             shown?.take(150)?.forEach { u ->
                 val id = u.getString("id"); val active = u.optString("isActive") != "false"
-                QCard { Column {
+                val openBen: (() -> Unit)? = if (tab == 2 && onPerson != null && u.optString("personId").isNotEmpty() && u.optString("campId").isNotEmpty()) ({
+                    scope.launch {
+                        val ps = withContext(Dispatchers.IO) { data.people.persons(u.optString("campId")).firstOrNull { it.optString("id") == u.optString("personId") } }
+                        if (ps != null) onPerson(JSONObject(ps.toString()).put("campId", u.optString("campId"))) else note = "بيانات هذا المستفيد غير محمّلة على الجهاز — افتح مخيمه أولاً"
+                    }
+                }) else null
+                QCard(onClick = openBen) { Column {
                     Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Column(Modifier.weight(1f)) {
                             Text(u.optString("fullName").ifEmpty { u.optString("username") }, color = p.ink, fontSize = 15.5.sp, fontWeight = FontWeight.Bold)
@@ -145,25 +160,48 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onBack: () ->
     }
     val all = rows.orEmpty() + ben.orEmpty()
     fun byId(x: String?) = all.firstOrNull { it.optString("id") == x }
-    if (adding) dev.saged.grcs.ui.components.Sheet({ adding = false }, "إنشاء مستخدم جديد") { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Staff.roles.forEach { (r, l) -> QChip(l, nRole == r) { nRole = r } } }
-                if (nRole != "admin") FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, nCamp == id) { nCamp = id } } }
-                QField("الاسم الكامل", nName, { nName = it })
-                QField("اسم المستخدم", nUser, { nUser = it })
-                QField("كلمة المرور (6 أحرف على الأقل)", nPw, { nPw = it })
-                QField("الجوال", nPhone, { nPhone = it })
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Btn("إنشاء", { scope.launch {
-                        val err = withContext(Dispatchers.IO) { Staff.create(auth, nRole, nName, nUser, nPw, nPhone, nCamp, camps.firstOrNull { it.first == nCamp }?.second.orEmpty()) }
-                        note = err ?: "تم إنشاء الحساب"
-                        if (err == null) { adding = false; nName = ""; nUser = ""; nPw = ""; nPhone = ""; rev++ }
-                    } }, small = true, icon = QIcons.Check)
-                    Btn("إلغاء", { adding = false }, kind = BtnKind.Outline, small = true)
+    if (adding) dev.saged.grcs.ui.components.Sheet({ adding = false }, "إنشاء حساب جديد") { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // openNewUserModal: نوع الحساب أولاً ثم حقول كل نوع
+        if (nRole.isEmpty()) Text("اختر نوع الحساب أولاً", color = p.mute, fontSize = 13.sp)
+        acctTypes.chunked(2).forEach { row -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { row.forEach { t ->
+            val on = nRole == t.role; val sh = RoundedCornerShape(14.dp)
+            Column(Modifier.weight(1f).clip(sh).background(if (on) p.pri.copy(alpha = .1f) else p.surface).border(1.5.dp, if (on) p.pri else p.line, sh).clickable { nRole = t.role; note = "" }.padding(horizontal = 10.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                androidx.compose.material3.Icon(t.icon, null, Modifier.size(20.dp), tint = if (on) p.pri else p.mute)
+                Text(t.label, color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(t.hint, color = p.mute, fontSize = 11.5.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            }
+        } } }
+        if (nRole.isNotEmpty()) {
+            val orphan = camps.filter { c -> rows.orEmpty().none { it.optString("role") == "delegate" && it.optString("campId") == c.first } }
+            val none = listOf("" to "بدون مخيم (يُحدَّد لاحقاً)")
+            when (nRole) {
+                "delegate" -> {
+                    dev.saged.grcs.ui.components.SegBtns(listOf("مخيم جديد" to Fa.Tent, ("مخيم بلا مندوب" + if (orphan.isNotEmpty()) " (${orphan.size})" else "") to Fa.Tents), if (nNewCamp || orphan.isEmpty()) 0 else 1) { nNewCamp = it == 0 || orphan.isEmpty(); if (!nNewCamp) nCamp = orphan.first().first }
+                    if (nNewCamp || orphan.isEmpty()) QField("اسم المخيم الجديد", nCampName, { nCampName = it }, placeholder = "مثال: مخيم الأمل")
+                    else dev.saged.grcs.ui.components.QSelect(nCamp.takeIf { c -> orphan.any { it.first == c } } ?: orphan.first().first, orphan, label = "المخيم") { nCamp = it }
                 }
-            } }
+                "dataentry" -> dev.saged.grcs.ui.components.QSelect(nCamp, none + camps, label = "المخيم الذي سيُدخل بياناته") { nCamp = it }
+                "beneficiary" -> dev.saged.grcs.ui.components.QSelect(nCamp, none + camps, label = "المخيم (اختياري)") { nCamp = it }
+                else -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { androidx.compose.material3.Icon(Fa.ShieldHalved, null, Modifier.size(14.dp), tint = p.success); Text("حساب إدارة: يرى ويدير كل المخيمات والحسابات", color = p.success, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+            }
+            if (nRole != "delegate" && nRole != "admin" && nCamp.isEmpty()) Text("بدون مخيم: الحساب يُنشأ ويظهر في القوائم، لكنه لا يرى بيانات أي مخيم حتى يُربط بمخيم من «تعديل».", color = p.mute, fontSize = 12.sp)
+            QField("الاسم الكامل", nName, { nName = it })
+            QField("اسم المستخدم", nUser, { nUser = it })
+            QField("كلمة المرور المبدئية", nPw, { nPw = it }, placeholder = "6 أحرف على الأقل")
+            QField("رقم الهاتف", nPhone, { nPhone = it }, type = androidx.compose.ui.text.input.KeyboardType.Phone)
+            if (note.isNotEmpty()) Text(note, color = p.danger, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Btn(acctTypes.first { it.role == nRole }.let { "إنشاء حساب " + it.short }, { scope.launch {
+                val newCamp = nRole == "delegate" && (nNewCamp || orphan.isEmpty())
+                val cid = if (nRole == "admin" || newCamp) "" else nCamp
+                val err = withContext(Dispatchers.IO) { Staff.create(auth, nRole, nName, nUser, nPw, nPhone, cid, if (newCamp) nCampName else camps.firstOrNull { it.first == cid }?.second.orEmpty(), newCamp) }
+                note = err.orEmpty()
+                if (err == null) { adding = false; tab = if (nRole == "admin") 1 else if (nRole == "beneficiary") 2 else 0; nRole = ""; nName = ""; nUser = ""; nPw = ""; nPhone = ""; nCampName = ""; nCamp = ""; ben = null; rev++ }
+            } }, Modifier.fillMaxWidth(), icon = Fa.Check)
+        }
+    } }
     byId(editFor)?.let { u -> val id = u.optString("id"); dev.saged.grcs.ui.components.Sheet({ editFor = null }, "تعديل المستخدم") { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         if (u.optString("role") != "beneficiary") FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Staff.roles.forEach { (r, l) -> QChip(l, eRole == r) { eRole = r } } }
-                        if (eRole != "admin") FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (cid, n) -> QChip(n, eCamp == cid) { eCamp = cid } } }
+                        if (eRole != "admin") dev.saged.grcs.ui.components.QSelect(eCamp.takeIf { c -> camps.any { it.first == c } }.orEmpty(), (if (eRole == "delegate") emptyList() else listOf("" to "بدون مخيم")) + camps, label = if (eRole == "dataentry") "المخيم الذي يُدخل بياناته" else "المخيم") { eCamp = it }
                         QField("الاسم الكامل", eName, { eName = it }); QField("اسم المستخدم", eUser, { eUser = it }); QField("رقم الهاتف", ePhone, { ePhone = it })
                         Btn("حفظ التعديلات", { scope.launch {
                             val err = withContext(Dispatchers.IO) { Staff.update(auth, u, eName, eUser, ePhone, eRole, eCamp, camps.firstOrNull { it.first == eCamp }?.second.orEmpty()) }

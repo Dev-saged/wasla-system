@@ -274,11 +274,15 @@ internal fun PersonDetailBody(
             Spacer(Modifier.fillMaxWidth().height(1.dp).background(p.line))
         }
 
-        Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (canEdit) Btn("تعديل", onEdit, Modifier.weight(1f), kind = BtnKind.Outline, icon = Fa.Pen)
-            if (canEdit) Btn("التصنيفات", onTags, Modifier.weight(1f), kind = BtnKind.Outline, icon = Fa.Tags)
-            if (role == "admin" && onTransfer != null) Btn("نقل الأسرة", onTransfer, Modifier.weight(1f), kind = BtnKind.Outline, icon = Fa.RightLeft)
-            if (canDelete) Btn("حذف", onDelete, Modifier.weight(1f), kind = BtnKind.Danger, icon = Fa.Trash)
+        // أربعة أزرار لا تتسع في صف واحد على الهاتف: صفّان بزرّين
+        val acts = buildList<@Composable (Modifier) -> Unit> {
+            if (canEdit) add { m -> Btn("تعديل", onEdit, m, kind = BtnKind.Outline, icon = Fa.Pen, small = true) }
+            if (canEdit) add { m -> Btn("التصنيفات", onTags, m, kind = BtnKind.Outline, icon = Fa.Tags, small = true) }
+            if (role == "admin" && onTransfer != null) add { m -> Btn("نقل الأسرة", onTransfer, m, kind = BtnKind.Outline, icon = Fa.RightLeft, small = true) }
+            if (canDelete) add { m -> Btn("حذف", onDelete, m, kind = BtnKind.Danger, icon = Fa.Trash, small = true) }
+        }
+        Column(Modifier.fillMaxWidth().padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            acts.chunked(if (acts.size <= 2) 2 else 2).forEach { row -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { row.forEach { it(Modifier.weight(1f)) } } }
         }
     }
 }

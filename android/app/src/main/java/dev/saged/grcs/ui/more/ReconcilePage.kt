@@ -70,6 +70,7 @@ fun ReconcilePage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var progressText by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<RcResult?>(null) }
     var added by remember { mutableStateOf(false) }
+    var repaired by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     fun toast(t: String) = Toast.makeText(ctx, t, Toast.LENGTH_LONG).show()
     val fmt = remember { java.text.SimpleDateFormat("d/M/yyyy", java.util.Locale.US) }
@@ -85,7 +86,8 @@ fun ReconcilePage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 runCatching { ctx.contentResolver.openInputStream(uri)!!.use { s -> if (fileName.lowercase().endsWith(".csv")) Xlsx.readCsv(s.bufferedReader(Charsets.UTF_8).readText()) else Xlsx.read(s) } }.getOrNull()
             }
             if (rows == null || rows.size < 2) { toast("تعذّرت قراءة الملف — استخدم xlsx أو csv"); busy = false; replaceId = null; return@launch }
-            val pr = RefParsed(rows[0], rows.drop(1), fileName, Cells.modeOf(rows[0]))
+            val hi = Cells.headerRow(rows)
+            val pr = RefParsed(rows[hi], rows.drop(hi + 1), fileName, Cells.modeOf(rows[hi]))
             val rid = replaceId ?: refs.firstOrNull { it.name == fileName }?.id
             replaceId = null
             val saved = withContext(Dispatchers.IO) { runCatching { NatRef.save(pr, rid, auth.user.id) }.isSuccess }
@@ -97,14 +99,16 @@ fun ReconcilePage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     fun run() {
         val pr = parsed ?: return
         scope.launch {
-            busy = true; progress = 0 to pr.rows.size; progressText = "جارٍ تحميل الفهرس..."
+            busy = true; repaired = 0; progress = 0 to pr.rows.size; progressText = "جارٍ تحميل الفهرس..."
             val cols = Cells.cols(pr.headers, pr.mode)
             val res = withContext(Dispatchers.IO) {
                 val byCamp = data.campList(auth).associate { (cid, _) -> cid to data.people.persons(cid).map { JSONObject(it.toString()) } }
                 val r = Reconcile.run(pr.rows, cols, pr.mode, addMembers, byCamp, auth.user.id) { d, t -> progress = d to t; progressText = "جارٍ المطابقة... ${Math.round(d * 100f / t)}%" }
                 progressText = "جارٍ حفظ الإضافات..."
                 r.writes.entries.groupBy({ it.value }, { it.key }).forEach { (camp, list) ->
-                    list.forEach { data.people.save(camp, it) }
+                    val fx = dev.saged.grcs.data.FamilyRepair.run(byCamp[camp].orEmpty() + list.filter { n -> byCamp[camp].orEmpty().none { it === n } })
+                    repaired += fx.first
+                    (list + fx.second.onEach { it.put("updatedBy", auth.user.id) }).distinct().forEach { data.people.save(camp, it) }
                     progressText = "جارٍ تحديث بيانات الأسر والمزامنة..."
                     data.pushNow(auth, camp)
                     Audit.log(auth, camp, "import_excel", "HQ", "مطابقة وطنية", JSONObject().put("file", pr.name).put("matched", r.matched).put("headsEnriched", r.headsEnriched).put("membersEnriched", r.membersEnriched).put("spousesAdded", r.spousesAdded).put("childrenAdded", r.childrenAdded).put("unmatched", r.unmatched).put("skippedNoNid", r.skippedNoNid).put("mode", "reconcile").toString())
@@ -133,6 +137,7 @@ fun ReconcilePage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                             if (res.membersEnriched > 0) Text("اكتملت بيانات ${res.membersEnriched} فرد موجود (هوية/ميلاد)", color = p.ink, fontSize = 13.5.sp)
                             if (added) Text("أُضيف ${res.spousesAdded} زوج/ة و${res.childrenAdded} ابن/ابنة لم يكونوا مسجَّلين", color = p.ink, fontSize = 13.5.sp)
                             else Text("لم يُنشأ أي سجل جديد — مطابقة وتكميل فقط", color = p.mute, fontSize = 13.sp)
+                            if (repaired > 0) Text("أُصلحت $repaired أسرة كان أفرادها منفصلين عن رب الأسرة", color = p.ink, fontSize = 13.5.sp)
                             if (res.unmatched > 0) Text("${res.unmatched} صف غير متطابق (التفاصيل والسبب بالتقرير)", color = p.warn, fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
                             if (res.skippedNoNid > 0) Text("${res.skippedNoNid} صف بلا رقم هوية لرب الأسرة — تعذّرت مطابقته", color = p.mute, fontSize = 13.sp)
                         }

@@ -198,7 +198,7 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
                     0 -> ProfileTab(head, onSave = { o -> saveP(o, emptyList()) })
                     1 -> FamilyTab(head, family, onAdd = { adding = true }, onOpen = { editing = it })
                     2 -> RequestsTab(head, auth.user.id, auth.offline, type, { type = it }, details, { details = it }, { o -> scope.launch { withContext(Dispatchers.IO) { data.people.save(camp, o.put("updatedBy", auth.user.id)); data.pushNow(auth, camp) }; rev++ } }) { o -> scope.launch { withContext(Dispatchers.IO) { data.people.save(camp, o.put("updatedBy", auth.user.id)); data.pushNow(auth, camp) }; details = ""; rev++ } }
-                    3 -> NotifyTab(head, msgs, auth.user.id)
+                    3 -> NotifyTab(head, msgs, auth.user.id, remember(rev, persons) { data.benLog(auth) })
                 }
             }
             if (head != null && (adding || editing != null)) BenMemberSheet(auth, data, camp, head, family, editing, { adding = false; editing = null }) { adding = false; editing = null; rev++ }
@@ -395,7 +395,7 @@ private fun RequestsTab(head: JSONObject, uid: String, offline: Boolean, type: S
 }
 
 @Composable
-private fun NotifyTab(head: JSONObject, msgs: List<JSONObject>, uid: String) {
+private fun NotifyTab(head: JSONObject, msgs: List<JSONObject>, uid: String, log: List<JSONObject>) {
     val p = LocalPalette.current
     FormCard("الإشعارات", Fa.Bell) { Text("تصلك رسائل الإدارة وتحديثات الطلبات هنا عند فتح التطبيق.", color = p.mute, fontSize = 13.sp) }
     SectionTitle("آخر الإشعارات")
@@ -413,5 +413,14 @@ private fun NotifyTab(head: JSONObject, msgs: List<JSONObject>, uid: String) {
         }
     }
     SectionTitle("سجل التعديلات على بياناتي")
-    Text("لا يوجد سجل تعديلات بعد", color = p.mute, fontSize = 13.sp)
+    if (log.isEmpty()) Text("لا يوجد سجل تعديلات بعد", color = p.mute, fontSize = 13.sp)
+    log.take(12).forEach { e ->
+        Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(dev.saged.grcs.data.Audit.labels[e.optString("action")] ?: e.optString("action"), color = p.ink, fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
+                Text(fmt.format(java.util.Date(e.optLong("timestamp"))), color = p.mute, fontSize = 12.sp)
+            }
+            Text(e.optString("userName").ifEmpty { "—" } + e.optString("targetName").let { if (it.isNotEmpty()) " · $it" else "" }, color = p.mute, fontSize = 12.sp)
+        }
+    }
 }

@@ -209,6 +209,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
 
     /** بعد حفظ/حذف فرد: يؤجّل الفهرس الوطني وحساب المستفيد ثم يحاول تنفيذهما فوراً. */
     fun afterSave(st: AuthState, camp: String, p: JSONObject, deleted: Boolean) {
+        localLog(st, if (deleted) "delete_person" else "edit_person", p)
         Thread { Audit.log(st, camp, if (deleted) "delete_person" else "edit_person", p.optString("id"), p.optString("fullName")) }.start()
         if (deleted) accounts.enqueueDelete(camp, p) else accounts.enqueueSave(camp, p)
         val name = campList(st).firstOrNull { it.first == camp }?.second ?: camp
@@ -227,6 +228,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
             runCatching { checkNid(st, n, camp) }.getOrNull()?.let { return it }
         }
         val saved = people.save(camp, r.main)
+        localLog(st, if (r.isNew) "add_person" else "edit_person", saved)
         Thread { Audit.log(st, camp, if (r.isNew) "add_person" else "edit_person", saved.optString("id"), saved.optString("fullName")) }.start()
         accounts.enqueueSave(camp, saved)
         for (x in r.others) { x.put("familyId", saved.optString("familyId")); accounts.enqueueSave(camp, people.save(camp, x)) }
@@ -236,6 +238,17 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         pushNow(st, camp)
         return null
     }
+
+    /** سجل تعديلات محلي للمستفيد (changelog في الويب): آخر 60 إجراء على هذا الجهاز. */
+    private fun localLog(st: AuthState, action: String, p: JSONObject) {
+        if (st.user.role != "beneficiary") return
+        runCatching {
+            val a = org.json.JSONArray().put(JSONObject().put("action", action).put("userName", st.user.fullName).put("targetName", p.optString("fullName")).put("timestamp", System.currentTimeMillis()))
+            benLog(st).take(59).forEach { a.put(it) }
+            cache.setMeta("benlog_" + st.user.id, a.toString())
+        }
+    }
+    fun benLog(st: AuthState): List<JSONObject> = runCatching { org.json.JSONArray(cache.meta("benlog_" + st.user.id) ?: "[]").let { a -> (0 until a.length()).map { a.getJSONObject(it) } } }.getOrDefault(emptyList())
 
     /** رفع فوري لمخيم بعد تعديل (يعيد false إن تعذّر وبقي معلّقاً). */
     fun pushNow(st: AuthState, camp: String): Boolean = runCatching { writer.push(camp, st.idToken, st.user.id) }.getOrDefault(false)

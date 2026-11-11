@@ -28,8 +28,63 @@ object Cells {
         val s = v.orEmpty().trim()
         return if (s.isEmpty() || Regex("^-+$").matches(s) || s in listOf("لا يوجد", "لايوجد", "غير موجود", "غير متوفر", "لا يوجد.")) "" else s
     }
-    /** parseDateCell: يعيد yyyy-MM-dd أو null. */
-    fun date(v: String?): String? = Importer.date(v.orEmpty()).ifEmpty { null }
+    private val months = linkedMapOf(
+        "يناير" to 1, "كانون الثاني" to 1, "jan" to 1, "january" to 1, "فبراير" to 2, "شباط" to 2, "feb" to 2, "february" to 2, "مارس" to 3, "اذار" to 3, "آذار" to 3, "mar" to 3, "march" to 3,
+        "ابريل" to 4, "أبريل" to 4, "نيسان" to 4, "apr" to 4, "april" to 4, "مايو" to 5, "ايار" to 5, "أيار" to 5, "may" to 5, "يونيو" to 6, "حزيران" to 6, "jun" to 6, "june" to 6,
+        "يوليو" to 7, "تموز" to 7, "jul" to 7, "july" to 7, "اغسطس" to 8, "أغسطس" to 8, "آب" to 8, "اب" to 8, "aug" to 8, "august" to 8, "سبتمبر" to 9, "ايلول" to 9, "أيلول" to 9, "sep" to 9, "sept" to 9, "september" to 9,
+        "اكتوبر" to 10, "أكتوبر" to 10, "تشرين الاول" to 10, "تشرين الأول" to 10, "oct" to 10, "october" to 10, "نوفمبر" to 11, "تشرين الثاني" to 11, "nov" to 11, "november" to 11,
+        "ديسمبر" to 12, "كانون الاول" to 12, "كانون الأول" to 12, "dec" to 12, "december" to 12,
+    )
+    private fun ymd(y: Int, m: Int, d: Int): String? {
+        val maxY = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) + 1
+        if (y !in 1900..maxY || m !in 1..12 || d !in 1..31) return null
+        val c = java.util.GregorianCalendar(java.util.TimeZone.getTimeZone("UTC")); c.clear(); c.set(y, m - 1, d)
+        if (c.get(java.util.Calendar.MONTH) != m - 1) return null
+        return "%04d-%02d-%02d".format(java.util.Locale.US, y, m, d)
+    }
+    private fun serial(n: Double): String? {
+        if (!(n > 0 && n < 80000)) return null
+        val c = java.util.GregorianCalendar(java.util.TimeZone.getTimeZone("UTC")); c.timeInMillis = Math.round((n - 25569) * 86400000.0)
+        return ymd(c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH) + 1, c.get(java.util.Calendar.DAY_OF_MONTH))
+    }
+    /** parseDateCell / _parseDateAny: يعيد yyyy-MM-dd أو null. */
+    fun date(v: String?): String? {
+        val s = Nid.digits(v.orEmpty()).replace(Regex("[\\u200B-\\u200F\\u202A-\\u202E\\u2066-\\u2069\\uFEFF]"), "").trim()
+        if (s.isEmpty()) return null
+        if (Regex("^(19|20)\\d{2}$").matches(s)) return ymd(s.toInt(), 1, 1)
+        if (Regex("^\\d{4,5}(\\.\\d+)?$").matches(s)) return serial(s.toDouble())
+        Regex("^(\\d{4})[/\\-.](\\d{1,2})[/\\-.](\\d{1,2})").find(s)?.let { return ymd(it.groupValues[1].toInt(), it.groupValues[2].toInt(), it.groupValues[3].toInt()) }
+        Regex("^(\\d{1,2})[/\\-.](\\d{1,2})[/\\-.](\\d{4}|\\d{2})(?!\\d)").find(s)?.let {
+            val a = it.groupValues[1].toInt(); val b = it.groupValues[2].toInt()
+            val y = it.groupValues[3].let { yy -> if (yy.length == 2) { val cur = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) % 100; if (yy.toInt() > cur) 1900 + yy.toInt() else 2000 + yy.toInt() } else yy.toInt() }
+            return if (b > 12 && a <= 12) ymd(y, a, b) else ymd(y, b, a)
+        }
+        val low = norm(s)
+        for ((name, mo) in months) {
+            val nk = norm(name); if (!low.contains(nk)) continue
+            val nums = Regex("\\d+").findAll(low.replace(nk, " ")).map { it.value }.toList()
+            val y = nums.firstOrNull { it.length == 4 }; val d = nums.firstOrNull { it.length <= 2 }
+            if (y != null && d != null) return ymd(y.toInt(), mo, d.toInt())
+        }
+        return null
+    }
+
+    private val fieldKeywords = listOf("الاسم الكامل", "اسم كامل", "الاسم", "اسم", "full name", "name", "رقم الهوية", "رقم البطاقة", "الهوية", "هوية", "national id", "id", "تاريخ الميلاد", "ميلاد", "date of birth", "dob",
+        "الجنس", "جنس", "النوع", "gender", "sex", "هاتف", "موبايل", "جوال", "تواصل", "phone", "mobile", "tel", "رقم الأسرة", "رقم العائلة", "family id", "family no", "رب الأسرة", "رب العائلة", "head of family",
+        "حامل", "حامله", "pregnant", "pregnancy", "مرضعة", "مرضع", "مرضعه", "ترضع", "breastfeeding", "nursing", "lactating", "مرض مزمن", "أمراض مزمنة", "مزمن", "chronic", "نوع المرض", "اسم المرض", "تفاصيل المرض",
+        "ذوي إعاقة", "إعاقة", "معاق", "disability", "الحالة الاجتماعية", "حالة اجتماعية", "الحالة العائلية", "marital status", "العنوان", "عنوان", "محل الإقامة", "address", "مصدر الدخل", "مصدر دخل", "income source",
+        "السكن الاصلي", "مكان السكن الاصلي", "العنوان الاصلي", "محافظة السكن الاصلي", "المحافظة", "السكن الحالي", "مكان السكن الحالي", "العنوان الحالي", "محافظة السكن الحالي", "حالة النزوح", "نوع المسكن", "نوع السكن",
+        "حالة السكن", "حالة المسكن", "نوع المأوى", "المأوى", "وضع السكن", "نوع الإيواء", "الحالة الخاصة", "رقم التواصل 2", "رقم بديل", "هاتف بديل", "جوال 2", "الرقم البديل", "معيار الترشيح", "جهة الترشيح", "ملاحظات", "تعليق", "notes").map { norm(it) }
+
+    /** locateHeaderRow: صف الرؤوس ضمن أول 15 صفاً (يتجاوز صفوف معلومات المخيم). */
+    fun headerRow(rows: List<List<String>>): Int {
+        var best = 0; var bs = 0
+        for (i in 0 until minOf(rows.size, 15)) {
+            val sc = rows[i].count { c -> norm(c).let { n -> n.isNotEmpty() && fieldKeywords.any { n.contains(it) } } }
+            if (sc > bs) { bs = sc; best = i }
+        }
+        return best
+    }
     /** nameKey. */
     fun nameKey(s: String) = norm(s).replace('ؤ', 'و').replace('ئ', 'ي').replace(Regex("(^|\\s)(عبد|ابو)\\s+"), "$1$2").replace(Regex("\\s+"), " ").trim()
 
@@ -327,5 +382,31 @@ object Reconcile {
             }
         }
         return res
+    }
+}
+
+/** إصلاح بنية الأسر (FamilyRepair): أفراد انفصلوا عن رب أسرتهم — مجموعة بلا رب أسرة ومعرّفها = معرّف/هوية رب أسرة موجود. */
+object FamilyRepair {
+    /** يعدّل السجلات في مكانها ويعيد (عدد الأسر المُصلَحة، السجلات المتغيّرة). */
+    fun run(ps: List<JSONObject>): Pair<Int, List<JSONObject>> {
+        val headByKey = HashMap<String, JSONObject>()
+        for (h in ps) {
+            if (!h.optBoolean("isFamilyHead")) continue
+            headByKey[h.optString("id")] = h
+            val n = Nid.norm(h.optString("nationalId")); if (n.isNotEmpty() && n !in headByKey) headByKey[n] = h
+        }
+        val groups = LinkedHashMap<String, MutableList<JSONObject>>()
+        for (p in ps) { val fid = p.optString("familyId"); if (fid.isNotEmpty()) groups.getOrPut(fid) { ArrayList() }.add(p) }
+        val writes = LinkedHashSet<JSONObject>(); var fixed = 0
+        for ((fid, ms) in groups) {
+            if (ms.any { it.optBoolean("isFamilyHead") }) continue
+            val h = headByKey[fid] ?: continue
+            if (h.optString("familyId") == fid) continue
+            val target = h.optString("familyId").ifEmpty { Nid.norm(h.optString("nationalId")).ifEmpty { h.optString("id") } }
+            if (h.optString("familyId") != target) { h.put("familyId", target); writes += h }
+            for (m in ms) { m.put("familyId", target); writes += m }
+            fixed++
+        }
+        return fixed to writes.toList()
     }
 }

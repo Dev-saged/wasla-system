@@ -123,6 +123,14 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     var importing by remember { mutableStateOf(false) }
     val tab = tabs[sel.coerceIn(0, tabs.lastIndex)]
     val ben = auth.user.role == "beneficiary"
+    // حساب طاقم بلا مخيم: لا بيانات يعمل عليها حتى تربطه الإدارة بمخيم
+    if (!ben && auth.user.role != "admin" && auth.user.campId.isEmpty()) {
+        Column(Modifier.fillMaxSize().background(p.bg).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally) {
+            dev.saged.grcs.ui.components.EmptyState(Fa.Tent, "حسابك غير مرتبط بمخيم بعد", "اطلب من الإدارة ربط حسابك بمخيم لتبدأ إدخال البيانات")
+            dev.saged.grcs.ui.components.Btn("تسجيل الخروج", onLogout, kind = dev.saged.grcs.ui.components.BtnKind.Outline, icon = Fa.ArrowRightFromBracket)
+        }
+        return
+    }
     val admin = auth.user.role == "admin"
     val adminCamp = if (admin) ShellState.adminCamp else null
     data.scope = adminCamp
@@ -158,7 +166,10 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
                 Tab.Camps -> CampsScreen(auth, data, { enterCamp(it) }) { c, f -> enterCamp(c); ShellState.jump = Triple(c, f, ""); homeFilter = "head" }
                 Tab.People -> PeopleScreen(auth, data)
                 Tab.Chat -> MessagesScreen(auth, data)
-                Tab.Accounts -> StaffPage(auth, data) { sel = 0 }
+                Tab.Accounts -> StaffPage(auth, data, onPerson = { ps ->
+                    val camp = ps.optString("campId")
+                    enterCamp(camp); ShellState.jump = Triple(camp, ps.optString("familyId").ifEmpty { "i_" + ps.optString("id") }, ps.optString("id")); homeFilter = "head"
+                }) { sel = 0 }
                 Tab.Export -> ExportPage(auth, data) { sel = 0 }
                 Tab.Settings -> MoreScreen(auth, data, onLogout)
             }
