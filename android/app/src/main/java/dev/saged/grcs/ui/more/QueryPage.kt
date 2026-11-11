@@ -119,7 +119,9 @@ fun QueryPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                     scope.launch {
                         busy = true
                         val e = withContext(Dispatchers.IO) {
-                            val out = data.export.run("xlsx", camps.first().first, "استعلام", r!!.persons, false)
+                            val info = camps.associate { (cid, cn) -> cid to (runCatching { data.campInfo(auth, cid) }.getOrNull()?.let { Triple(it.name.ifEmpty { cn }, it.supervisor, it.supervisorPhone) } ?: Triple(cn, "", "")) }
+                            val body = Query.exportRows(r!!.persons, persons, info)
+                            val out = data.export.save("استعلام_${java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US).format(java.util.Date())}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(body, "نتيجة الاستعلام", Query.exportHeader), body.size)
                             camps.firstOrNull()?.let { dev.saged.grcs.data.Audit.log(auth, it.first, "export", "HQ", "استعلام مخصص", org.json.JSONObject().put("type", "xlsx-query").put("count", r.persons.size).toString()) }
                             out
                         }

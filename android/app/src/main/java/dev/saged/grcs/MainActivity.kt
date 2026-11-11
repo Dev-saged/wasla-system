@@ -41,16 +41,16 @@ class MainActivity : ComponentActivity() {
                 var auth by remember { mutableStateOf<AuthState?>(null) }
                 var restored by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
-                    auth = withContext(Dispatchers.IO) { repo.restore() }
+                    auth = withContext(Dispatchers.IO) { repo.restore()?.also { data.warm(it) } }
                     restored = true
                 }
                 AnimatedContent(
                     if (opening || !restored) 0 else if (auth == null) 1 else 2,
-                    transitionSpec = { fadeIn(tween(500)) togetherWith fadeOut(tween(400)) },
+                    transitionSpec = { fadeIn(tween(260)) togetherWith fadeOut(tween(200)) },
                     label = "root",
                 ) {
                     when (it) {
-                        0 -> OpeningScreen { opening = false }
+                        0 -> OpeningScreen(restored) { opening = false }
                         1 -> LoginScreen(repo) { st -> auth = st }
                         else -> auth?.let { a -> AppShell(a, data) { repo.logout(); data.clear(); auth = null } }
                     }

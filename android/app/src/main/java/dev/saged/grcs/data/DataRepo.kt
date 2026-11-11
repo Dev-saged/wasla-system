@@ -96,9 +96,15 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         return st to listOf(summary(camp, camp))
     }
 
+    private val sumMemo = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, CampSummary>>()
     private fun summary(id: String, name: String): CampSummary {
-        return CampSummary(id, name, Stats.compute(people.persons(id)))
+        val v = cache.version(id)
+        sumMemo[id]?.takeIf { it.first == v && it.second.name == name }?.let { return it.second }
+        return CampSummary(id, name, Stats.compute(people.readOnly(id))).also { sumMemo[id] = v to it }
     }
+
+    /** تسخين: يحلّل بيانات المخيمات المخزّنة في الخلفية أثناء شاشة البداية حتى تُعرض اللوحة فوراً. */
+    fun warm(st: AuthState) { runCatching { cached(st) } }
 
     /** إدارة المخيمات (للأدمن): إنشاء مخيم بنفس حقول الويب. */
     fun createCamp(st: AuthState, name: String): String? {

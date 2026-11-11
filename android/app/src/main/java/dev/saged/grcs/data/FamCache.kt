@@ -20,6 +20,12 @@ class FamCache(ctx: Context) : SQLiteOpenHelper(ctx, "grcs_cache.db", null, 2) {
 
     override fun onUpgrade(db: SQLiteDatabase, o: Int, n: Int) { pendTables(db) }
 
+    // عدّاد تغيّر لكل مخيم: يُبطل نسخة الأفراد المحلَّلة في الذاكرة عند أي كتابة
+    private val vers = java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicLong>()
+    private val epoch = java.util.concurrent.atomic.AtomicLong()
+    fun version(camp: String) = epoch.get() * 1_000_000_007L + vers.getOrPut(camp) { java.util.concurrent.atomic.AtomicLong() }.get()
+    private fun bump(camp: String) { vers.getOrPut(camp) { java.util.concurrent.atomic.AtomicLong() }.incrementAndGet() }
+
     class Pend(val id: String, val doc: String, val json: String, val upd: Long)
     class Tomb(val id: String, val doc: String, val at: Long)
 
@@ -28,6 +34,7 @@ class FamCache(ctx: Context) : SQLiteOpenHelper(ctx, "grcs_cache.db", null, 2) {
             put("camp", camp); put("pid", id); put("doc", doc); put("j", json); put("upd", upd)
         }, SQLiteDatabase.CONFLICT_REPLACE)
         writableDatabase.delete("tomb", "camp=? AND pid=?", arrayOf(camp, id))
+        bump(camp)
     }
 
     fun putTomb(camp: String, id: String, doc: String, at: Long) {
@@ -35,6 +42,7 @@ class FamCache(ctx: Context) : SQLiteOpenHelper(ctx, "grcs_cache.db", null, 2) {
             put("camp", camp); put("pid", id); put("doc", doc); put("at", at)
         }, SQLiteDatabase.CONFLICT_REPLACE)
         writableDatabase.delete("pend", "camp=? AND pid=?", arrayOf(camp, id))
+        bump(camp)
     }
 
     fun pending(camp: String): List<Pend> {
@@ -54,8 +62,8 @@ class FamCache(ctx: Context) : SQLiteOpenHelper(ctx, "grcs_cache.db", null, 2) {
     }
 
     /** يحذف علامة معلّقة فقط إن لم تتغيّر منذ أخذ اللقطة (حتى لا يضيع تعديل أُجري أثناء الرفع). */
-    fun donePend(camp: String, id: String, upd: Long) { writableDatabase.delete("pend", "camp=? AND pid=? AND upd=?", arrayOf(camp, id, upd.toString())) }
-    fun doneTomb(camp: String, id: String, at: Long) { writableDatabase.delete("tomb", "camp=? AND pid=? AND at=?", arrayOf(camp, id, at.toString())) }
+    fun donePend(camp: String, id: String, upd: Long) { writableDatabase.delete("pend", "camp=? AND pid=? AND upd=?", arrayOf(camp, id, upd.toString())); bump(camp) }
+    fun doneTomb(camp: String, id: String, at: Long) { writableDatabase.delete("tomb", "camp=? AND pid=? AND at=?", arrayOf(camp, id, at.toString())); bump(camp) }
 
     fun campsWithPending(): List<String> {
         val out = LinkedHashSet<String>()
@@ -81,12 +89,14 @@ class FamCache(ctx: Context) : SQLiteOpenHelper(ctx, "grcs_cache.db", null, 2) {
         } finally {
             db.endTransaction()
         }
+        bump(camp)
     }
 
     fun meta(k: String): String? = readableDatabase.rawQuery("SELECT v FROM meta WHERE k=?", arrayOf(k)).use { if (it.moveToFirst()) it.getString(0) else null }
 
     fun setMeta(k: String, v: String) {
         writableDatabase.insertWithOnConflict("meta", null, ContentValues().apply { put("k", k); put("v", v) }, SQLiteDatabase.CONFLICT_REPLACE)
+        if (k.startsWith("cleared_")) bump(k.removePrefix("cleared_"))
     }
 
     /** كل (j, d) لمخيم. */
@@ -99,6 +109,7 @@ class FamCache(ctx: Context) : SQLiteOpenHelper(ctx, "grcs_cache.db", null, 2) {
     /** عند الخروج: يُبقي التعديلات غير المرفوعة حتى لا تضيع. */
     fun clear() {
         writableDatabase.execSQL("DELETE FROM fam"); writableDatabase.execSQL("DELETE FROM meta")
+        epoch.incrementAndGet()
     }
 
     /** يمحو كل ما محليّاً لمخيم (أسر ومعلّق وشواهد ومؤشرات). */
@@ -106,6 +117,7 @@ class FamCache(ctx: Context) : SQLiteOpenHelper(ctx, "grcs_cache.db", null, 2) {
         val db = writableDatabase
         db.delete("fam", "camp=?", arrayOf(camp)); db.delete("pend", "camp=?", arrayOf(camp)); db.delete("tomb", "camp=?", arrayOf(camp))
         db.delete("meta", "k IN (?,?)", arrayOf("since_$camp", "cleared_$camp"))
+        bump(camp)
     }
 
     fun hasPending() = campsWithPending().isNotEmpty()

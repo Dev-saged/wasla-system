@@ -87,6 +87,20 @@ object Query {
         return QResult(r, r.map { x.key(it) }.toSet().size)
     }
 
+    val exportHeader = listOf("الاسم الكامل", "رقم الهوية", "العمر", "الجنس", "صلة القرابة", "الهاتف", "اسم ولي الأمر", "هوية ولي الأمر", "جوال ولي الأمر", "مؤشر الهشاشة", "مستوى الهشاشة", "نوع المأوى", "المخيم", "مسؤول المخيم", "هاتف المسؤول")
+    private val shelterLabels = mapOf("tent_ok" to "خيمة سليمة", "tent_damaged" to "خيمة تالفة", "shared" to "مأوى مشترك", "building_damaged" to "مبنى متضرر", "none" to "بلا مأوى")
+
+    /** صفوف qbExport: all = كل الأفراد (لحساب ولي الأمر والهشاشة)، camps = id ← (الاسم، المسؤول، هاتفه). */
+    fun exportRows(result: List<JSONObject>, all: List<JSONObject>, camps: Map<String, Triple<String, String, String>>): List<List<String>> {
+        val x = Ctx(all)
+        return result.map { p ->
+            val h = x.head(p); val v = x.vuln(p); val c = camps[p.optString("campId")]
+            val g = if (h.optString("id") == p.optString("id") || !h.optBoolean("isFamilyHead")) listOf("", "", "") else listOf(h.optString("fullName"), h.optString("nationalId"), h.optString("phone"))
+            listOf(p.optString("fullName"), p.optString("nationalId"), Stats.ageOf(p)?.toString().orEmpty(), when (p.optString("gender")) { "male" -> "ذكر"; "female" -> "أنثى"; else -> "—" }, Rel.label(p), p.optString("phone")) + g +
+                listOf(v.score.toString(), Vuln.tiers.firstOrNull { it.first == v.tier }?.second ?: v.tier, shelterLabels[Vuln.effectiveShelter(h)].orEmpty(), c?.first ?: p.optString("campId"), c?.second.orEmpty(), c?.third.orEmpty())
+        }
+    }
+
     fun describe(c: Cond): String {
         val f = fields.firstOrNull { it.k == c.k } ?: return c.k
         if (f.range) return f.label + ": " + listOf(c.min.takeIf { it.isNotEmpty() }?.let { "من $it" }, c.max.takeIf { it.isNotEmpty() }?.let { "إلى $it" }).filterNotNull().joinToString(" ")
