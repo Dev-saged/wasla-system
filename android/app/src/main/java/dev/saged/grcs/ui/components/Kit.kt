@@ -118,7 +118,7 @@ fun ConnBadge(state: Conn) {
 
 /** ترويسة كحلية ثابتة (app-header): زر رجوع اختياري، شعار متدرج بأيقونة الشاشة، عنوانان، أزرار، وشارة اتصال. */
 @Composable
-fun AppHeader(title: String, subtitle: String, conn: Conn? = ConnState.state, onBack: (() -> Unit)? = null, mark: ImageVector = Fa.PeopleRoof, backIcon: ImageVector = Fa.ArrowRight, endBack: (() -> Unit)? = null, actions: @Composable RowScope.() -> Unit = {}) {
+fun AppHeader(title: String, subtitle: String, conn: Conn? = ConnState.state, onBack: (() -> Unit)? = null, mark: ImageVector = Fa.PeopleRoof, backIcon: ImageVector = Fa.ArrowRight, endBack: (() -> Unit)? = null, search: Boolean = false, actions: @Composable RowScope.() -> Unit = {}) {
     val p = LocalPalette.current
     Row(
         Modifier.fillMaxWidth().shadow(4.dp).background(p.navy).statusBarsPadding()
@@ -134,6 +134,7 @@ fun AppHeader(title: String, subtitle: String, conn: Conn? = ConnState.state, on
             Text(title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (subtitle.isNotEmpty()) Text(subtitle, color = Color(0xFFBFD8E8), fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        if (search) HeaderBtn(Fa.MagnifyingGlass, "بحث شامل") { dev.saged.grcs.ui.shell.ShellState.search = true }
         actions()
         if (conn != null) ConnBadge(conn)
         if (endBack != null) HeaderBtn(Fa.ArrowRight, "رجوع", endBack)

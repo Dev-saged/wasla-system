@@ -85,7 +85,7 @@ fun MessagesScreen(auth: AuthState, data: DataRepo, start: String? = null, onExi
     Box(Modifier.fillMaxSize()) {
         val t = thread
         if (t == null) Column(Modifier.fillMaxSize()) {
-          AppHeader("الرسائل", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.Comments)
+          AppHeader("الرسائل", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.Comments, search = auth.user.role != "beneficiary")
           Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             val none = "لا توجد رسائل بعد"
             if (auth.user.role == "delegate" && camps.size == 1) {

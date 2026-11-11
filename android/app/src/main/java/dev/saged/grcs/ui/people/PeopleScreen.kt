@@ -94,6 +94,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
     var q by remember { mutableStateOf("") }
     var open by remember { mutableStateOf<String?>(startFamily) }
     var openSel by remember { mutableStateOf("") }
+    LaunchedEffect(dev.saged.grcs.ui.shell.ShellState.jump) { dev.saged.grcs.ui.shell.ShellState.jump?.let { (c, fk, pid) -> if (camps.any { it.first == c }) { camp = c; openSel = pid; open = fk }; dev.saged.grcs.ui.shell.ShellState.jump = null } }
     var filter by remember { mutableStateOf(startFilter ?: "head") }
     var sort by remember { mutableStateOf("default") }
     var exportNote by remember { mutableStateOf("") }
@@ -173,7 +174,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
             ed != null -> EditScreen(ed, persons, nidErr, { edit = null; nidErr = null }) { o, ex -> save(o, o.optString("familyId").ifEmpty { "i_" + o.optString("id") }, ex) }
             allMode -> Column(Modifier.fillMaxSize()) {
                 val matched = remember(allList, filter) { allList?.let { PFilter.apply(filter, it) } }
-                AppHeader(PFilter.label(filter), if (matched == null) "جارٍ التحميل..." else "${matched.size} سجل — كل المخيمات", conn = null, mark = Fa.LayerGroup, endBack = onExit)
+                AppHeader(PFilter.label(filter), if (matched == null) "جارٍ التحميل..." else "${matched.size} سجل — كل المخيمات", conn = null, mark = Fa.LayerGroup, endBack = onExit, search = true)
                 Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) {
                     Spacer(Modifier.height(12.dp))
                     Btn("تحميل كشف هذا التصنيف (كل المخيمات)", {
@@ -206,7 +207,7 @@ fun PeopleScreen(auth: AuthState, data: DataRepo, startCamp: String? = null, sta
                 }
             }
             else -> Column(Modifier.fillMaxSize()) {
-                AppHeader("الأفراد", camps.firstOrNull { it.first == camp }?.second ?: "", conn = null, mark = Fa.Users) { if (onExit != null) HeaderBtn(Fa.ArrowRight, "العودة للرئيسية", onExit) }
+                AppHeader("الأفراد", camps.firstOrNull { it.first == camp }?.second ?: "", conn = null, mark = Fa.Users, search = true) { if (onExit != null) HeaderBtn(Fa.ArrowRight, "العودة للرئيسية", onExit) }
                 Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp)) {
                 Spacer(Modifier.height(16.dp))
                 SearchBox(q, { q = it }, "بحث بالاسم أو رقم الهوية...")

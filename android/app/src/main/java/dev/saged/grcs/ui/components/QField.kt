@@ -118,7 +118,7 @@ fun QChip(text: String, on: Boolean, activeColor: androidx.compose.ui.graphics.C
     val bg = if (on) activeColor ?: p.navy else p.surface
     Box(
         Modifier.background(bg, shape).border(1.5.dp, if (on) bg else p.line, shape)
-            .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
+            .clickable(onClick = onClick).heightIn(min = 44.dp).padding(horizontal = 16.dp, vertical = 8.dp), contentAlignment = androidx.compose.ui.Alignment.Center,
     ) { Text(text, color = if (on) activeText ?: androidx.compose.ui.graphics.Color.White else p.mute, fontSize = 13.5.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, maxLines = 1) }
 }
 

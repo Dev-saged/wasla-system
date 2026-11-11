@@ -125,7 +125,7 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        AppHeader("تصدير تقرير مخصص", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.FileExport, endBack = onBack.takeIf { auth.user.role == "admin" })
+        AppHeader("تصدير تقرير مخصص", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.FileExport, endBack = onBack.takeIf { auth.user.role == "admin" }, search = true)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
             if (camps.size > 1) {
                 FilterLabel("المخيم", Fa.Tent)

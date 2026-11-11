@@ -70,7 +70,15 @@ import dev.saged.grcs.ui.theme.LocalPalette
 import dev.saged.grcs.ui.theme.rememberReduceMotion
 
 /** عدّاد الشاشات التي تخفي الشريط السفلي وزر الإضافة (نموذج الفرد والمحادثة) كما في الويب. */
-object ShellState { var immersive by androidx.compose.runtime.mutableIntStateOf(0) }
+object ShellState {
+    var immersive by androidx.compose.runtime.mutableIntStateOf(0)
+    var search by mutableStateOf(false)
+    var homeRoute by mutableStateOf<String?>(null)
+    var moreRoute by mutableStateOf<String?>(null)
+    var campsRoute by mutableStateOf<String?>(null)
+    /** انتقال مباشر لفرد: المخيم، مفتاح الأسرة، معرّف الفرد. */
+    var jump by mutableStateOf<Triple<String, String, String>?>(null)
+}
 
 /** يخفي الشريط السفلي ما دامت الشاشة معروضة. */
 @Composable
@@ -146,6 +154,14 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             Box(Modifier.size(56.dp).shadow(8.dp, CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.tealD)), CircleShape).clickable { if (tab == Tab.Home) { homeFilter = null; sel = tabs.indexOf(Tab.People).coerceAtLeast(0) }; newTrig++ }, contentAlignment = Alignment.Center) { Icon(Fa.Plus, "إضافة فرد", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(22.dp)) }
         }
         }
+        if (ShellState.search && !ben) GlobalSearch(auth, data, { ShellState.search = false },
+            goTab = { t -> importing = t == "import"; if (t != "import") { openCamp = null; homeFilter = null; sel = tabs.indexOfFirst { it.name == t }.coerceAtLeast(0) } },
+            goCamp = { id -> openCamp = null; ShellState.campsRoute = "detail:$id"; sel = tabs.indexOf(Tab.Camps).coerceAtLeast(0) },
+            goPerson = { ps ->
+                val camp = ps.optString("campId"); homeFilter = null; importing = false
+                ShellState.jump = Triple(camp, ps.optString("familyId").ifEmpty { "i_" + ps.optString("id") }, ps.optString("id"))
+                if (auth.user.role == "admin") { openCamp = camp; sel = tabs.indexOf(Tab.Camps).coerceAtLeast(0) } else sel = tabs.indexOf(Tab.People).coerceAtLeast(0)
+            })
         if (!ben && ShellState.immersive == 0) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null; importing = false }
     }
 }

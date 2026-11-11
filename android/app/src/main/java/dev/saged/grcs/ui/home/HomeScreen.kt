@@ -99,6 +99,7 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
     var auth by remember { mutableStateOf(auth0) }
     var camps by remember { mutableStateOf(data.cached(auth0).let { l -> if (onlyCamp != null) l.filter { it.id == onlyCamp } else l }) }
     var sub by remember { mutableStateOf("") }
+    LaunchedEffect(dev.saged.grcs.ui.shell.ShellState.homeRoute) { if (onlyCamp == null) dev.saged.grcs.ui.shell.ShellState.homeRoute?.let { sub = it; dev.saged.grcs.ui.shell.ShellState.homeRoute = null } }
     var info by remember { mutableStateOf<dev.saged.grcs.data.CampInfo?>(null) }
     val infoCamp = onlyCamp ?: if (auth0.user.role != "admin") camps.firstOrNull()?.id else null
     androidx.compose.runtime.LaunchedEffect(infoCamp, camps.size) { if (infoCamp != null) info = withContext(Dispatchers.IO) { runCatching { data.campInfo(auth0, infoCamp) }.getOrNull() } }
@@ -137,10 +138,9 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
     }
     val t = camps.fold(CampStats.ZERO) { a, c -> a + c.stats }
     Column(Modifier.fillMaxSize()) {
-        AppHeader(if (onlyCamp != null || auth.user.role != "admin") camps.firstOrNull()?.name ?: BrandConfig.NAME else "كل المخيمات", "${roleLabel[auth.user.role] ?: auth.user.role}: ${auth.user.fullName}" + if (auth.user.role == "admin" && onlyCamp != null) " — عرض مخيم" else "", endBack = onBack) {
-            HeaderBtn(QIcons.Sync, "مزامنة") { if (!busy) tick++ }
-        }
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        AppHeader(if (onlyCamp != null || auth.user.role != "admin") camps.firstOrNull()?.name ?: BrandConfig.NAME else "كل المخيمات", "${roleLabel[auth.user.role] ?: auth.user.role}: ${auth.user.fullName}" + if (auth.user.role == "admin" && onlyCamp != null) " — عرض مخيم" else "", endBack = onBack, search = true)
+        @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(busy && tick > 0, { if (!busy) tick++ }, Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 640.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
                 if (!busy && error != null) dev.saged.grcs.ui.components.OfflineBanner(error.orEmpty())
                 if (onlyCamp != null) info?.let { i ->

@@ -82,6 +82,7 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     val p = LocalPalette.current
     var page by remember { mutableStateOf("main") }
     BackHandler(page != "main") { page = "main" }
+    LaunchedEffect(dev.saged.grcs.ui.shell.ShellState.moreRoute) { dev.saged.grcs.ui.shell.ShellState.moreRoute?.let { page = it; dev.saged.grcs.ui.shell.ShellState.moreRoute = null } }
     Box(Modifier.fillMaxSize()) {
         when (page) {
             "backup" -> BackupPage(auth, data) { page = "main" }
@@ -123,7 +124,7 @@ private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: 
     val fmt = remember { SimpleDateFormat("yyyy/MM/dd  HH:mm", Locale.US) }
     val lastBk = remember { runCatching { data.backups.list().maxOfOrNull { it.modified } }.getOrNull() }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("الإعدادات", "", conn = null, mark = Fa.Gear)
+        AppHeader("الإعدادات", "", conn = null, mark = Fa.Gear, search = true)
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 640.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (role != "dataentry") SettingCard("المزامنة", Fa.Rotate) {

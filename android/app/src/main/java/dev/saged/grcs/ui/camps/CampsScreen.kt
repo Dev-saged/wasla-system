@@ -62,6 +62,7 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
     var del by remember { mutableStateOf<CampSummary?>(null) }
     var critFam by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var sub by remember { mutableStateOf("") }
+    LaunchedEffect(dev.saged.grcs.ui.shell.ShellState.campsRoute) { dev.saged.grcs.ui.shell.ShellState.campsRoute?.let { sub = it; dev.saged.grcs.ui.shell.ShellState.campsRoute = null } }
     var q by remember { mutableStateOf("") }
     var hits by remember { mutableStateOf<List<Triple<String, String, org.json.JSONObject>>>(emptyList()) }
     var quality by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
@@ -91,7 +92,7 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
         sub.startsWith("detail:") -> { dev.saged.grcs.ui.home.HomeScreen(auth, data, {}, { }, { }, onlyCamp = sub.removePrefix("detail:"), onBack = { sub = "" }, onPeople = { onOpen(sub.removePrefix("detail:")) }); return }
     }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("المخيمات", "", conn = null, mark = Fa.Tents)
+        AppHeader("المخيمات", "", conn = null, mark = Fa.Tents, search = true)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (admin) {
                 Btn("مطابقة كشف وطني شامل (مطابقة وتكميل بيانات)", { sub = "reconcile" }, Modifier.fillMaxWidth(), BtnKind.Outline, Fa.UsersViewfinder)
