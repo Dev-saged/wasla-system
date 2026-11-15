@@ -105,3 +105,5 @@ R14: PickSheet (QField.kt) بديل كل DropdownMenu؛ Importer.enrich يكمّ
 R14: أداء: FamCache.version لكل مخيم + People.persons/readOnly بذاكرة (نسخ سطحية) + DataRepo.summary بذاكرة + warm عند البداية؛ OpeningScreen(ready) يغلق عند الجاهزية وخط تحميل جديد.
 R15: data/CatImport.kt = الكشف التصنيفي (Cat) + توقيع ملف النظام (Sig) وتصديره في Export.run؛ ui/more/CatImportUi.kt = تدفق الكشف التصنيفي؛ Xlsx.readNamed/load.
 R15: Btn يضغط بتأثير وهزّة خفيفة؛ DataRepo.propagateName عند حفظ معلومات المخيم؛ AuditPage حالة «لا نتائج».
+R16: data/NatStream.kt = قراءة السجل الوطني بالتدفق (ReconcilePage.pickAll)؛ data/Updater.kt + BackgroundJobs.kt (SyncWorker/UpdateWorker) + ui/components/UpdateBar.kt.
+R16: DataRepo.sync مقفول بعملية واحدة، cachedStaff/cachedBens، restoreLocal عند البدء؛ مجلد التصدير = Documents/BACKUP_DIR.

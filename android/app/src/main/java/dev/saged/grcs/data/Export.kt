@@ -23,8 +23,8 @@ class ExportResult(val ok: Boolean, val name: String, val uri: Uri?, val count: 
 
 /** تصدير الأفراد إلى xlsx وcsv وpdf في المستندات/«تصدير اسم التطبيق» (مجلد منفصل كي لا يظهر في قائمة النسخ الاحتياطية). */
 class Export(private val ctx: Context) {
-    private val rel = "Documents/تصدير ${BrandConfig.BACKUP_DIR}"
-    private val legacyDir get() = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "تصدير ${BrandConfig.BACKUP_DIR}")
+    private val rel = "Documents/${BrandConfig.BACKUP_DIR}"
+    private val legacyDir get() = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), BrandConfig.BACKUP_DIR)
 
     val headers = listOf("الاسم", "رقم الهوية", "تاريخ الميلاد", "العمر", "الجنس", "الصلة", "الجوال", "العنوان", "الحالة الاجتماعية", "رب أسرة", "رقم الأسرة")
     private val rels = mapOf("head" to "رب الأسرة", "wife" to "زوجة", "husband" to "زوج", "son" to "ابن", "daughter" to "ابنة", "child" to "ابن/ابنة")

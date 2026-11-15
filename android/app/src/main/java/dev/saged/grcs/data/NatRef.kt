@@ -9,6 +9,7 @@ class RefCols {
     var headName: Int? = null; var headNid: Int? = null; var headDob: Int? = null; var gender: Int? = null; var marital: Int? = null
     var phone: Int? = null; var phone1: Int? = null; var phone2: Int? = null
     var originAddress: Int? = null; var currentAddress: Int? = null; var neighborhood: Int? = null
+    var health: Int? = null; var originCity: Int? = null; var housingType: Int? = null; var housingStatus: Int? = null
     var wifeName: Int? = null; var wifeNid: Int? = null; var wifeDob: Int? = null
     var children: List<Importer.Kid> = emptyList()
 }
@@ -149,23 +150,44 @@ object Cells {
     fun horizontalCols(headers: List<String>): RefCols {
         val c = RefCols(); c.children = Importer.childGroups(headers)
         val used = c.children.flatMap { listOf(it.name, it.nid, it.dob) }.filterNotNull().toSet()
-        var password = false; var health = false; var origin = false
         headers.forEachIndexed { i, h ->
             if (i in used) return@forEachIndexed
             val n = norm(h); if (n.isEmpty() || spouse(c, n, i)) return@forEachIndexed
             if (c.headName == null && any(n, listOf("الاسم الرباعي", "اسم رب الاسره", "اسم المستفيد"))) c.headName = i
             else if (c.headNid == null && any(n, listOf("رقم الهوية", "هوية المستفيد"))) c.headNid = i
             else if (c.headDob == null && any(n, listOf("تاريخ الميلاد"))) c.headDob = i
-            else if (!password && any(n, listOf("كلمة المرور", "password"))) password = true
+            else if (any(n, listOf("كلمة المرور", "password")) || Regex("مسؤول|مندوب").containsMatchIn(n)) { }
             else if (c.phone1 == null && any(n, listOf("الجوال 1", "رقم التواصل", "هاتف", "جوال", "موبايل")) && !Regex("2|بديل").containsMatchIn(n)) c.phone1 = i
             else if (c.phone2 == null && any(n, listOf("الجوال 2", "هاتف 2", "رقم بديل"))) c.phone2 = i
             else if (c.gender == null && any(n, listOf("الجنس"))) c.gender = i
             else if (c.marital == null && any(n, listOf("الحالة الاجتماعية"))) c.marital = i
-            else if (!health && any(n, listOf("الحالة الصحية"))) health = true
-            else if (!origin && any(n, listOf("المدينة الأصلية", "السكن الاصلي"))) origin = true
+            else if (c.health == null && any(n, listOf("الحالة الصحية"))) c.health = i
+            else if (c.originCity == null && any(n, listOf("المدينة الأصلية", "السكن الاصلي"))) c.originCity = i
+            else if (c.housingType == null && any(n, listOf("نوع السكن"))) c.housingType = i
+            else if (c.housingStatus == null && any(n, listOf("حالة السكن"))) c.housingStatus = i
             else if (c.neighborhood == null && any(n, listOf("الحي", "المنطقة"))) c.neighborhood = i
         }
         return c
+    }
+
+    /** جوال فلسطيني: 9 أرقام تبدأ بـ5 أو بمفتاح الدولة ← 0xxxxxxxxx؛ غير ذلك كما هو. */
+    fun phone(v: String?): String {
+        val raw = clean(v); val d = Nid.digits(raw).filter { it in '0'..'9' }
+        return when {
+            raw.any { !it.isDigit() && it !in " -+()" } || d.isEmpty() -> raw
+            d.length == 9 && d[0] == '5' -> "0$d"
+            d.length == 12 && (d.startsWith("970") || d.startsWith("972")) && d[3] == '5' -> "0" + d.drop(3)
+            else -> raw
+        }
+    }
+
+    /** نوع/حالة السكن بالسجل ← نص يفهمه Vuln.inferShelter (خيمة متضررة، باطون ضرر جزئي...). */
+    fun housing(type: String, state: String): String {
+        val t = type.trim(); val st = norm(state)
+        if (t.isEmpty() && st.isEmpty()) return ""
+        val dmg = when { st.contains("غير متضرر") || st.contains("سليم") -> ""; st.contains("كلي") -> "ضرر كلي"; st.contains("جزئي") -> "ضرر جزئي"; st.contains("ضرر") -> "متضرر"; else -> "" }
+        val base = if (t.contains("خيم") && dmg.isNotEmpty()) "خيمة متضررة" else t
+        return listOf(base, dmg).filter { it.isNotEmpty() }.joinToString(" - ")
     }
 
     fun cols(headers: List<String>, mode: String) = if (mode == "horizontal") horizontalCols(headers) else summaryCols(headers)
@@ -328,14 +350,25 @@ object Reconcile {
             if (fm.none { it === head }) fm.add(head)
 
             fun fill(p: JSONObject, k: String, x: String): Boolean { if (x.isNotEmpty() && !has(p, k)) { p.put(k, x); return true }; return false }
-            if (fill(head, "phone", v(phoneIdx))) headChanged = true
+            if (fill(head, "phone", Cells.phone(phoneIdx?.let { row.getOrNull(it) }))) headChanged = true
+            head.optString("phone").takeIf { Regex("^5\\d{8}$").matches(it) }?.let { head.put("phone", "0$it"); headChanged = true }
+            val hl = v(c.health)
+            if (hl.isNotEmpty() && !Regex("سليم|جيد|لا يوجد|طبيعي").containsMatchIn(Cells.norm(hl)) && !has(head, "diseaseDetails")) {
+                head.put("diseaseDetails", hl)
+                if (!head.optBoolean("hasChronicDisease") && !Regex("حرب|اصاب").containsMatchIn(Cells.norm(hl))) head.put("hasChronicDisease", true)
+                headChanged = true
+            }
+            val origin = v(c.originCity)
+            if (origin.isNotEmpty() && custom(head).optString("السكن الأصلي").isEmpty()) { custom(head).put("السكن الأصلي", origin); headChanged = true }
+            val living = Cells.housing(v(c.housingType), v(c.housingStatus))
+            if (living.isNotEmpty() && !has(head, "livingSituation")) { head.put("livingSituation", living); headChanged = true }
             if (!has(head, "birthDate")) c.headDob?.let { Cells.date(row.getOrNull(it)) }?.let { setDob(head, it); headChanged = true }
             if (fill(head, "address", v(addressIdx))) headChanged = true
             val maritalRaw = v(c.marital)
             val mw = Cells.maritalWord(maritalRaw)
             if (mw != null && !has(head, "maritalStatus")) { head.put("maritalStatus", mw.first); headChanged = true }
             if (head.optString("gender").let { it.isEmpty() || it == "unknown" }) { val g = Cells.gender(c.gender?.let { row.getOrNull(it) }, maritalRaw, head.optString("fullName")); if (g != "unknown") { head.put("gender", g); headChanged = true } }
-            val ph2 = v(c.phone2)
+            val ph2 = Cells.phone(c.phone2?.let { row.getOrNull(it) })
             if (ph2.isNotEmpty() && ph2 != head.optString("phone") && custom(head).optString("الجوال 2").isEmpty()) { custom(head).put("الجوال 2", ph2); headChanged = true }
 
             val wifeRaw = v(c.wifeName)

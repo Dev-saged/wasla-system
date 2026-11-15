@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -209,28 +210,31 @@ private fun Back(title: String, onBack: () -> Unit) {
 private fun UpdatePage(onBack: () -> Unit) {
     val p = LocalPalette.current
     val ctx = LocalContext.current
+    val st by dev.saged.grcs.data.Updater.state.collectAsState()
     var status by remember { mutableStateOf("جارٍ الفحص…") }
-    var apk by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
-        val r = withContext(Dispatchers.IO) { runCatching { Http.getPublic("https://api.github.com/repos/${BrandConfig.UPDATE_REPO}/releases/latest") }.getOrNull() }
-        val j = r?.json
-        if (j == null || r.code != 200) { status = "تعذّر الفحص الآن"; return@LaunchedEffect }
-        val tag = j.optString("tag_name")
-        val assets = j.optJSONArray("assets")
-        var url: String? = null
-        if (assets != null) for (i in 0 until assets.length()) assets.getJSONObject(i).let { if (it.optString("name").endsWith(".apk")) url = it.optString("browser_download_url") }
-        if (newer(tag, BuildConfig.VERSION_NAME) && url != null) { status = "إصدار جديد متاح: $tag"; apk = url } else status = "أنت على أحدث إصدار (${BuildConfig.VERSION_NAME})"
+        withContext(Dispatchers.IO) { dev.saged.grcs.data.Updater.restore(ctx); dev.saged.grcs.data.Updater.autoCheck(ctx, download = false) }
+        status = if (dev.saged.grcs.data.Updater.state.value is dev.saged.grcs.data.UpState.None) "أنت على أحدث إصدار (${BuildConfig.VERSION_NAME})" else ""
     }
     Column(Modifier.fillMaxSize()) {
         Back("التحديثات", onBack)
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(status, color = p.ink, fontSize = 15.sp)
-            apk?.let { u ->
-                Box(Modifier.fillMaxWidth().heightIn(min = 52.dp).background(p.pri, RoundedCornerShape(16.dp)).clickable { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u))) }, contentAlignment = Alignment.Center) {
-                    Text("تنزيل التحديث", color = p.onPri, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            when (val s = st) {
+                is dev.saged.grcs.data.UpState.None -> Text(status, color = p.ink, fontSize = 15.sp)
+                is dev.saged.grcs.data.UpState.Available -> {
+                    Text("إصدار جديد متاح: ${s.info.tag}", color = p.ink, fontSize = 15.sp)
+                    Btn("تنزيل التحديث", { dev.saged.grcs.data.Updater.start(ctx, s.info) }, Modifier.fillMaxWidth(), icon = Fa.Download)
                 }
-                Text("التحديث يثبّت فوق التطبيق الحالي دون فقد البيانات.", color = p.mute, fontSize = 12.sp)
+                is dev.saged.grcs.data.UpState.Downloading -> {
+                    Text("جارٍ تنزيل ${s.info.tag}… ${s.pct}%", color = p.ink, fontSize = 15.sp)
+                    dev.saged.grcs.ui.components.Bar(s.pct / 100f, p.pri)
+                }
+                is dev.saged.grcs.data.UpState.Ready -> {
+                    Text("اكتمل تنزيل ${s.info.tag}", color = p.ink, fontSize = 15.sp)
+                    Btn("تثبيت الآن", { dev.saged.grcs.data.Updater.install(ctx) }, Modifier.fillMaxWidth(), icon = Fa.Download)
+                }
             }
+            Text("يُنزَّل التحديث تلقائياً بالخلفية ويُثبَّت فوق التطبيق الحالي دون فقد البيانات.", color = p.mute, fontSize = 12.sp)
         }
     }
 }

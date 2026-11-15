@@ -38,6 +38,7 @@ android {
         targetSdk = 36
         versionCode = baseVersionCode + (ciRunNumber ?: 0)
         versionName = project.property("VERSION_NAME") as String
+        buildConfigField("int", "BASE_CODE", baseVersionCode.toString())
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -106,6 +107,7 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
 
+    implementation(libs.androidx.work.runtime)
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.roborazzi)

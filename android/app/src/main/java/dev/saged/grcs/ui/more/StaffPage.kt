@@ -90,9 +90,8 @@ fun StaffPage(auth: AuthState, data: dev.saged.grcs.data.DataRepo, onPerson: ((J
     var nPhone by remember { mutableStateOf("") }
     var nCamp by remember { mutableStateOf("") }
     var ben by remember { mutableStateOf<List<org.json.JSONObject>?>(null) }
-    LaunchedEffect(rev) { rows = withContext(Dispatchers.IO) { Staff.list(auth) } }
-    LaunchedEffect(rev, tab) { if (tab == 2 && ben == null) ben = withContext(Dispatchers.IO) { Staff.allBeneficiaries(auth, camps) } }
-    LaunchedEffect(rev) { if (rev > 0 && tab == 2) ben = withContext(Dispatchers.IO) { Staff.allBeneficiaries(auth, camps) } }
+    LaunchedEffect(rev) { if (rows == null) data.cachedStaff()?.let { rows = it }; rows = withContext(Dispatchers.IO) { data.storeStaff(Staff.list(auth)) } }
+    LaunchedEffect(rev, tab) { if (tab == 2 && (ben == null || rev > 0)) { if (ben == null) ben = withContext(Dispatchers.IO) { data.cachedBens() }; ben = withContext(Dispatchers.IO) { data.storeBens(Staff.allBeneficiaries(auth, camps)) } } }
     Column(Modifier.fillMaxSize()) {
         AppHeader("إدارة الحسابات", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.UsersGear, search = true)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

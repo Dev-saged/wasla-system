@@ -72,6 +72,7 @@ fun ReconcilePage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var added by remember { mutableStateOf(false) }
     var repaired by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
+    var missing by remember { mutableIntStateOf(0) }
     fun toast(t: String) = Toast.makeText(ctx, t, Toast.LENGTH_LONG).show()
     val fmt = remember { java.text.SimpleDateFormat("d/M/yyyy", java.util.Locale.US) }
 
@@ -96,6 +97,46 @@ fun ReconcilePage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         }
     }
 
+    suspend fun commit(r: RcResult, byCamp: Map<String, List<JSONObject>>, fileName: String) {
+        progressText = "جارٍ حفظ الإضافات..."
+        r.writes.entries.groupBy({ it.value }, { it.key }).forEach { (camp, list) ->
+            val fx = dev.saged.grcs.data.FamilyRepair.run(byCamp[camp].orEmpty() + list.filter { n -> byCamp[camp].orEmpty().none { it === n } })
+            repaired += fx.first
+            (list + fx.second.onEach { it.put("updatedBy", auth.user.id) }).distinct().forEach { data.people.save(camp, it) }
+            progressText = "جارٍ تحديث بيانات الأسر والمزامنة..."
+            data.pushNow(auth, camp)
+            Audit.log(auth, camp, "import_excel", "HQ", "مطابقة وطنية", JSONObject().put("file", fileName).put("matched", r.matched).put("headsEnriched", r.headsEnriched).put("membersEnriched", r.membersEnriched).put("spousesAdded", r.spousesAdded).put("childrenAdded", r.childrenAdded).put("unmatched", r.unmatched).put("skippedNoNid", r.skippedNoNid).put("mode", "reconcile").toString())
+        }
+    }
+
+    val pickAll = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            busy = true; result = null; repaired = 0; progress = 0 to 1000; progressText = "جارٍ تجهيز الملف..."
+            val name = runCatching { ctx.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null } }.getOrNull() ?: "السجل الوطني"
+            val res = withContext(Dispatchers.IO) {
+                val tmp = java.io.File(ctx.cacheDir, "natreg.tmp")
+                try {
+                    val byCamp = data.campList(auth).associate { (cid, _) -> cid to data.people.persons(cid).map { JSONObject(it.toString()) } }
+                    val wanted = byCamp.values.flatten().filter { it.optBoolean("isFamilyHead") }.map { dev.saged.grcs.data.Nid.norm(it.optString("nationalId")) }.filter { it.isNotEmpty() }.toHashSet()
+                    ctx.contentResolver.openInputStream(uri)!!.use { i -> tmp.outputStream().use { o -> i.copyTo(o) } }
+                    progressText = "جارٍ قراءة السجل..."
+                    val onP = { f: Float -> progress = Math.round(f * 1000) to 1000; progressText = "جارٍ قراءة السجل... ${Math.round(f * 100)}%" }
+                    val out = if (name.lowercase().endsWith(".csv")) dev.saged.grcs.data.NatStream.readCsv(tmp, wanted, onP) else dev.saged.grcs.data.NatStream.readXlsx(tmp, wanted, onP)
+                    tmp.delete()
+                    if (out == null) return@withContext null
+                    val mode = Cells.modeOf(out.headers)
+                    val r = Reconcile.run(out.rows, Cells.cols(out.headers, mode), mode, true, byCamp, auth.user.id) { d, t -> progress = d to t; progressText = "جارٍ المطابقة... ${Math.round(d * 100f / t)}%" }
+                    missing = (wanted.size - r.matched).coerceAtLeast(0)
+                    commit(r, byCamp, name)
+                    r
+                } catch (e: Throwable) { null } finally { tmp.delete() }
+            }
+            if (res == null) toast("تعذّرت قراءة السجل — تأكد من وجود عمودي اسم رب الأسرة ورقم الهوية")
+            added = true; result = res; progress = null; busy = false
+        }
+    }
+
     fun run() {
         val pr = parsed ?: return
         scope.launch {
@@ -104,15 +145,7 @@ fun ReconcilePage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             val res = withContext(Dispatchers.IO) {
                 val byCamp = data.campList(auth).associate { (cid, _) -> cid to data.people.persons(cid).map { JSONObject(it.toString()) } }
                 val r = Reconcile.run(pr.rows, cols, pr.mode, addMembers, byCamp, auth.user.id) { d, t -> progress = d to t; progressText = "جارٍ المطابقة... ${Math.round(d * 100f / t)}%" }
-                progressText = "جارٍ حفظ الإضافات..."
-                r.writes.entries.groupBy({ it.value }, { it.key }).forEach { (camp, list) ->
-                    val fx = dev.saged.grcs.data.FamilyRepair.run(byCamp[camp].orEmpty() + list.filter { n -> byCamp[camp].orEmpty().none { it === n } })
-                    repaired += fx.first
-                    (list + fx.second.onEach { it.put("updatedBy", auth.user.id) }).distinct().forEach { data.people.save(camp, it) }
-                    progressText = "جارٍ تحديث بيانات الأسر والمزامنة..."
-                    data.pushNow(auth, camp)
-                    Audit.log(auth, camp, "import_excel", "HQ", "مطابقة وطنية", JSONObject().put("file", pr.name).put("matched", r.matched).put("headsEnriched", r.headsEnriched).put("membersEnriched", r.membersEnriched).put("spousesAdded", r.spousesAdded).put("childrenAdded", r.childrenAdded).put("unmatched", r.unmatched).put("skippedNoNid", r.skippedNoNid).put("mode", "reconcile").toString())
-                }
+                commit(r, byCamp, pr.name)
                 r
             }
             added = addMembers; result = res; parsed = null; progress = null; busy = false
@@ -138,6 +171,7 @@ fun ReconcilePage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                             if (added) Text("أُضيف ${res.spousesAdded} زوج/ة و${res.childrenAdded} ابن/ابنة لم يكونوا مسجَّلين", color = p.ink, fontSize = 13.5.sp)
                             else Text("لم يُنشأ أي سجل جديد — مطابقة وتكميل فقط", color = p.mute, fontSize = 13.sp)
                             if (repaired > 0) Text("أُصلحت $repaired أسرة كان أفرادها منفصلين عن رب الأسرة", color = p.ink, fontSize = 13.5.sp)
+                            if (missing > 0 && added) Text("$missing رب أسرة مسجَّل لديك بلا صف بالسجل الوطني (لم يُمس)", color = p.mute, fontSize = 13.sp)
                             if (res.unmatched > 0) Text("${res.unmatched} صف غير متطابق (التفاصيل والسبب بالتقرير)", color = p.warn, fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
                             if (res.skippedNoNid > 0) Text("${res.skippedNoNid} صف بلا رقم هوية لرب الأسرة — تعذّرت مطابقته", color = p.mute, fontSize = 13.sp)
                         }
@@ -179,6 +213,13 @@ fun ReconcilePage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                     if (cols.headName == null || cols.headNid == null) Text("لم يُعثر على عمود اسم رب الأسرة أو رقم هويته في الملف", color = p.danger, fontSize = 13.sp)
                 }
                 else -> {
+                    QCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("مطابقة السجل الوطني لكل المخيمات", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("يُقرأ الملف الضخم دفعة واحدة دون حفظه بالجهاز، وتُكمَّل بيانات كل أرباب الأسر المسجَّلين وأسرهم (الجوال، الميلاد، الزوجة، الأبناء، الحالة الصحية، السكن). تُعاد المطابقة بكل مرة لتلتقط أي تحديث بالسجل، ثم تصل النتائج للمناديب عبر المزامنة تلقائياً.", color = p.mute, fontSize = 13.sp)
+                            Btn(if (busy) "جارٍ المعالجة…" else "اختيار ملف السجل وبدء المطابقة", { pickAll.launch(arrayOf("*/*")) }, Modifier.fillMaxWidth(), enabled = !busy, icon = Fa.Play)
+                        }
+                    }
                     SectionTitle("الكشوف الوطنية المحفوظة بالجهاز") { Text(if (refs.isEmpty()) "لا يوجد" else "${refs.size} كشف", color = p.mute, fontSize = 12.sp) }
                     if (refs.isEmpty()) Text("ارفع الكشف الوطني الشامل مرة واحدة فقط — يُحفظ تلقائياً بالجهاز فلا تحتاج لاختياره من جديد، ويفعّل التحقق الفوري من الهويات بكل النماذج.", color = p.mute, fontSize = 13.sp)
                     refs.forEach { r ->

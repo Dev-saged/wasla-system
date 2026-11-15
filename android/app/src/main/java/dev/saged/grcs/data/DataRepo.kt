@@ -9,6 +9,7 @@ class CampSummary(val id: String, val name: String, val stats: CampStats)
 
 /** مزامنة قراءة فقط: يسحب التغييرات الجديدة (u >= آخر مزامنة − 60ث) ثم يحسب المؤشرات محلياً. */
 class DataRepo(ctx: Context, private val auth: AuthRepo) {
+    private val appCtx = ctx.applicationContext
     private val cache = FamCache(ctx)
     val people = People(cache)
     private val writer = FamWriter(cache)
@@ -51,7 +52,10 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         return ids.map { id -> summary(id, names?.optString(id).orEmpty().ifBlank { id }) }
     }
 
-    fun sync(st0: AuthState, onProgress: (Int) -> Unit = {}): Pair<AuthState, List<CampSummary>> {
+    /** مزامنة واحدة في كل لحظة على مستوى العملية (الواجهة + العامل الخلفي). */
+    fun sync(st0: AuthState, onProgress: (Int) -> Unit = {}): Pair<AuthState, List<CampSummary>> = synchronized(syncLock) { syncLocked(st0, onProgress) }
+
+    private fun syncLocked(st0: AuthState, onProgress: (Int) -> Unit): Pair<AuthState, List<CampSummary>> {
         var st = st0
         if (st.offline || st.expiresAt - System.currentTimeMillis() < 120_000) st = auth.restore() ?: st
         if (st.offline) return st to cached(st)
@@ -66,6 +70,10 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         val camps = withToken { campsOf(st, it) }
         for ((cid, cname) in camps) runCatching { withToken { t -> accounts.run(cid, cname, t, secV) } }
         cache.setMeta("camps", org.json.JSONObject().apply { camps.forEach { put(it.first, it.second) } }.toString())
+        if (st.user.role == "admin" && System.currentTimeMillis() - (cache.meta("accts_at")?.toLongOrNull() ?: 0L) > 600_000L) runCatching {
+            val s = st
+            storeStaff(Staff.list(s)); storeBens(Staff.allBeneficiaries(s, camps)); cache.setMeta("accts_at", System.currentTimeMillis().toString())
+        }
         var n = 0
         for ((id, _) in camps) {
             val key = "since_$id"
@@ -267,5 +275,21 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     fun benLog(st: AuthState): List<JSONObject> = runCatching { org.json.JSONArray(cache.meta("benlog_" + st.user.id) ?: "[]").let { a -> (0 until a.length()).map { a.getJSONObject(it) } } }.getOrDefault(emptyList())
 
     /** رفع فوري لمخيم بعد تعديل (يعيد false إن تعذّر وبقي معلّقاً). */
-    fun pushNow(st: AuthState, camp: String): Boolean = runCatching { writer.push(camp, st.idToken, st.user.id) }.getOrDefault(false)
+    fun pushNow(st: AuthState, camp: String): Boolean = runCatching { writer.push(camp, st.idToken, st.user.id) }.getOrDefault(false).also { if (!it) BackgroundJobs.kick(appCtx) }
+
+    private fun readList(key: String): List<org.json.JSONObject>? = cache.meta(key)?.let { s -> runCatching { org.json.JSONArray(s).let { a -> (0 until a.length()).map { a.getJSONObject(it) } } }.getOrNull() }
+    private fun keepList(key: String, fresh: List<org.json.JSONObject>): List<org.json.JSONObject> =
+        if (fresh.isEmpty()) readList(key).orEmpty() else fresh.also {
+            val secret = Regex("hash|salt|verif|pass|secret", RegexOption.IGNORE_CASE)
+            val safe = it.map { o -> org.json.JSONObject(o.toString()).also { c -> c.keys().asSequence().toList().filter(secret::containsMatchIn).forEach(c::remove) } }
+            cache.setMeta(key, org.json.JSONArray(safe).toString())
+        }
+
+    /** قوائم حسابات الأدمن المخزّنة: تُعرض فوراً ثم تُحدَّث بالخلفية. */
+    fun cachedStaff() = readList("staff")
+    fun cachedBens() = readList("bens")
+    fun storeStaff(fresh: List<org.json.JSONObject>) = keepList("staff", fresh)
+    fun storeBens(fresh: List<org.json.JSONObject>) = keepList("bens", fresh)
+
+    companion object { private val syncLock = Any() }
 }

@@ -12,6 +12,7 @@ roborazzi = "1.50.0"
 googleServices = "4.4.4"
 
 [libraries]
+androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version = "2.10.1" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }

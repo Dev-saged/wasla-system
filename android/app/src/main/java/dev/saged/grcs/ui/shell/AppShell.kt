@@ -193,6 +193,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
                 ShellState.jump = Triple(camp, ps.optString("familyId").ifEmpty { "i_" + ps.optString("id") }, ps.optString("id"))
                 if (admin) homeFilter = "head"
             })
+        if (ShellState.immersive == 0) dev.saged.grcs.ui.components.UpdateBar()
         // كما في الويب: الضغط على «الرئيسية» يُخرج المسؤول من المخيم، و«الأفراد» تبدأ من فلتر رب الأسرة
         if (!ben && ShellState.immersive == 0) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { i -> importing = false; ShellState.newPerson = false; if (tabs[i] == Tab.Home) { homeFilter = null; if (admin) ShellState.adminCamp = null }; sel = i }
     }
