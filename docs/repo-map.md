@@ -107,3 +107,4 @@ R15: data/CatImport.kt = الكشف التصنيفي (Cat) + توقيع ملف �
 R15: Btn يضغط بتأثير وهزّة خفيفة؛ DataRepo.propagateName عند حفظ معلومات المخيم؛ AuditPage حالة «لا نتائج».
 R16: data/NatStream.kt = قراءة السجل الوطني بالتدفق (ReconcilePage.pickAll)؛ data/Updater.kt + BackgroundJobs.kt (SyncWorker/UpdateWorker) + ui/components/UpdateBar.kt.
 R16: DataRepo.sync مقفول بعملية واحدة، cachedStaff/cachedBens، restoreLocal عند البدء؛ مجلد التصدير = Documents/BACKUP_DIR.
+R16: OpeningScreen بتصميم جديد (توهجات، هالة، شريط تقدم حقيقي)؛ MoreScreen.Settings قوائم مجمّعة (Group/NavRow) حسب الدور.

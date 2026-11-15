@@ -47,7 +47,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** شاشة البداية كما في الويب (screen-splash): خلفية كحلية دائرية، شارة، العنوان، سطر المطوّر وشريط تحميل. اللمس يتخطى. */
+/** شاشة البداية: خلفية كحلية بتوهجات هادئة، شارة بهالة نابضة، العنوان، سطر المطوّر، وشريط تقدم حقيقي. اللمس يتخطى. */
 @Composable
 fun OpeningScreen(ready: Boolean = true, onDone: () -> Unit) {
     val p = LocalPalette.current
@@ -56,51 +56,64 @@ fun OpeningScreen(ready: Boolean = true, onDone: () -> Unit) {
     val mark = remember { Animatable(if (reduce) 1f else 0f) }
     val t1 = remember { Animatable(if (reduce) 1f else 0f) }
     val t2 = remember { Animatable(if (reduce) 1f else 0f) }
+    val prog = remember { Animatable(if (reduce) 1f else 0f) }
     var minDone by remember { androidx.compose.runtime.mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (!reduce) coroutineScope {
-            launch { mark.animateTo(1f, tween(600, easing = ease)) }
-            launch { delay(150); t1.animateTo(1f, tween(600, easing = ease)) }
-            launch { delay(420); t2.animateTo(1f, tween(600, easing = ease)) }
+            launch { mark.animateTo(1f, tween(700, easing = ease)) }
+            launch { delay(200); t1.animateTo(1f, tween(700, easing = ease)) }
+            launch { delay(500); t2.animateTo(1f, tween(700, easing = ease)) }
+            launch { prog.animateTo(.92f, tween(1500, easing = CubicBezierEasing(.3f, .1f, .2f, 1f))) }
         }
-        delay(if (reduce) 400 else 750)
+        delay(if (reduce) 400 else 1500)
         minDone = true
     }
-    // تُغلق حالما تجهز الجلسة والبيانات (بحد أدنى قصير للحركة) بدل انتظار ثابت
-    LaunchedEffect(minDone, ready) { if (minDone && ready) onDone() }
-    val barT = rememberInfiniteTransition(label = "bar")
-    val bar = if (reduce) .5f else barT.animateFloat(0f, 1f, infiniteRepeatable(tween(1150, easing = CubicBezierEasing(.45f, .05f, .25f, 1f)), RepeatMode.Restart), label = "x").value
-    val glow = if (reduce) 1f else barT.animateFloat(.55f, 1f, infiniteRepeatable(tween(575, easing = LinearEasing), RepeatMode.Reverse), label = "g").value
+    LaunchedEffect(minDone, ready) { if (minDone && ready) { if (!reduce) prog.animateTo(1f, tween(220)); onDone() } }
+    val inf = rememberInfiniteTransition(label = "amb")
+    val pulse = if (reduce) 0f else inf.animateFloat(0f, 1f, infiniteRepeatable(tween(2200, easing = LinearEasing), RepeatMode.Restart), label = "pulse").value
+    val drift = if (reduce) .5f else inf.animateFloat(0f, 1f, infiniteRepeatable(tween(7000, easing = LinearEasing), RepeatMode.Reverse), label = "drift").value
+    val shine = if (reduce) .5f else inf.animateFloat(0f, 1f, infiniteRepeatable(tween(1100, easing = LinearEasing), RepeatMode.Restart), label = "shine").value
+    val tealL = p.tealL
     Box(
-        Modifier.fillMaxSize().background(Brush.radialGradient(listOf(p.navyL, p.navy), center = androidx.compose.ui.geometry.Offset(300f, 400f), radius = 1400f))
+        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(p.navyL, p.navy)))
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onDone),
         contentAlignment = Alignment.Center,
     ) {
-        Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            Box(
-                Modifier.graphicsLayer { alpha = mark.value; scaleX = .7f + .3f * mark.value; scaleY = .7f + .3f * mark.value; translationY = (1f - mark.value) * 10.dp.toPx() }
-                    .size(96.dp).shadow(12.dp, RoundedCornerShape(26.dp)).clip(RoundedCornerShape(26.dp)).background(Brush.linearGradient(listOf(p.tealL, p.pri))),
-                contentAlignment = Alignment.Center,
-            ) { Icon(QIcons.Camp, null, Modifier.size(44.dp), tint = Color.White) }
-            Text("منظومة مخيمات النزوح", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
-                modifier = Modifier.graphicsLayer { alpha = t1.value; translationY = (1f - t1.value) * 8.dp.toPx() })
-            Text("تطوير: ${BrandConfig.Dev.NAME}", color = Color(0xFF8FB4CC), fontSize = 12.5.sp,
-                modifier = Modifier.graphicsLayer { alpha = t2.value; translationY = (1f - t2.value) * 8.dp.toPx() })
-            // خط التحميل: مقطع مضيء يتمدد ثم ينكمش وهو يعبر المسار، بتوهج نابض
-            val tealL = p.tealL
-            androidx.compose.foundation.Canvas(Modifier.padding(top = 10.dp).width(200.dp).height(14.dp)) {
-                val h = 4.dp.toPx(); val y = size.height / 2; val w = size.width
-                drawLine(Color.White.copy(alpha = .14f), androidx.compose.ui.geometry.Offset(h / 2, y), androidx.compose.ui.geometry.Offset(w - h / 2, y), h, androidx.compose.ui.graphics.StrokeCap.Round)
-                val len = w * (.18f + .34f * kotlin.math.sin(bar * Math.PI).toFloat())
-                val head = -len + (w + len) * bar
-                val a = (w - head).coerceIn(h / 2, w - h / 2); val b = (w - head - len).coerceIn(h / 2, w - h / 2)
-                if (a - b > 1f) {
-                    val br = Brush.horizontalGradient(listOf(tealL.copy(alpha = 0f), tealL, Color.White, tealL), startX = a, endX = b)
-                    drawLine(Brush.horizontalGradient(listOf(tealL.copy(alpha = 0f), tealL.copy(alpha = .35f * glow)), startX = a, endX = b), androidx.compose.ui.geometry.Offset(a, y), androidx.compose.ui.geometry.Offset(b, y), h * 3.2f, androidx.compose.ui.graphics.StrokeCap.Round)
-                    drawLine(br, androidx.compose.ui.geometry.Offset(a, y), androidx.compose.ui.geometry.Offset(b, y), h, androidx.compose.ui.graphics.StrokeCap.Round)
-                    drawCircle(Color.White.copy(alpha = glow), h * .75f, androidx.compose.ui.geometry.Offset(b, y))
+        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+            drawCircle(Brush.radialGradient(listOf(tealL.copy(alpha = .20f), Color.Transparent), center = androidx.compose.ui.geometry.Offset(size.width * (.2f + .25f * drift), size.height * .28f), radius = size.width * .8f), size.width * .8f, androidx.compose.ui.geometry.Offset(size.width * (.2f + .25f * drift), size.height * .28f))
+            drawCircle(Brush.radialGradient(listOf(p.pri.copy(alpha = .22f), Color.Transparent), center = androidx.compose.ui.geometry.Offset(size.width * (.9f - .25f * drift), size.height * .78f), radius = size.width * .9f), size.width * .9f, androidx.compose.ui.geometry.Offset(size.width * (.9f - .25f * drift), size.height * .78f))
+        }
+        Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.size(150.dp), contentAlignment = Alignment.Center) {
+                androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                    for (k in 0..1) {
+                        val f = (pulse + k * .5f) % 1f
+                        drawCircle(tealL.copy(alpha = (1f - f) * .30f * mark.value), 52.dp.toPx() + f * 38.dp.toPx(), style = androidx.compose.ui.graphics.drawscope.Stroke(1.5.dp.toPx()))
+                    }
                 }
+                Box(
+                    Modifier.graphicsLayer { alpha = mark.value; scaleX = .6f + .4f * mark.value; scaleY = .6f + .4f * mark.value }
+                        .size(104.dp).shadow(18.dp, RoundedCornerShape(30.dp), ambientColor = tealL, spotColor = tealL).clip(RoundedCornerShape(30.dp)).background(Brush.linearGradient(listOf(p.tealL, p.pri))),
+                    contentAlignment = Alignment.Center,
+                ) { Icon(QIcons.Camp, null, Modifier.size(50.dp), tint = Color.White) }
             }
+            Text("منظومة مخيمات النزوح", Modifier.padding(top = 14.dp).graphicsLayer { alpha = t1.value; translationY = (1f - t1.value) * 12.dp.toPx() },
+                color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, lineHeight = 36.sp)
+            Box(Modifier.padding(top = 14.dp).graphicsLayer { alpha = t2.value; scaleX = t2.value }.width(34.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Brush.horizontalGradient(listOf(p.tealL, p.pri))))
+            Text("تطوير", Modifier.padding(top = 12.dp).graphicsLayer { alpha = t2.value * .8f }, color = Color(0xFF7FA6C0), fontSize = 11.5.sp)
+            Text(BrandConfig.Dev.NAME, Modifier.padding(top = 2.dp).graphicsLayer { alpha = t2.value; translationY = (1f - t2.value) * 8.dp.toPx() },
+                color = Color(0xFFD6E6F2), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            androidx.compose.foundation.Canvas(Modifier.padding(top = 34.dp).width(220.dp).height(8.dp)) {
+                val h = 5.dp.toPx(); val y = size.height / 2; val w = size.width
+                drawRoundRect(Color.White.copy(alpha = .12f), androidx.compose.ui.geometry.Offset(0f, y - h / 2), androidx.compose.ui.geometry.Size(w, h), androidx.compose.ui.geometry.CornerRadius(h / 2))
+                val fw = (w * prog.value).coerceAtLeast(h)
+                // البداية من اليمين لأن الواجهة RTL
+                val x0 = w - fw
+                drawRoundRect(Brush.horizontalGradient(listOf(p.pri, tealL), startX = w, endX = x0), androidx.compose.ui.geometry.Offset(x0, y - h / 2), androidx.compose.ui.geometry.Size(fw, h), androidx.compose.ui.geometry.CornerRadius(h / 2))
+                val sx = w - fw + fw * (1f - shine)
+                drawRoundRect(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = .55f), Color.Transparent), startX = sx - 30.dp.toPx(), endX = sx + 30.dp.toPx()), androidx.compose.ui.geometry.Offset(x0, y - h / 2), androidx.compose.ui.geometry.Size(fw, h), androidx.compose.ui.geometry.CornerRadius(h / 2))
+            }
+            Text(if (ready && prog.value >= .99f) "جاهز" else "جارٍ تجهيز بياناتك", Modifier.padding(top = 10.dp).graphicsLayer { alpha = t2.value * .85f }, color = Color(0xFF7FA6C0), fontSize = 12.sp)
         }
     }
 }
