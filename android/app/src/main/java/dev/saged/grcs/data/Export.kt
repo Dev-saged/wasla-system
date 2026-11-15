@@ -49,14 +49,14 @@ class Export(private val ctx: Context) {
     private fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").filter { it.code >= 32 || it == '\n' }
     private fun col(i: Int) = ('A' + i).toString()
 
-    fun xlsx(rows: List<List<String>>, sheet: String, hdr: List<String> = headers): ByteArray {
+    fun xlsx(rows: List<List<String>>, sheet: String, hdr: List<String> = headers, hidden: List<List<String>>? = null): ByteArray {
         val bo = ByteArrayOutputStream()
         ZipOutputStream(bo).use { z ->
             fun put(n: String, s: String) { z.putNextEntry(ZipEntry(n)); z.write(s.toByteArray(Charsets.UTF_8)); z.closeEntry() }
-            put("[Content_Types].xml", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/></Types>")
+            put("[Content_Types].xml", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>${if (hidden != null) "<Override PartName=\"/xl/worksheets/sheet2.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>" else ""}</Types>")
             put("_rels/.rels", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>")
-            put("xl/workbook.xml", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"${esc(sheet.take(31).replace(Regex("[\\[\\]*?/\\\\:]"), " "))}\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>")
-            put("xl/_rels/workbook.xml.rels", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>")
+            put("xl/workbook.xml", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"${esc(sheet.take(31).replace(Regex("[\\[\\]*?/\\\\:]"), " "))}\" sheetId=\"1\" r:id=\"rId1\"/>${if (hidden != null) "<sheet name=\"${Sig.SHEET}\" sheetId=\"2\" state=\"hidden\" r:id=\"rId2\"/>" else ""}</sheets></workbook>")
+            put("xl/_rels/workbook.xml.rels", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>${if (hidden != null) "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet2.xml\"/>" else ""}</Relationships>")
             val sb = StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetViews><sheetView rightToLeft=\"1\" workbookViewId=\"0\"/></sheetViews><sheetData>")
             (listOf(hdr) + rows).forEachIndexed { ri, r ->
                 sb.append("<row r=\"${ri + 1}\">")
@@ -64,6 +64,15 @@ class Export(private val ctx: Context) {
                 sb.append("</row>")
             }
             put("xl/worksheets/sheet1.xml", sb.append("</sheetData></worksheet>").toString())
+            if (hidden != null) {
+                val hb = StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>")
+                hidden.forEachIndexed { ri, r ->
+                    hb.append("<row r=\"${ri + 1}\">")
+                    r.forEachIndexed { ci, v -> hb.append("<c r=\"${col(ci)}${ri + 1}\" t=\"inlineStr\"><is><t xml:space=\"preserve\">${esc(v)}</t></is></c>") }
+                    hb.append("</row>")
+                }
+                put("xl/worksheets/sheet2.xml", hb.append("</sheetData></worksheet>").toString())
+            }
         }
         return bo.toByteArray()
     }
@@ -182,7 +191,7 @@ class Export(private val ctx: Context) {
         val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
         val base = "$campName-$stamp".replace(Regex("[\\\\/:*?\"<>|]"), "-")
         return when (kind) {
-            "xlsx" -> save("$base.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsx(r, campName), r.size)
+            "xlsx" -> save("$base.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsx(r, campName, headers, if (headsOnly) null else Sig.rows(camp, campName, persons)), r.size)
             "csv" -> save("$base.csv", "text/csv", csv(r), r.size)
             else -> save("$base.pdf", "application/pdf", pdf(r, campName), r.size)
         }

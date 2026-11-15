@@ -129,3 +129,52 @@ class ImportEnrichTest {
         assertEquals(1, e.added); assertTrue(e.writes.keys.any { it.optString("fullName") == "عمر محمد" && it.optString("familyId") == "F1" })
     }
 }
+
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
+class CatImportTest {
+    private fun head() = JSONObject().put("id", "h1").put("campId", "C1").put("fullName", "محمد أحمد سالم").put("nationalId", "123456782").put("isFamilyHead", true).put("relation", "head").put("familyId", "F1").put("gender", "male").put("phone", "0599000000")
+    private fun wife() = JSONObject().put("id", "w1").put("campId", "C1").put("fullName", "سارة علي").put("nationalId", "").put("relation", "wife").put("familyId", "F1").put("gender", "female")
+    private val due = java.time.Year.now().value.toString() + "-12-01"
+    private val hdr = listOf("اسم الحامل", "هوية الحامل", "اسم الزوج", "هوية الزوج", "موعد الولادة المتوقع")
+    private val rows = listOf(listOf("سارة علي", "", "محمد أحمد سالم", "123456782", due), listOf("غير معروفة", "", "", "", ""))
+
+    @Test
+    fun analyzeSeparatesSubjectFromGuardian() {
+        val m = Cat.analyze(hdr, rows, "pregnant")
+        assertEquals("sName", m[0]); assertEquals("gName", m[2]); assertEquals("gNid", m[3]); assertEquals("due", m[4])
+    }
+
+    @Test
+    fun pregnantFlagsExistingWifeAndReportsUnmatched() {
+        val m = Cat.analyze(hdr, rows, "pregnant")
+        val (plan, ix) = Cat.plan(rows, hdr, m, "pregnant", "", "C1", listOf(head(), wife()))
+        assertEquals(listOf("update", "unmatched"), plan.map { it.status })
+        val a = Cat.apply(plan, ix, "pregnant", "", "C1", "u1")
+        assertEquals(1, a.writes.size)
+        assertTrue(a.writes[0].optBoolean("isPregnant")); assertEquals(due, a.writes[0].optJSONObject("pregnancy")?.optString("due"))
+    }
+
+    @Test
+    fun orphanIsAddedToGuardianFamilyWithTag() {
+        val h = listOf("اسم اليتيم", "تاريخ الميلاد", "اسم الوصي", "هوية الوصي")
+        val r = listOf(listOf("عمر خالد محمد", "2015-03-01", "محمد أحمد سالم", "123456782"))
+        val (plan, ix) = Cat.plan(r, h, Cat.analyze(h, r, "orphans"), "orphans", "", "C1", listOf(head(), wife()))
+        assertEquals("add", plan[0].status)
+        val a = Cat.apply(plan, ix, "orphans", "", "C1", "u1")
+        val kid = a.created.single()
+        assertEquals("F1", kid.optString("familyId")); assertTrue(Derive.isOrphan(kid)); assertEquals("orphan", kid.optString("relation"))
+    }
+
+    @Test
+    fun signatureRoundTripsThroughHiddenSheet() {
+        val bytes = Export(androidx.test.core.app.ApplicationProvider.getApplicationContext()).xlsx(listOf(listOf("x")), "بيانات", listOf("h"), Sig.rows("C1", "مخيم", listOf(head(), wife())))
+        val sig = Sig.parse(Xlsx.readNamed(bytes.inputStream(), Sig.SHEET))!!
+        assertEquals("C1", sig.campId); assertEquals(2, sig.persons.size)
+        assertEquals(listOf(listOf("h"), listOf("x")), Xlsx.read(bytes.inputStream()))
+        val other = Sig.prepare(sig, "C2", emptyList(), setOf("123456782"), "u1")
+        assertEquals(1, other.toWrite.size); assertEquals(1, other.excluded.size); assertEquals("C2", other.toWrite[0].optString("campId"))
+        val same = Sig.prepare(sig, "C1", listOf(head()), emptySet(), "u1")
+        assertEquals(1, same.updated); assertEquals(1, same.added)
+    }
+}

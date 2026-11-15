@@ -103,3 +103,5 @@ R13: data/ImportBatch.kt = سجل دفعات الاستيراد لكل مخيم 
 R13: SimilarPage دمج بالمختار؛ AidScreen مبلغ/جماعي/كشف توزيع؛ QueryPage صفوف شروط (حقل/عملية/قيمة) مع حفظ وحذف بالضغط المطوّل؛ Query.fields أضيف لها camp و chronic.
 R14: PickSheet (QField.kt) بديل كل DropdownMenu؛ Importer.enrich يكمّل الموجودين ويسجّل pre في الدفعة؛ Query.exportRows بأعمدة الويب.
 R14: أداء: FamCache.version لكل مخيم + People.persons/readOnly بذاكرة (نسخ سطحية) + DataRepo.summary بذاكرة + warm عند البداية؛ OpeningScreen(ready) يغلق عند الجاهزية وخط تحميل جديد.
+R15: data/CatImport.kt = الكشف التصنيفي (Cat) + توقيع ملف النظام (Sig) وتصديره في Export.run؛ ui/more/CatImportUi.kt = تدفق الكشف التصنيفي؛ Xlsx.readNamed/load.
+R15: Btn يضغط بتأثير وهزّة خفيفة؛ DataRepo.propagateName عند حفظ معلومات المخيم؛ AuditPage حالة «لا نتائج».

@@ -74,6 +74,9 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var history by remember { mutableStateOf<List<dev.saged.grcs.data.BatchRec>?>(null) }
     var picks by remember { mutableStateOf(setOf<String>()) }
     var diffOf by remember { mutableStateOf<Pair<dev.saged.grcs.data.BatchRec, dev.saged.grcs.data.BatchRec>?>(null) }
+    var catOpen by remember { mutableStateOf(false) }
+    var nativeFrom by remember { mutableStateOf("") }
+    var native by remember { mutableStateOf<dev.saged.grcs.data.Sig.Plan?>(null) }
     val fmt = remember { java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US) }
     fun toast(t: String) = android.widget.Toast.makeText(ctx, t, android.widget.Toast.LENGTH_LONG).show()
     val headers = rows?.firstOrNull().orEmpty()
@@ -82,9 +85,18 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
-            msg = null; prev = null; rows = null; map = null; tplBy = null; busy = true
+            msg = null; prev = null; rows = null; map = null; tplBy = null; native = null; busy = true
             fileName = runCatching { ctx.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null } }.getOrNull() ?: "ملف"
             undoId = null
+            val sig = if (fileName.lowercase().endsWith(".csv")) null else withContext(Dispatchers.IO) { runCatching { ctx.contentResolver.openInputStream(uri)!!.use { dev.saged.grcs.data.Sig.parse(Xlsx.readNamed(it, dev.saged.grcs.data.Sig.SHEET)) } }.getOrNull() }
+            if (sig != null) {
+                native = withContext(Dispatchers.IO) {
+                    val all = (if (auth.user.role == "admin") data.campList(auth).map { it.first } else listOf(camp)).distinct().associateWith { data.people.persons(it) }
+                    dev.saged.grcs.data.Sig.prepare(sig, camp, all[camp].orEmpty(), all.filterKeys { it != camp }.values.flatten().map { dev.saged.grcs.data.Nid.norm(it.optString("nationalId")) }.filter { it.isNotEmpty() }.toSet(), auth.user.id)
+                }
+                nativeFrom = sig.campName.ifEmpty { sig.campId }
+                busy = false; return@launch
+            }
             val r = withContext(Dispatchers.IO) {
                 runCatching {
                     val name = fileName.lowercase()
@@ -136,7 +148,31 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                 Text(if (busy) "جارٍ القراءة…" else "اختر ملف Excel من الجهاز", color = p.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                 Text("يدعم: xlsx, xls, csv — أي نموذج كشف، والنماذج الجديدة تُحفظ تلقائياً", color = p.mute, fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
-            Btn("رفع كشف تصنيفي (حوامل، أيتام، أطفال، أرامل…)", { pick.launch(arrayOf("*/*")) }, Modifier.fillMaxWidth(), BtnKind.Outline)
+            Btn("رفع كشف تصنيفي (حوامل، أيتام، أطفال، أرامل…)", { catOpen = true }, Modifier.fillMaxWidth(), BtnKind.Outline, icon = dev.saged.grcs.ui.icons.Fa.Tags)
+            native?.let { np ->
+                Column(Modifier.fillMaxWidth().qcard().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("ملف مُصدَّر من هذا النظام ($nativeFrom — ${np.toWrite.size + np.excluded.size} فرد)", color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text("يُستورد بمطابقة كاملة لكل الحقول: " + if (np.sameCamp) "مخيم نفسه — يُحدَّث الموجودون بدل تكرارهم." else "مخيم مختلف — تُنشأ سجلات جديدة ويُستبعد المسجّل بمخيم آخر.", color = p.mute, fontSize = 13.sp)
+                    Text("سيُضاف ${np.added} ويُحدَّث ${np.updated}" + if (np.excluded.isNotEmpty()) " · مستبعد ${np.excluded.size}" else "", color = p.ok, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    if (np.excluded.isNotEmpty()) Btn("تقرير المستبعدين (${np.excluded.size})", {
+                        scope.launch { val res = withContext(Dispatchers.IO) { data.export.save("مستبعدون-ملف-النظام.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(np.excluded, "مستبعدون", listOf("الاسم", "رقم الهوية", "السبب")), np.excluded.size) }; msg = if (res.ok) "حُفظ التقرير: ${res.name}" else "تعذّر الحفظ" }
+                    }, Modifier.fillMaxWidth(), kind = BtnKind.Outline, icon = QIcons.Export)
+                    Btn("استيراد ملف النظام", {
+                        scope.launch {
+                            busy = true
+                            val bid = withContext(Dispatchers.IO) {
+                                val at = System.currentTimeMillis()
+                                np.toWrite.forEach { o -> val sv = data.people.save(camp, o); if (sv.optBoolean("isFamilyHead")) data.afterSave(auth, camp, sv, false) }
+                                data.pushNow(auth, camp)
+                                dev.saged.grcs.data.Audit.log(auth, camp, "import_excel", camp, fileName, JSONObject().put("native", true).put("added", np.added).put("updated", np.updated).put("excluded", np.excluded.size).toString())
+                                dev.saged.grcs.data.ImportBatch.commit(auth, camp, "native", fileName, at, np.pre, np.toWrite, np.toWrite)
+                            }
+                            undoId = bid; msg = "ملف النظام: أُضيف ${np.added} وحُدِّث ${np.updated} فرد بمطابقة كاملة" + if (np.excluded.isNotEmpty()) " — استُبعد ${np.excluded.size} مسجّل بمخيم آخر" else ""
+                            native = null; busy = false
+                        }
+                    }, Modifier.fillMaxWidth(), enabled = !busy && (np.added + np.updated) > 0, icon = QIcons.Check)
+                }
+            }
             if (flat && map != null) {
                 Text(if (tplBy != null) "نموذج معروف — طُبّقت المطابقة المحفوظة ($tplBy)" else "راجع مطابقة الأعمدة؛ ستُحفظ كقالب لهذا النموذج", color = if (tplBy != null) p.ok else p.mute, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 Column(Modifier.fillMaxWidth().qcard().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -191,6 +227,7 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             msg?.let { Text(it, color = p.ok, fontSize = 13.sp) }
         }
     }
+    if (catOpen) CatImportFlow(auth, data, camp, { catOpen = false }, { id -> undoId = id; msg = "تم تنفيذ الكشف التصنيفي — يمكنك التراجع عنه" })
     askUndo?.let { id ->
         dev.saged.grcs.ui.components.ConfirmSheet("سيُحذف كل من أضافه هذا الاستيراد وتُعاد بيانات من حدّثهم لما كانت عليه قبله، مع حذف حسابات المستفيدين التي أنشأها. السجلات المعدّلة بعد الاستيراد تبقى كما هي.", "التراجع عن الاستيراد", "تراجع", icon = dev.saged.grcs.ui.icons.Fa.RotateLeft, onCancel = { askUndo = null }) {
             askUndo = null

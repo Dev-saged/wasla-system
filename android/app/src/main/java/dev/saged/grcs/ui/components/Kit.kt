@@ -1,6 +1,7 @@
 package dev.saged.grcs.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -219,9 +220,17 @@ fun Btn(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, kind: 
         BtnKind.Outline -> modifier.clip(BtnShape).background(p.surface).border(1.5.dp, p.line, BtnShape)
         BtnKind.Ghost -> modifier.clip(BtnShape)
     }
+    val reduce = rememberReduceMotion()
+    val src = remember { MutableInteractionSource() }
+    val pressed by src.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed && enabled && !reduce) .965f else 1f, tween(if (pressed) 70 else 160), label = "btnpress")
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     Row(
-        base.graphicsLayer { alpha = if (enabled) 1f else .5f }.heightIn(min = if (small) 38.dp else if (kind == BtnKind.Ghost) 40.dp else 48.dp)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick).padding(horizontal = if (kind == BtnKind.Ghost) 10.dp else if (small) 14.dp else 20.dp),
+        base.graphicsLayer { alpha = if (enabled) 1f else .5f; scaleX = scale; scaleY = scale }.heightIn(min = if (small) 38.dp else if (kind == BtnKind.Ghost) 40.dp else 48.dp)
+            .clickable(src, androidx.compose.foundation.LocalIndication.current, enabled = enabled, role = Role.Button) {
+                if (!reduce && dev.saged.grcs.ui.theme.UiPrefs.haptic) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                onClick()
+            }.padding(horizontal = if (kind == BtnKind.Ghost) 10.dp else if (small) 14.dp else 20.dp),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) { Icon(icon, null, Modifier.size(if (small) 14.dp else 16.dp), tint = fg); Spacer(Modifier.width(8.dp)) }

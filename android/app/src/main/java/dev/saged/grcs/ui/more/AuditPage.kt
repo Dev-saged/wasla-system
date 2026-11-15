@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,7 +33,6 @@ import dev.saged.grcs.data.AuditEntry
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import dev.saged.grcs.ui.components.QChip
 import dev.saged.grcs.ui.theme.GrcsFonts
 import dev.saged.grcs.ui.theme.LocalPalette
 import kotlinx.coroutines.Dispatchers
@@ -50,12 +48,6 @@ fun AuditPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var q by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    val cats = listOf("all" to "الكل", "add" to "إضافة", "edit" to "تعديل", "del" to "حذف", "aid" to "مساعدات", "io" to "استيراد وتصدير", "acc" to "حسابات ودخول")
-    fun catOf(a: String) = when {
-        a.startsWith("add") -> "add"; a.startsWith("edit") || a == "update_user" || a == "camp_info" -> "edit"
-        a.startsWith("delete") || a.contains("trash") || a == "clear_camp" -> "del"; a.startsWith("aid") -> "aid"
-        a == "import_excel" || a == "export" || a == "restore_backup" -> "io"; a == "login" || a == "create_user" -> "acc"; else -> "edit"
-    }
     val fmt = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US) }
     LaunchedEffect(Unit) {
         rows = null; error = false
@@ -77,7 +69,9 @@ fun AuditPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             if (error) Text("تعذّر تحميل السجل — تحقق من الاتصال", color = p.danger, fontSize = 13.sp)
             else if (rows == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)
             else if (rows!!.isEmpty()) Text("لا نشاط مسجّل", color = p.mute, fontSize = 13.sp)
-            rows?.filter { (q.isBlank() || it.userName.contains(q.trim()) || it.targetName.contains(q.trim()) || (Audit.labels[it.action] ?: it.action).contains(q.trim())) }?.take(200)?.forEach { e ->
+            val shown = rows?.filter { (q.isBlank() || it.userName.contains(q.trim()) || it.targetName.contains(q.trim()) || (Audit.labels[it.action] ?: it.action).contains(q.trim())) }?.take(200)
+            if (shown != null && shown.isEmpty() && rows!!.isNotEmpty()) dev.saged.grcs.ui.components.EmptyState(dev.saged.grcs.ui.icons.Fa.MagnifyingGlass, "لا نتائج", "جرّب كلمات بحث أخرى")
+            shown?.forEach { e ->
                 Column(Modifier.fillMaxWidth().qcard().padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(Audit.labels[e.action] ?: e.action, color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)

@@ -128,6 +128,12 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         }.isSuccess
         if (!ok) return false
         putCampName(id, n)
+        propagateName(st, id, n)
+        return true
+    }
+
+    /** propagateCampName: اسم المخيم الجديد في كل حسابات المخيم. */
+    private fun propagateName(st: AuthState, id: String, n: String) {
         runCatching {
             Fs.queryEq("users", listOf("campId" to id), st.idToken, 500).forEach { d ->
                 val uid = d.getString("id")
@@ -135,7 +141,6 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
             }
             Fs.pulse("u", null, st.idToken)
         }
-        return true
     }
 
     private fun putCampName(id: String, n: String) {
@@ -159,7 +164,12 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
                 "lastUpdated" to System.currentTimeMillis()), st.idToken)
             Fs.pulse("g", null, st.idToken)
         }.isSuccess
-        if (ok) { putCampName(i.id, i.name.ifBlank { i.id }); Audit.log(st, i.id, "camp_info", i.id, i.name) }
+        if (ok) {
+            val old = cache.meta("camps")?.let { runCatching { org.json.JSONObject(it).optString(i.id) }.getOrNull() }.orEmpty()
+            val n = i.name.ifBlank { i.id }
+            putCampName(i.id, n); if (old.isNotEmpty() && old != n) propagateName(st, i.id, n)
+            Audit.log(st, i.id, "camp_info", i.id, i.name)
+        }
         return ok
     }
 
