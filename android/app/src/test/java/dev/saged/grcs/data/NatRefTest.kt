@@ -1,0 +1,180 @@
+package dev.saged.grcs.data
+
+import org.json.JSONObject
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
+class NatRefTest {
+    private val headers = listOf("اسم رب الأسرة", "رقم الهوية", "اسم الزوجة", "هوية الزوجة", "تاريخ الميلاد", "رقم الجوال")
+
+    @Test
+    fun entriesIndexHeadAndWife() {
+        val ix = HashMap<String, RefEntry>(); val fam = HashMap<String, List<RefEntry>>()
+        NatRef.entries("اختبار", headers, "family_summary", listOf(listOf("محمد أحمد", "123456782", "سارة علي", "400000009", "", ""), listOf("", "", "", "", "", "")), ix, fam)
+        assertEquals(2, ix.size)
+        assertEquals("wife", ix["400000009"]?.role)
+        assertEquals(2, fam["123456782"]?.size)
+    }
+
+    @Test
+    fun reconcileFillsEmptyFieldsOnly() {
+        val head = JSONObject().put("id", "h1").put("fullName", "محمد أحمد").put("nationalId", "123456782").put("isFamilyHead", true).put("relation", "head").put("familyId", "F1").put("phone", "0599000000")
+        val wife = JSONObject().put("id", "w1").put("fullName", "سارة علي").put("nationalId", "").put("relation", "wife").put("familyId", "F1")
+        val rows = listOf(
+            listOf("محمد أحمد", "123456782", "سارة علي", "400000009", "1980-05-01", "0598111111"),
+            listOf("خالد يوسف", "999999998", "", "", "", ""),
+            listOf("بلا هوية", "", "", "", "", ""),
+        )
+        val c = Cells.cols(headers, "family_summary")
+        val r = Reconcile.run(rows, c, "family_summary", false, mapOf("C1" to listOf(head, wife)), "u1") { _, _ -> }
+        assertEquals(1, r.matched); assertEquals(1, r.unmatched); assertEquals(1, r.skippedNoNid)
+        assertEquals("0599000000", head.optString("phone"))
+        assertEquals("1980-05-01", head.optString("birthDate"))
+        assertEquals("400000009", wife.optString("nationalId"))
+        assertEquals(1, r.headsEnriched); assertEquals(1, r.membersEnriched)
+        assertEquals(2, r.writes.size)
+        assertTrue(r.unmatchedList.any { it[2] == "غير موجود بالنظام" })
+    }
+
+    @Test
+    fun reconcileAddsMissingSpouseWhenAsked() {
+        val head = JSONObject().put("id", "h1").put("fullName", "محمد أحمد").put("nationalId", "123456782").put("isFamilyHead", true).put("relation", "head").put("familyId", "F1")
+        val rows = listOf(listOf("محمد أحمد", "123456782", "سارة علي", "400000009", "", ""))
+        val c = Cells.cols(headers, "family_summary")
+        assertEquals(0, Reconcile.run(rows, c, "family_summary", false, mapOf("C1" to listOf(JSONObject(head.toString()))), "u1") { _, _ -> }.spousesAdded)
+        val r = Reconcile.run(rows, c, "family_summary", true, mapOf("C1" to listOf(head)), "u1") { _, _ -> }
+        assertEquals(1, r.spousesAdded)
+        assertEquals("wife", r.writes.keys.first { it !== head }.optString("relation"))
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
+class CellsTest {
+    @Test
+    fun datesLikeWeb() {
+        assertEquals("1980-05-01", Cells.date("1980-05-01"))
+        assertEquals("1994-09-23", Cells.date("23/9/1994"))
+        assertEquals("1994-09-23", Cells.date("٢٣/٩/١٩٩٤"))
+        assertEquals("1994-09-23", Cells.date("9/23/1994"))
+        assertEquals("1985-01-01", Cells.date("1985"))
+        assertEquals("2000-01-01", Cells.date("36526"))
+        assertEquals("2010-03-05", Cells.date("5 مارس 2010"))
+        assertEquals(null, Cells.date("31/02/2001"))
+        assertEquals(null, Cells.date("غير معروف"))
+    }
+
+    @Test
+    fun headerRowSkipsCampInfoRows() {
+        val rows = listOf(listOf("اسم المخيم", "الوفاق"), listOf(""), listOf("اسم رب الأسرة", "رقم الهوية", "تاريخ الميلاد", "رقم الجوال"), listOf("محمد", "123456782", "", ""))
+        assertEquals(2, Cells.headerRow(rows))
+    }
+
+    @Test
+    fun familyRepairReattachesMembers() {
+        val head = JSONObject().put("id", "h1").put("isFamilyHead", true).put("nationalId", "123456782").put("familyId", "F1")
+        val kid = JSONObject().put("id", "k1").put("familyId", "123456782")
+        val (n, w) = FamilyRepair.run(listOf(head, kid))
+        assertEquals(1, n); assertEquals("F1", kid.optString("familyId")); assertEquals(1, w.size)
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
+class MergeTest {
+    @Test
+    fun mergeFillsMissingOnly() {
+        val keep = JSONObject().put("id", "a").put("fullName", "محمد").put("phone", "0599").put("notes", "أ")
+        val drop = JSONObject().put("id", "b").put("fullName", "محمد").put("phone", "0598").put("birthDate", "1990-01-01").put("hasDisability", true).put("notes", "ب")
+        val m = Merge.persons(keep, drop)
+        assertEquals("0599", m.optString("phone")); assertEquals("1990-01-01", m.optString("birthDate"))
+        assertTrue(m.optBoolean("hasDisability")); assertEquals("أ — ب", m.optString("notes")); assertEquals("a", m.optString("id"))
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
+class ImportBatchTest {
+    @Test
+    fun diffDetectsAddedRemovedChanged() {
+        fun rec(vararg ps: JSONObject) = BatchRec(JSONObject().put("rows", org.json.JSONArray(ps.map { ImportBatch.sig(it).let { s -> JSONObject().put("k", s.k).put("n", s.n).put("h", s.h) } })))
+        val a = rec(JSONObject().put("fullName", "محمد").put("nationalId", "123456782").put("phone", "1"), JSONObject().put("fullName", "علي").put("nationalId", "400000009"))
+        val b = rec(JSONObject().put("fullName", "محمد").put("nationalId", "123456782").put("phone", "2"), JSONObject().put("fullName", "سارة").put("nationalId", "999999998"))
+        val d = ImportBatch.diff(a, b)
+        assertEquals(listOf("سارة"), d.added.map { it.n }); assertEquals(listOf("علي"), d.removed.map { it.n }); assertEquals(listOf("محمد"), d.changed.map { it.n })
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
+class ImportEnrichTest {
+    @Test
+    fun flatFileFillsMissingFieldsOfExistingPeople() {
+        val head = JSONObject().put("id", "h1").put("fullName", "محمد أحمد").put("nationalId", "123456782").put("isFamilyHead", true).put("familyId", "F1").put("phone", "")
+        val rows = listOf(listOf("الاسم", "رقم الهوية", "رقم الجوال", "تاريخ الميلاد"), listOf("محمد أحمد", "123456782", "0599111222", "1/5/1980"), listOf("جديد", "999999998", "", ""))
+        val e = Importer.enrich(rows, null, mapOf("C1" to listOf(head)), "u1")
+        assertEquals(1, e.heads); assertEquals("0599111222", head.optString("phone")); assertEquals("1980-05-01", head.optString("birthDate")); assertEquals(1, e.writes.size)
+    }
+
+    @Test
+    fun horizontalFileAddsMissingChildToExistingFamily() {
+        val head = JSONObject().put("id", "h1").put("fullName", "محمد أحمد").put("nationalId", "123456782").put("isFamilyHead", true).put("familyId", "F1").put("relation", "head")
+        val rows = listOf(listOf("الاسم الرباعي", "رقم الهوية", "اسم الطفل 1", "هوية الطفل 1", "تاريخ ميلاد الطفل 1"), listOf("محمد أحمد", "123456782", "عمر محمد", "400000009", "2015-01-01"))
+        val e = Importer.enrich(rows, null, mapOf("C1" to listOf(head)), "u1")
+        assertEquals(1, e.added); assertTrue(e.writes.keys.any { it.optString("fullName") == "عمر محمد" && it.optString("familyId") == "F1" })
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
+class CatImportTest {
+    private fun head() = JSONObject().put("id", "h1").put("campId", "C1").put("fullName", "محمد أحمد سالم").put("nationalId", "123456782").put("isFamilyHead", true).put("relation", "head").put("familyId", "F1").put("gender", "male").put("phone", "0599000000")
+    private fun wife() = JSONObject().put("id", "w1").put("campId", "C1").put("fullName", "سارة علي").put("nationalId", "").put("relation", "wife").put("familyId", "F1").put("gender", "female")
+    private val due = java.time.Year.now().value.toString() + "-12-01"
+    private val hdr = listOf("اسم الحامل", "هوية الحامل", "اسم الزوج", "هوية الزوج", "موعد الولادة المتوقع")
+    private val rows = listOf(listOf("سارة علي", "", "محمد أحمد سالم", "123456782", due), listOf("غير معروفة", "", "", "", ""))
+
+    @Test
+    fun analyzeSeparatesSubjectFromGuardian() {
+        val m = Cat.analyze(hdr, rows, "pregnant")
+        assertEquals("sName", m[0]); assertEquals("gName", m[2]); assertEquals("gNid", m[3]); assertEquals("due", m[4])
+    }
+
+    @Test
+    fun pregnantFlagsExistingWifeAndReportsUnmatched() {
+        val m = Cat.analyze(hdr, rows, "pregnant")
+        val (plan, ix) = Cat.plan(rows, hdr, m, "pregnant", "", "C1", listOf(head(), wife()))
+        assertEquals(listOf("update", "unmatched"), plan.map { it.status })
+        val a = Cat.apply(plan, ix, "pregnant", "", "C1", "u1")
+        assertEquals(1, a.writes.size)
+        assertTrue(a.writes[0].optBoolean("isPregnant")); assertEquals(due, a.writes[0].optJSONObject("pregnancy")?.optString("due"))
+    }
+
+    @Test
+    fun orphanIsAddedToGuardianFamilyWithTag() {
+        val h = listOf("اسم اليتيم", "تاريخ الميلاد", "اسم الوصي", "هوية الوصي")
+        val r = listOf(listOf("عمر خالد محمد", "2015-03-01", "محمد أحمد سالم", "123456782"))
+        val (plan, ix) = Cat.plan(r, h, Cat.analyze(h, r, "orphans"), "orphans", "", "C1", listOf(head(), wife()))
+        assertEquals("add", plan[0].status)
+        val a = Cat.apply(plan, ix, "orphans", "", "C1", "u1")
+        val kid = a.created.single()
+        assertEquals("F1", kid.optString("familyId")); assertTrue(Derive.isOrphan(kid)); assertEquals("orphan", kid.optString("relation"))
+    }
+
+    @Test
+    fun signatureRoundTripsThroughHiddenSheet() {
+        val bytes = Export(androidx.test.core.app.ApplicationProvider.getApplicationContext()).xlsx(listOf(listOf("x")), "بيانات", listOf("h"), Sig.rows("C1", "مخيم", listOf(head(), wife())))
+        val sig = Sig.parse(Xlsx.readNamed(bytes.inputStream(), Sig.SHEET))!!
+        assertEquals("C1", sig.campId); assertEquals(2, sig.persons.size)
+        assertEquals(listOf(listOf("h"), listOf("x")), Xlsx.read(bytes.inputStream()))
+        val other = Sig.prepare(sig, "C2", emptyList(), setOf("123456782"), "u1")
+        assertEquals(1, other.toWrite.size); assertEquals(1, other.excluded.size); assertEquals("C2", other.toWrite[0].optString("campId"))
+        val same = Sig.prepare(sig, "C1", listOf(head()), emptySet(), "u1")
+        assertEquals(1, same.updated); assertEquals(1, same.added)
+    }
+}

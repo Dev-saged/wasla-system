@@ -7,21 +7,51 @@ import java.util.zip.ZipInputStream
 
 /** قارئ xlsx خفيف (الورقة الأولى فقط) دون مكتبات: يفكّ الضغط ويقرأ sharedStrings والخلايا. */
 object Xlsx {
-    fun read(input: InputStream): List<List<String>> {
-        var shared = listOf<String>()
+    /** يقرأ ملف xlsx/csv من Uri ويتخطى الصفوف فوق صف العناوين؛ null عند الفشل. */
+    fun load(ctx: android.content.Context, uri: android.net.Uri, name: String): List<List<String>>? = runCatching {
+        ctx.contentResolver.openInputStream(uri)!!.use { s ->
+            if (name.lowercase().endsWith(".csv") || ctx.contentResolver.getType(uri)?.contains("csv") == true) readCsv(s.bufferedReader(Charsets.UTF_8).readText()) else read(s)
+        }
+    }.getOrNull()?.let { all -> all.drop(Cells.headerRow(all)) }
+
+    private class Parts(val shared: List<String>, val sheets: Map<String, ByteArray>, val wb: ByteArray?, val rels: ByteArray?)
+
+    private fun parts(input: InputStream): Parts {
+        var shared = listOf<String>(); var wb: ByteArray? = null; var rels: ByteArray? = null
         val sheets = sortedMapOf<String, ByteArray>()
         ZipInputStream(input).use { z ->
             while (true) {
                 val e = z.nextEntry ?: break
                 val n = e.name
-                if (n == "xl/sharedStrings.xml" || Regex("xl/worksheets/sheet\\d+\\.xml").matches(n)) {
-                    val b = z.readBytes()
-                    if (n == "xl/sharedStrings.xml") shared = parseShared(b) else sheets[n] = b
+                when {
+                    n == "xl/sharedStrings.xml" -> shared = parseShared(z.readBytes())
+                    n == "xl/workbook.xml" -> wb = z.readBytes()
+                    n == "xl/_rels/workbook.xml.rels" -> rels = z.readBytes()
+                    Regex("xl/worksheets/sheet\\d+\\.xml").matches(n) -> sheets[n] = z.readBytes()
                 }
             }
         }
-        val first = sheets.entries.minByOrNull { Regex("\\d+").find(it.key)!!.value.toInt() }?.value ?: return emptyList()
-        return parseSheet(first, shared)
+        return Parts(shared, sheets, wb, rels)
+    }
+
+    fun read(input: InputStream): List<List<String>> {
+        val pt = parts(input)
+        val first = pt.sheets.entries.minByOrNull { Regex("\\d+").find(it.key)!!.value.toInt() }?.value ?: return emptyList()
+        return parseSheet(first, pt.shared)
+    }
+
+    /** ورقة باسمها (مثل الورقة المخفية _grcs_data لملف النظام)، أو null إن لم توجد. */
+    fun readNamed(input: InputStream, name: String): List<List<String>>? {
+        val pt = parts(input)
+        val wbx = pt.wb ?: return null; val rl = pt.rels ?: return null
+        val rid = Regex("<sheet\\b[^>]*>").findAll(String(wbx, Charsets.UTF_8)).map { it.value }
+            .firstOrNull { Regex("name=\"([^\"]*)\"").find(it)?.groupValues?.get(1) == name }
+            ?.let { Regex("r:id=\"([^\"]*)\"").find(it)?.groupValues?.get(1) } ?: return null
+        val target = Regex("<Relationship\\b[^>]*>").findAll(String(rl, Charsets.UTF_8)).map { it.value }
+            .firstOrNull { Regex("Id=\"([^\"]*)\"").find(it)?.groupValues?.get(1) == rid }
+            ?.let { Regex("Target=\"([^\"]*)\"").find(it)?.groupValues?.get(1) } ?: return null
+        val key = "xl/" + target.removePrefix("/xl/").removePrefix("xl/")
+        return pt.sheets[key]?.let { parseSheet(it, pt.shared) }
     }
 
     private fun parseShared(b: ByteArray): List<String> {

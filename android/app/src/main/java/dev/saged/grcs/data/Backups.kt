@@ -48,7 +48,7 @@ class Backups(private val ctx: Context) {
         if (Build.VERSION.SDK_INT >= 29) {
             val coll = MediaStore.Files.getContentUri("external")
             ctx.contentResolver.query(coll, arrayOf(MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.SIZE, MediaStore.MediaColumns.DATE_MODIFIED),
-                "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ?", arrayOf("$rel%"), "${MediaStore.MediaColumns.DATE_MODIFIED} DESC")?.use { c ->
+                "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ? AND ${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ?", arrayOf("$rel%", "%.json"), "${MediaStore.MediaColumns.DATE_MODIFIED} DESC")?.use { c ->
                 while (c.moveToNext()) out += BackupFile(c.getString(1), c.getLong(2), c.getLong(3) * 1000, ContentUris.withAppendedId(coll, c.getLong(0)), null)
             }
         } else legacyDir.listFiles { f -> f.extension == "json" }?.sortedByDescending { it.lastModified() }?.forEach { out += BackupFile(it.name, it.length(), it.lastModified(), null, it) }

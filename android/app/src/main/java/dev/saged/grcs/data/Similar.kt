@@ -9,6 +9,8 @@ class SimPair(val a: JSONObject, val b: JSONObject, val score: Double)
 object Similar {
     private fun tokens(s: String) = GenderInfer.key(s).split(' ').filter { it.isNotEmpty() }
 
+    fun jw(a: String, b: String) = jaroWinkler(a, b)
+
     private fun jaroWinkler(a: String, b: String): Double {
         if (a == b) return 1.0
         val la = a.length; val lb = b.length

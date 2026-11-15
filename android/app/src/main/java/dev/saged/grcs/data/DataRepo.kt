@@ -9,6 +9,7 @@ class CampSummary(val id: String, val name: String, val stats: CampStats)
 
 /** مزامنة قراءة فقط: يسحب التغييرات الجديدة (u >= آخر مزامنة − 60ث) ثم يحسب المؤشرات محلياً. */
 class DataRepo(ctx: Context, private val auth: AuthRepo) {
+    private val appCtx = ctx.applicationContext
     private val cache = FamCache(ctx)
     val people = People(cache)
     private val writer = FamWriter(cache)
@@ -23,7 +24,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     val transfer by lazy { Transfer(this) }
     private var secV = 2L
 
-    init { Clock.init(ctx); Usage.init(ctx); Messages.Outbox.init(ctx); Messages.Seen.init(ctx); GenderInfer.init(ctx) }
+    init { Clock.init(ctx); Usage.init(ctx); Messages.Outbox.init(ctx); Messages.Seen.init(ctx); GenderInfer.init(ctx); NatRef.dir = java.io.File(ctx.filesDir, "natrefs"); ImportBatch.dir = java.io.File(ctx.filesDir, "import_batches") }
 
     private fun campsOf(st: AuthState, token: String): List<Pair<String, String>> = when (st.user.role) {
         "admin" -> Fs.listCamps(token)
@@ -32,6 +33,12 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     }
 
     /** المخيمات المتاحة للمستخدم من النسخة المحلية (المعرّف، الاسم). */
+    /** المخيم الذي يتصفحه المسؤول حالياً (adminViewingCampId في الويب)؛ null = كل المخيمات. */
+    @Volatile var scope: String? = null
+
+    /** مخيمات السياق الحالي: مخيم واحد إن كان المسؤول داخل مخيم، وإلا كل ما يتاح للحساب. */
+    fun ctxCamps(st: AuthState): List<Pair<String, String>> = campList(st).let { l -> scope?.let { c -> l.filter { it.first == c }.ifEmpty { l } } ?: l }
+
     fun campList(st: AuthState): List<Pair<String, String>> {
         val names = cache.meta("camps")?.let { runCatching { org.json.JSONObject(it) }.getOrNull() }
         val fromCache = names?.keys()?.asSequence()?.map { it to names.optString(it).ifBlank { it } }?.toList().orEmpty()
@@ -45,7 +52,10 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         return ids.map { id -> summary(id, names?.optString(id).orEmpty().ifBlank { id }) }
     }
 
-    fun sync(st0: AuthState, onProgress: (Int) -> Unit = {}): Pair<AuthState, List<CampSummary>> {
+    /** مزامنة واحدة في كل لحظة على مستوى العملية (الواجهة + العامل الخلفي). */
+    fun sync(st0: AuthState, onProgress: (Int) -> Unit = {}): Pair<AuthState, List<CampSummary>> = synchronized(syncLock) { syncLocked(st0, onProgress) }
+
+    private fun syncLocked(st0: AuthState, onProgress: (Int) -> Unit): Pair<AuthState, List<CampSummary>> {
         var st = st0
         if (st.offline || st.expiresAt - System.currentTimeMillis() < 120_000) st = auth.restore() ?: st
         if (st.offline) return st to cached(st)
@@ -60,6 +70,10 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         val camps = withToken { campsOf(st, it) }
         for ((cid, cname) in camps) runCatching { withToken { t -> accounts.run(cid, cname, t, secV) } }
         cache.setMeta("camps", org.json.JSONObject().apply { camps.forEach { put(it.first, it.second) } }.toString())
+        if (st.user.role == "admin" && System.currentTimeMillis() - (cache.meta("accts_at")?.toLongOrNull() ?: 0L) > 600_000L) runCatching {
+            val s = st
+            storeStaff(Staff.list(s)); storeBens(Staff.allBeneficiaries(s, camps)); cache.setMeta("accts_at", System.currentTimeMillis().toString())
+        }
         var n = 0
         for ((id, _) in camps) {
             val key = "since_$id"
@@ -90,9 +104,15 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         return st to listOf(summary(camp, camp))
     }
 
+    private val sumMemo = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, CampSummary>>()
     private fun summary(id: String, name: String): CampSummary {
-        return CampSummary(id, name, Stats.compute(people.persons(id)))
+        val v = cache.version(id)
+        sumMemo[id]?.takeIf { it.first == v && it.second.name == name }?.let { return it.second }
+        return CampSummary(id, name, Stats.compute(people.readOnly(id))).also { sumMemo[id] = v to it }
     }
+
+    /** تسخين: يحلّل بيانات المخيمات المخزّنة في الخلفية أثناء شاشة البداية حتى تُعرض اللوحة فوراً. */
+    fun warm(st: AuthState) { runCatching { cached(st) } }
 
     /** إدارة المخيمات (للأدمن): إنشاء مخيم بنفس حقول الويب. */
     fun createCamp(st: AuthState, name: String): String? {
@@ -116,6 +136,12 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         }.isSuccess
         if (!ok) return false
         putCampName(id, n)
+        propagateName(st, id, n)
+        return true
+    }
+
+    /** propagateCampName: اسم المخيم الجديد في كل حسابات المخيم. */
+    private fun propagateName(st: AuthState, id: String, n: String) {
         runCatching {
             Fs.queryEq("users", listOf("campId" to id), st.idToken, 500).forEach { d ->
                 val uid = d.getString("id")
@@ -123,7 +149,6 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
             }
             Fs.pulse("u", null, st.idToken)
         }
-        return true
     }
 
     private fun putCampName(id: String, n: String) {
@@ -147,7 +172,12 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
                 "lastUpdated" to System.currentTimeMillis()), st.idToken)
             Fs.pulse("g", null, st.idToken)
         }.isSuccess
-        if (ok) { putCampName(i.id, i.name.ifBlank { i.id }); Audit.log(st, i.id, "camp_info", i.id, i.name) }
+        if (ok) {
+            val old = cache.meta("camps")?.let { runCatching { org.json.JSONObject(it).optString(i.id) }.getOrNull() }.orEmpty()
+            val n = i.name.ifBlank { i.id }
+            putCampName(i.id, n); if (old.isNotEmpty() && old != n) propagateName(st, i.id, n)
+            Audit.log(st, i.id, "camp_info", i.id, i.name)
+        }
         return ok
     }
 
@@ -203,12 +233,63 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
 
     /** بعد حفظ/حذف فرد: يؤجّل الفهرس الوطني وحساب المستفيد ثم يحاول تنفيذهما فوراً. */
     fun afterSave(st: AuthState, camp: String, p: JSONObject, deleted: Boolean) {
+        localLog(st, if (deleted) "delete_person" else "edit_person", p)
         Thread { Audit.log(st, camp, if (deleted) "delete_person" else "edit_person", p.optString("id"), p.optString("fullName")) }.start()
         if (deleted) accounts.enqueueDelete(camp, p) else accounts.enqueueSave(camp, p)
         val name = campList(st).firstOrNull { it.first == camp }?.second ?: camp
         runCatching { accounts.run(camp, name, st.idToken, secV) }
     }
 
+    /**
+     * حفظ نموذج الفرد كما في الويب: فحص المخيمات الأخرى للهويات الجديدة أو المعدّلة فقط (NidField.crossCamp)،
+     * ثم حفظ الفرد والزوج/ة والأبناء، وحذف من أُزيل من النموذج، ثم الرفع. يعيد نص الخطأ أو null.
+     */
+    fun saveForm(st: AuthState, camp: String, r: FormResult): String? {
+        val before = people.persons(camp).associateBy { it.optString("id") }
+        if (!st.offline) for (x in listOf(r.main) + r.others) {
+            val n = x.optString("nationalId")
+            if (n.isEmpty() || Nid.status(n) != "valid" || n == before[x.optString("id")]?.optString("nationalId")) continue
+            runCatching { checkNid(st, n, camp) }.getOrNull()?.let { return it }
+        }
+        val saved = people.save(camp, r.main)
+        localLog(st, if (r.isNew) "add_person" else "edit_person", saved)
+        Thread { Audit.log(st, camp, if (r.isNew) "add_person" else "edit_person", saved.optString("id"), saved.optString("fullName")) }.start()
+        accounts.enqueueSave(camp, saved)
+        for (x in r.others) { x.put("familyId", saved.optString("familyId")); accounts.enqueueSave(camp, people.save(camp, x)) }
+        for (x in r.removed) { runCatching { trash.put(st, camp, "person", x.optString("fullName").ifEmpty { "—" }, listOf(x)) }; people.delete(camp, x); accounts.enqueueDelete(camp, x) }
+        val name = campList(st).firstOrNull { it.first == camp }?.second ?: camp
+        runCatching { accounts.run(camp, name, st.idToken, secV) }
+        pushNow(st, camp)
+        return null
+    }
+
+    /** سجل تعديلات محلي للمستفيد (changelog في الويب): آخر 60 إجراء على هذا الجهاز. */
+    private fun localLog(st: AuthState, action: String, p: JSONObject) {
+        if (st.user.role != "beneficiary") return
+        runCatching {
+            val a = org.json.JSONArray().put(JSONObject().put("action", action).put("userName", st.user.fullName).put("targetName", p.optString("fullName")).put("timestamp", System.currentTimeMillis()))
+            benLog(st).take(59).forEach { a.put(it) }
+            cache.setMeta("benlog_" + st.user.id, a.toString())
+        }
+    }
+    fun benLog(st: AuthState): List<JSONObject> = runCatching { org.json.JSONArray(cache.meta("benlog_" + st.user.id) ?: "[]").let { a -> (0 until a.length()).map { a.getJSONObject(it) } } }.getOrDefault(emptyList())
+
     /** رفع فوري لمخيم بعد تعديل (يعيد false إن تعذّر وبقي معلّقاً). */
-    fun pushNow(st: AuthState, camp: String): Boolean = runCatching { writer.push(camp, st.idToken, st.user.id) }.getOrDefault(false)
+    fun pushNow(st: AuthState, camp: String): Boolean = runCatching { writer.push(camp, st.idToken, st.user.id) }.getOrDefault(false).also { if (!it) BackgroundJobs.kick(appCtx) }
+
+    private fun readList(key: String): List<org.json.JSONObject>? = cache.meta(key)?.let { s -> runCatching { org.json.JSONArray(s).let { a -> (0 until a.length()).map { a.getJSONObject(it) } } }.getOrNull() }
+    private fun keepList(key: String, fresh: List<org.json.JSONObject>): List<org.json.JSONObject> =
+        if (fresh.isEmpty()) readList(key).orEmpty() else fresh.also {
+            val secret = Regex("hash|salt|verif|pass|secret", RegexOption.IGNORE_CASE)
+            val safe = it.map { o -> org.json.JSONObject(o.toString()).also { c -> c.keys().asSequence().toList().filter(secret::containsMatchIn).forEach(c::remove) } }
+            cache.setMeta(key, org.json.JSONArray(safe).toString())
+        }
+
+    /** قوائم حسابات الأدمن المخزّنة: تُعرض فوراً ثم تُحدَّث بالخلفية. */
+    fun cachedStaff() = readList("staff")
+    fun cachedBens() = readList("bens")
+    fun storeStaff(fresh: List<org.json.JSONObject>) = keepList("staff", fresh)
+    fun storeBens(fresh: List<org.json.JSONObject>) = keepList("bens", fresh)
+
+    companion object { private val syncLock = Any() }
 }

@@ -63,6 +63,10 @@ class AuthRepo(private val store: SessionStore) {
     }
 
     /** استعادة جلسة محفوظة: تجديد الرمز عبر البصمة، أو الدخول دون اتصال بالنسخة المخزنة. */
+    /** الجلسة المحفوظة دون أي اتصال: تفتح الواجهة فوراً، والتجديد يتم بالخلفية. */
+    fun restoreLocal(): AuthState? = store.load()?.let { offline(it) }
+    fun hasSession() = store.load() != null
+
     fun restore(): AuthState? {
         val s = store.load() ?: return null
         return try {

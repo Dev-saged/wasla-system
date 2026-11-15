@@ -27,6 +27,20 @@ class Messages {
         }.sortedBy { it.second }
     }
 
+    class ThreadSummary(val last: String?, val unread: Int, val benUnread: Int, val lastBen: String?)
+
+    /** ملخص صف المخيم في قائمة الرسائل (threadListItemHtml): آخر رسالة (المخيم + العامة) وغير المقروء وآخر رسالة مستفيد. */
+    fun summary(st: AuthState, camp: String, global: List<JSONObject>): ThreadSummary {
+        val own = Fs.recentMessages("camps/$camp", "messages", st.idToken, 30)
+        val combined = (own + global).distinctBy { it.optString("id") }.sortedBy { it.optLong("timestamp") }
+        val seen = Seen.get(st.user.id, camp)
+        val ben = runCatching { Fs.recentMessages("camps/$camp", "benMessages", st.idToken, 60) }.getOrDefault(emptyList()).filter { it.optString("threadId").startsWith("ben_") }
+        val benUnread = ben.groupBy { it.optString("threadId") }.entries.sumOf { (tid, ms) -> val sn = Seen.get(st.user.id, tid); ms.count { it.optString("senderId") != st.user.id && it.optLong("timestamp") > sn } }
+        return ThreadSummary(combined.lastOrNull()?.optString("text"), combined.count { it.optString("senderId") != st.user.id && it.optLong("timestamp") > seen }, benUnread, ben.maxByOrNull { it.optLong("timestamp") }?.optString("text"))
+    }
+
+    fun globalMessages(st: AuthState): List<JSONObject> = runCatching { Fs.recentMessages("globalMessages/global", "messages", st.idToken, 50) }.getOrDefault(emptyList())
+
     fun load(st: AuthState, thread: String): List<JSONObject> {
         runCatching { flush(st) }
         if (thread.startsWith("bt:")) {

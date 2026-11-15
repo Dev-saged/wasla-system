@@ -75,3 +75,36 @@ Keep under 5KB. No code. Update by 2 lines after every change.
 - web parity P1: EditScreen (internal) now has phone2/shelter/breastfeeding/urgent/chronic grid+details/disability details + spouse card + added members (save(o, extras)); Export.custom + ExportPage "تقرير مخصص" (PFilter, columns, family/person); ui/more/AidScreen.kt (eligible/received/period/all camps, quick give/undo); BenHome 4 tabs (ملفي/أسرتي/طلباتي/إشعاراتي); AuthRepo.changePassword + ChangePwPage (Settings > الحساب).
 - web parity P2: StaffPage tab المستفيدون (Staff.beneficiaries); CampsScreen admin buttons -> CatsPage (cross-camp category counts + xlsx), AidScreen, QualityPage, ExportPage (كل المخيمات) + unified person/camp search (onFamily opens PeopleScreen startFamily); ImportPage template download, excluded report, undo last import (prefs grcs_import); RapidPage NID live status, surname chip, session log.
 - web parity P3: AuditPage category chips, user/target search, day grouping, xlsx export (limit 300); Messages.unreadTotal + NavBar unread badge on Chat tab (poll 3 min, 30 msgs/camp).
+- web-fidelity R1 (v5.0.0): HomeScreen KPI lists/labels/order per web (admin 18, camp 19) + HomeCharts (camps-by-population, critical per camp, pyramid) + camp detail (onlyCamp, info card, actions); Settings in web order with toggles (UiPrefs haptic/click); CampsScreen web layout (tool buttons, camp cards with ring + 3 buttons); ReconcilePage (national roster fill-empty-only).
+- web-fidelity R2 (v5.1.0): EditScreen FormCard sections; AidScreen web summary; ExportPage custom report; StaffPage ben tab restyle; PeopleScreen download-category button.
+- web-fidelity R3 (v5.2.0): Quality rules/page per web (+EditScreen fix), Import cards, QField label-above, Rapid layout, CampInfo, Query result bar, Similar empty state, delegate messages list.
+- web-fidelity R4 (v5.3.0): role matrix per web code (settings gating, dataentry home), Quality.rules(12)+PFilter q:/tier:, CampSections (tiers clickable, quality tasks, donut, age bars), FAB add/import, admin camp msg buttons, persons cats button.
+- web-fidelity R5 (v5.4.0): BenHome rebuilt per screen-beneficiary (no bottom nav), PFields (phone2 in customFields, livingSituation), Login per web card.
+- R6: docs/web-spec/INDEX.md (extract.py) = جرد آلي لـindex.html: 22 شاشة بأسطرها، 579 دالة، أسطر شروط الدور؛ هو المرجع للمطابقة شاشة بشاشة.
+- R6: ui/people/PersonDetail.kt = نافذة تفاصيل الفرد بترتيب openPersonDetail (شارات، هشاشة، حساب الدخول، صفوف، طلبات، مساعدات، أفراد الأسرة، سجل التعديلات، أزرار بالدور)؛ حذف رب الأسرة يحذف أفراده كالويب. ناقص: زر التصنيفات الفردي.
+- R6: StaffPage = تعديل/حذف حساب، سجل النشاط، إفراغ مستفيدي مخيم المندوب، إظهار كلمة المرور/«لم يُفعَّل بعد» كالويب (Staff.update/delete/password). ناقص: نسخة السلة للحساب المحذوف.
+- R6: AuditPage = عنوان «سجل التغييرات»، البحث للأدمن فقط ويشمل الإجراء، المندوب آخر 30 يوماً، حد 200، صف كالويب. زائد عن الويب (بانتظار موافقتك): مرشحات الفئات + فواصل الأيام + شرائح المخيم.
+- R6: MessagesScreen list = صفوف كالويب (جماعية للمخيمات، جماعية للمستفيدين، صف واحد لكل مخيم بآخر رسالة وغير مقروء مدمج، مندوب صفان بآخر رسالة) عبر Messages.summary.
+- R7: AuditPage بلا مرشحات/فواصل/شرائح (سجل كل المخيمات مدمج)؛ EditScreen = عناوين الويب، بطاقة أفراد الأسرة، العنوان للجميع، DateField منتقي أصلي، حُذف مفتاح «حالة طارئة» (ليس في نموذج الويب).
+- R7: Settings = بلا سطر الاستهلاك، تسجيل الخروج داخل بطاقة الحساب بتأكيد، بطاقة صيانة قاعدة البيانات (Maintenance.cleanNationalIndex). لم تُبنَ عمداً: الحد الأدنى للإصدار (يقفل مستخدمي الويب لأن أرقام الإصدار مختلفة)، لوحة الحماية، إشعارات Push (تعتمد على المتصفح).
+- R7: PeopleScreen header = «الأفراد»، بلا شرائح مخيم، بحث كالويب، فرز «ترتيب الكشف»؛ PFilter رضع <1. ExportPage عدّاد «سجل».
+- R7: PeopleScreen allMode = قائمة التصنيف لكل المخيمات للأدمن (screen-category): عنوان التصنيف + «N سجل — كل المخيمات»، زر تحميل الكشف، بطاقة بهوية/هاتف/مخيم/مسؤول، والضغط يفتح تفاصيل الفرد.
+- R7: Chat = حالة فارغة، «مُستلمة» على الصادر، زر رسائل المستفيدين في الترويسة؛ OpeningScreen = شاشة البداية كالويب (خلفية كحلية، شارة، العنوان، سطر المطوّر، شريط تحميل).
+R8: التصنيفات (TagsDialog) من openTagsEditor — يتيم/جريح/أسرة شهيد/مخصصة، زر في تفاصيل الفرد.
+R9: مطابقة بصرية بالمقارنة الآلية — docs/web-spec/{fixture.py,shoot-web.js,shoot-kt.sh} تلتقط الويب وKotlin بنفس البيانات؛ ShotTest يعمل فقط مع GRCS_SHOTS. الأيقونات Fa.kt (مولّد من gen-fa.py) وQIcons تشير إليها.
+R9: Kit: Sheet/ConfirmSheet/SettingsRow/QSwitch/SwitchRow/SegBtns/QSelect/CheckRow/FilterLabel/OfflineBanner؛ خط Cairo بمقاييس رأسية معدّلة (patch-font-metrics.py) وارتفاع سطر 1.6؛ ShellState.immersive يخفي الشريط السفلي في نموذج الفرد.
+R10: نقل منطقي مباشر من الويب: data/{Derive,Rel}.kt، ui/people/PersonForm.kt (بديل EditScreen)، DataRepo.saveForm/ctxCamps/scope، RapidPage مُعاد كتابته. سجل النقل: docs/web-spec/PORT.md.
+R10: سياق المخيم الموحّد ShellState.adminCamp (= adminViewingCampId): الرئيسية تعرض لوحة المخيم وبطاقاتها تفتح كشف الأفراد؛ ShellState.newPerson طلب إضافة لمرة واحدة. الصفحات داخل مخيم تعمل على مخيم السياق فقط.
+R11: data/NatRef.kt = الكشوف الوطنية المحفوظة (NatRef) + كشف الأعمدة (Cells) + محرك المطابقة (Reconcile)؛ ReconcilePage مُعاد كتابته؛ NidInput يعرض تلميح الكشف وزر تعبئة؛ QualityPage يقترح الهويات. اختبار: NatRefTest.
+R11: ui/ben/BenMember.kt = نافذة فرد المستفيد (openBenMemberModal)؛ «طلباتي» بالإلغاء والتاريخ؛ Theme يحدّ تكبير خط النظام عند 1.1.
+R12: StaffPage: إنشاء الحساب يبدأ بنوع الحساب (acctTypes) ثم حقوله؛ Staff.create يقبل newCamp ومخيماً فارغاً؛ AppShell يعرض «غير مرتبط بمخيم» لطاقم بلا مخيم؛ onPerson يفتح سجل المستفيد.
+R12: Cells.date/headerRow و FamilyRepair و Merge.persons (دمج مكررات مركز الجودة) و DataRepo.benLog؛ اختبارات CellsTest/MergeTest في NatRefTest.kt.
+R13: data/ImportBatch.kt = سجل دفعات الاستيراد لكل مخيم (ملفات filesDir/import_batches) مع التراجع والمقارنة؛ ImportPage يحدد صف العناوين ويعرض السجل؛ لا شرائح مخيم في الاستيراد/معلومات المخيم/سجل النقل.
+R13: SimilarPage دمج بالمختار؛ AidScreen مبلغ/جماعي/كشف توزيع؛ QueryPage صفوف شروط (حقل/عملية/قيمة) مع حفظ وحذف بالضغط المطوّل؛ Query.fields أضيف لها camp و chronic.
+R14: PickSheet (QField.kt) بديل كل DropdownMenu؛ Importer.enrich يكمّل الموجودين ويسجّل pre في الدفعة؛ Query.exportRows بأعمدة الويب.
+R14: أداء: FamCache.version لكل مخيم + People.persons/readOnly بذاكرة (نسخ سطحية) + DataRepo.summary بذاكرة + warm عند البداية؛ OpeningScreen(ready) يغلق عند الجاهزية وخط تحميل جديد.
+R15: data/CatImport.kt = الكشف التصنيفي (Cat) + توقيع ملف النظام (Sig) وتصديره في Export.run؛ ui/more/CatImportUi.kt = تدفق الكشف التصنيفي؛ Xlsx.readNamed/load.
+R15: Btn يضغط بتأثير وهزّة خفيفة؛ DataRepo.propagateName عند حفظ معلومات المخيم؛ AuditPage حالة «لا نتائج».
+R16: data/NatStream.kt = قراءة السجل الوطني بالتدفق (ReconcilePage.pickAll)؛ data/Updater.kt + BackgroundJobs.kt (SyncWorker/UpdateWorker) + ui/components/UpdateBar.kt.
+R16: DataRepo.sync مقفول بعملية واحدة، cachedStaff/cachedBens، restoreLocal عند البدء؛ مجلد التصدير = Documents/BACKUP_DIR.
+R16: OpeningScreen بتصميم جديد (توهجات، هالة، شريط تقدم حقيقي)؛ MoreScreen.Settings قوائم مجمّعة (Group/NavRow) حسب الدور.

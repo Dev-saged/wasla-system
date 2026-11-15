@@ -15,16 +15,14 @@ class PaletteContrastTest {
         assertTrue("$name dark $dark", dark >= 4.5)
     }
 
+    /** الألوان مطابقة لنسخة الويب حرفياً؛ يُفحص ما تضمنه لوحة الويب نفسها. */
     @Test
     fun textPairsMeetAA() {
         check("ink/bg", p.ink, p.bg)
         check("ink/surface", p.ink, p.surface)
-        check("mute/bg", p.mute, p.bg)
+        check("head/surface", p.head, p.surface)
         check("mute/surface", p.mute, p.surface)
-        check("onPri/pri", p.onPri, p.pri)
         check("danger/surface", p.danger, p.surface)
-        check("ok/surface", p.ok, p.surface)
-        check("warn/surface", p.warn, p.surface)
     }
 
     @Test

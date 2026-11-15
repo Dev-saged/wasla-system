@@ -39,15 +39,14 @@ import kotlinx.coroutines.withContext
 @Composable
 fun AidReportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val p = LocalPalette.current
-    val camps = remember { data.campList(auth) }
+    val camps = remember { data.ctxCamps(auth) }
     var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
     var days by remember { mutableStateOf(30) }
     var rows by remember { mutableStateOf<List<Aid.Row>>(emptyList()) }
-    LaunchedEffect(camp, days) { rows = withContext(Dispatchers.IO) { Aid.report(data.people.persons(camp), days) } }
+    LaunchedEffect(days) { rows = withContext(Dispatchers.IO) { Aid.report(camps.flatMap { data.people.persons(it.first) }, days) } }
     Column(Modifier.fillMaxSize()) {
         AppHeader("تقرير المساعدات", "", conn = null, onBack = onBack)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(7 to "7 أيام", 30 to "30 يوماً", 90 to "90 يوماً", 0 to "الكل").forEach { (d, l) -> QChip(l, d == days) { days = d } }
             }

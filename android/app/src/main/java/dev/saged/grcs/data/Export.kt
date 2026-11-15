@@ -23,8 +23,8 @@ class ExportResult(val ok: Boolean, val name: String, val uri: Uri?, val count: 
 
 /** تصدير الأفراد إلى xlsx وcsv وpdf في المستندات/«تصدير اسم التطبيق» (مجلد منفصل كي لا يظهر في قائمة النسخ الاحتياطية). */
 class Export(private val ctx: Context) {
-    private val rel = "Documents/تصدير ${BrandConfig.BACKUP_DIR}"
-    private val legacyDir get() = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "تصدير ${BrandConfig.BACKUP_DIR}")
+    private val rel = "Documents/${BrandConfig.BACKUP_DIR}"
+    private val legacyDir get() = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), BrandConfig.BACKUP_DIR)
 
     val headers = listOf("الاسم", "رقم الهوية", "تاريخ الميلاد", "العمر", "الجنس", "الصلة", "الجوال", "العنوان", "الحالة الاجتماعية", "رب أسرة", "رقم الأسرة")
     private val rels = mapOf("head" to "رب الأسرة", "wife" to "زوجة", "husband" to "زوج", "son" to "ابن", "daughter" to "ابنة", "child" to "ابن/ابنة")
@@ -49,14 +49,14 @@ class Export(private val ctx: Context) {
     private fun esc(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").filter { it.code >= 32 || it == '\n' }
     private fun col(i: Int) = ('A' + i).toString()
 
-    fun xlsx(rows: List<List<String>>, sheet: String, hdr: List<String> = headers): ByteArray {
+    fun xlsx(rows: List<List<String>>, sheet: String, hdr: List<String> = headers, hidden: List<List<String>>? = null): ByteArray {
         val bo = ByteArrayOutputStream()
         ZipOutputStream(bo).use { z ->
             fun put(n: String, s: String) { z.putNextEntry(ZipEntry(n)); z.write(s.toByteArray(Charsets.UTF_8)); z.closeEntry() }
-            put("[Content_Types].xml", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/></Types>")
+            put("[Content_Types].xml", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>${if (hidden != null) "<Override PartName=\"/xl/worksheets/sheet2.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>" else ""}</Types>")
             put("_rels/.rels", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>")
-            put("xl/workbook.xml", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"${esc(sheet.take(31).replace(Regex("[\\[\\]*?/\\\\:]"), " "))}\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>")
-            put("xl/_rels/workbook.xml.rels", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>")
+            put("xl/workbook.xml", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"${esc(sheet.take(31).replace(Regex("[\\[\\]*?/\\\\:]"), " "))}\" sheetId=\"1\" r:id=\"rId1\"/>${if (hidden != null) "<sheet name=\"${Sig.SHEET}\" sheetId=\"2\" state=\"hidden\" r:id=\"rId2\"/>" else ""}</sheets></workbook>")
+            put("xl/_rels/workbook.xml.rels", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>${if (hidden != null) "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet2.xml\"/>" else ""}</Relationships>")
             val sb = StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetViews><sheetView rightToLeft=\"1\" workbookViewId=\"0\"/></sheetViews><sheetData>")
             (listOf(hdr) + rows).forEachIndexed { ri, r ->
                 sb.append("<row r=\"${ri + 1}\">")
@@ -64,6 +64,15 @@ class Export(private val ctx: Context) {
                 sb.append("</row>")
             }
             put("xl/worksheets/sheet1.xml", sb.append("</sheetData></worksheet>").toString())
+            if (hidden != null) {
+                val hb = StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>")
+                hidden.forEachIndexed { ri, r ->
+                    hb.append("<row r=\"${ri + 1}\">")
+                    r.forEachIndexed { ci, v -> hb.append("<c r=\"${col(ci)}${ri + 1}\" t=\"inlineStr\"><is><t xml:space=\"preserve\">${esc(v)}</t></is></c>") }
+                    hb.append("</row>")
+                }
+                put("xl/worksheets/sheet2.xml", hb.append("</sheetData></worksheet>").toString())
+            }
         }
         return bo.toByteArray()
     }
@@ -112,6 +121,31 @@ class Export(private val ctx: Context) {
         } else { legacyDir.mkdirs(); File(legacyDir, name).writeBytes(bytes); ExportResult(true, name, null, count) }
     }.getOrDefault(ExportResult(false, name, null, 0))
 
+    val familyHeaders = listOf("رب الأسرة", "رقم الهوية", "الجوال", "جوال إضافي", "العنوان", "الحالة الاجتماعية", "المأوى", "عدد الأفراد", "الزوج/ة", "الأبناء والأفراد")
+
+    /** صف واحد لكل أسرة: رب الأسرة وبيانات التواصل والمأوى وعدد الأفراد وأسماء الباقين. */
+    fun familyRows(persons: List<JSONObject>, onlyFamily: String? = null): List<List<String>> =
+        persons.groupBy { it.optString("familyId").ifEmpty { "i_" + it.optString("id") } }
+            .filter { onlyFamily == null || it.key == onlyFamily }
+            .mapNotNull { (_, ms) ->
+                val h = ms.firstOrNull { it.optBoolean("isFamilyHead") } ?: return@mapNotNull null
+                val spouse = ms.firstOrNull { it.optString("relation") in listOf("wife", "husband", "spouse") }
+                listOf(h.optString("fullName"), h.optString("nationalId"), h.optString("phone"), PFields.phone2(h), h.optString("address"), h.optString("maritalStatus"),
+                    shelters[h.optString("shelterType")].orEmpty(), ms.size.toString(), spouse?.optString("fullName").orEmpty(),
+                    ms.filter { it !== h && it !== spouse }.joinToString("، ") { it.optString("fullName") })
+            }.sortedBy { it[0] }
+
+    /** يحفظ صفوفاً جاهزة بصيغة kind ويعيد النتيجة. */
+    fun runRows(kind: String, baseName: String, title: String, rows: List<List<String>>, hdr: List<String>): ExportResult {
+        val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
+        val base = "$baseName-$stamp".replace(Regex("[\\\\/:*?\"<>|]"), "-")
+        return when (kind) {
+            "xlsx" -> save("$base.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsx(rows, title, hdr), rows.size)
+            "csv" -> save("$base.csv", "text/csv", csv(rows, hdr), rows.size)
+            else -> save("$base.pdf", "application/pdf", pdf(rows, title, hdr), rows.size)
+        }
+    }
+
     class Col(val k: String, val label: String, val get: (JSONObject) -> String)
 
     private fun yn(b: Boolean) = if (b) "نعم" else ""
@@ -124,7 +158,7 @@ class Export(private val ctx: Context) {
         Col("dob", "تاريخ الميلاد") { it.optString("birthDate").takeIf { v -> v != "null" }.orEmpty() }, Col("age", "العمر") { Stats.ageOf(it)?.toString().orEmpty() },
         Col("gender", "الجنس") { when (it.optString("gender")) { "male" -> "ذكر"; "female" -> "أنثى"; else -> "" } },
         Col("rel", "الصلة") { rels[it.optString("relation")] ?: it.optString("relation") },
-        Col("phone", "الجوال") { it.optString("phone") }, Col("phone2", "جوال إضافي") { it.optString("phone2") },
+        Col("phone", "الجوال") { it.optString("phone") }, Col("phone2", "جوال إضافي") { PFields.phone2(it) },
         Col("addr", "العنوان") { it.optString("address") }, Col("marital", "الحالة الاجتماعية") { it.optString("maritalStatus") },
         Col("shelter", "المأوى") { shelters[it.optString("shelterType")].orEmpty() },
         Col("preg", "حامل") { yn(it.optBoolean("isPregnant")) }, Col("bf", "مرضعة") { yn(it.optBoolean("isBreastfeeding")) },
@@ -157,7 +191,7 @@ class Export(private val ctx: Context) {
         val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
         val base = "$campName-$stamp".replace(Regex("[\\\\/:*?\"<>|]"), "-")
         return when (kind) {
-            "xlsx" -> save("$base.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsx(r, campName), r.size)
+            "xlsx" -> save("$base.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsx(r, campName, headers, if (headsOnly) null else Sig.rows(camp, campName, persons)), r.size)
             "csv" -> save("$base.csv", "text/csv", csv(r), r.size)
             else -> save("$base.pdf", "application/pdf", pdf(r, campName), r.size)
         }

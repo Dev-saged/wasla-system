@@ -1,5 +1,20 @@
-# Session handoff — v4.6.0 (branch feature/web-parity)
-State: P1-P3 done and pushed (person form, custom export, aid, ben tabs, accounts ben tab, camps-admin tools, import extras, rapid, audit, unread badge). Never run on device.
-Decisions: no tests/screenshots; user installs APK once; no Release before his OK.
-Open: national roster reconcile (camps admin) not built; push notifications card in ben notify tab; global quota panel needs Worker /usage; Firestore rules for importTemplates unverified.
-Next: user tests CI artifact on device, reports defects; then merge + Release on his OK.
+# Session handoff — GRCS native (android/)
+الفرع: feature/web-parity · آخر التزام: R16 (v5.6.0) · المرجع: index.html v3.6.2 · سجل النقل: docs/web-spec/PORT.md
+
+## الحالة
+- التطبيق الأصلي (Kotlin + Compose) في android/؛ CI يبني APK مع كل دفع (GRCS-APK-N في Artifacts).
+- R16 مبني ومختبَر بوحدة: مطابقة وطنية بالتدفق، مزامنة خلفية، تحديث بالخلفية، قوائم حسابات فورية، فتح فوري.
+- لم تُجرَّب R14–R16 على جهاز.
+
+## قرارات
+- المطابقة الوطنية على جهاز الأدمن فقط، بلا ختم ولا تقرير تعارض؛ تُعاد بالكامل بكل مرة وتصل للمناديب بالمزامنة.
+- لا شرائح «اختر المخيم»؛ كل شاشة على سياق الدخول.
+- لا Release ولا دمج في main قبل موافقة ساجد الصريحة. لا يُكشف secrets/ ولا يُجعل المستودع عاماً.
+
+## مفتوح
+- الإشعار والتثبيت من التطبيق يحتاجان تجربة جهاز (إذن «تثبيت تطبيقات مجهولة» يُطلب عند أول تثبيت).
+- المزامنة الخلفية للأدمن تحدّث قوائم الحسابات كل 10 دقائق كحد أدنى.
+- قرار قديم: مدخل بيانات بلا مخيم (قواعد Firestore ليست في المستودع).
+
+## التالي
+تجربة ساجد لـR16 على جهاز → إصلاح ما يظهر → موافقته الصريحة → دمج في main ونشر.

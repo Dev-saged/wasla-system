@@ -49,34 +49,61 @@ import dev.saged.grcs.ui.components.QCard
 import dev.saged.grcs.ui.components.Ring
 import dev.saged.grcs.ui.components.SectionTitle
 import dev.saged.grcs.ui.components.fa
+import dev.saged.grcs.ui.icons.Fa
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.theme.LocalPalette
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private val roleLabel = mapOf("admin" to "مسؤول النظام", "delegate" to "مندوب", "dataentry" to "مدخل بيانات", "beneficiary" to "مستفيد")
+private val roleLabel = mapOf("admin" to "مسؤول عام", "delegate" to "مندوب المخيم", "dataentry" to "مدخل بيانات", "beneficiary" to "مستفيد")
 
-private class Insight(val tiers: Map<String, Int>, val quality: Map<String, Int>)
+private class Insight(
+    val tiers: Map<String, Int>, val quality: Map<String, Int>, val counts: Map<String, Int> = emptyMap(),
+    val criticalCamps: Int = 0, val critical: Map<String, Int> = emptyMap(), val pyramid: List<Pair<Int, Int>> = emptyList(),
+    val qpct: Int = 100, val qcounts: Map<String, Int> = emptyMap(), val sim: Int = 0, val mine: Int = 0, val today: Int = 0,
+)
 
-private fun insight(data: DataRepo, token: String, camps: List<CampSummary>): Insight {
+private val countKeys = listOf("orphan", "child", "preschool", "school", "youth", "midAdult")
+
+private fun insight(data: DataRepo, token: String, camps: List<CampSummary>, uid: String = ""): Insight {
     runCatching { Vuln.load(token) }
     val tiers = HashMap<String, Int>()
     val q = HashMap<String, Int>()
+    val counts = HashMap<String, Int>(); val critical = HashMap<String, Int>(); var critCamps = 0
+    val pyr = Array(17) { IntArray(2) }
+    var qp = 100; var qc: Map<String, Int> = emptyMap(); var sim = 0; var mine = 0; var today = 0
+    val day0 = java.util.Calendar.getInstance().apply { set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0) }.timeInMillis
     camps.forEach { c ->
         val ps = data.people.persons(c.id)
         if (ps.isEmpty()) return@forEach
         runCatching { Vuln.families(ps).forEach { f -> tiers[f.result.tier] = (tiers[f.result.tier] ?: 0) + 1 } }
         runCatching { q[c.id] = Quality.report(ps).first }
+        if (camps.size == 1) {
+            runCatching { Quality.counts(ps).let { qp = it.first; qc = it.second } }
+            runCatching { sim = data.similar(c.id).size }
+            ps.filter { it.optString("createdBy") == uid }.let { m -> mine = m.size; today = m.count { it.optLong("createdAt") >= day0 } }
+        }
+        dev.saged.grcs.data.Derive.counts(ps).let { dc -> countKeys.forEach { k -> counts[k] = (counts[k] ?: 0) + (dc[k] ?: 0) } }
+        val st = c.stats
+        critical[c.id] = st.infant + st.pregnant + st.chronic
+        if (st.infant >= 50 || st.pregnant >= 30 || st.chronic >= 100) critCamps++
+        ps.forEach { m -> dev.saged.grcs.data.Stats.ageOf(m)?.let { a -> val b = (a / 5).coerceAtMost(16); pyr[b][if (m.optString("gender") == "female") 1 else 0]++ } }
     }
-    return Insight(tiers, q)
+    return Insight(tiers, q, counts, critCamps, critical, pyr.map { it[0] to it[1] }, qp, qc, sim, mine, today)
 }
 
 /** الرئيسية بتصميم الويب: ترويسة كحلية، بطاقات إحصاء بحافة ملوّنة، مؤشر الهشاشة، جودة البيانات لكل مخيم. */
 @Composable
-fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (String) -> Unit = {}) {
+fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (String) -> Unit = {}, onCamps: () -> Unit = {}, onlyCamp: String? = null, onBack: (() -> Unit)? = null, onPeople: () -> Unit = {}) {
     val p = LocalPalette.current
     var auth by remember { mutableStateOf(auth0) }
-    var camps by remember { mutableStateOf(data.cached(auth0)) }
+    var camps by remember { mutableStateOf(data.cached(auth0).let { l -> if (onlyCamp != null) l.filter { it.id == onlyCamp } else l }) }
+    var sub by remember { mutableStateOf("") }
+    LaunchedEffect(dev.saged.grcs.ui.shell.ShellState.homeRoute) { if (onlyCamp == null) dev.saged.grcs.ui.shell.ShellState.homeRoute?.let { sub = it; dev.saged.grcs.ui.shell.ShellState.homeRoute = null } }
+    var info by remember { mutableStateOf<dev.saged.grcs.data.CampInfo?>(null) }
+    val infoCamp = onlyCamp ?: if (auth0.user.role != "admin") camps.firstOrNull()?.id else null
+    androidx.compose.runtime.LaunchedEffect(infoCamp, camps.size) { if (infoCamp != null) info = withContext(Dispatchers.IO) { runCatching { data.campInfo(auth0, infoCamp) }.getOrNull() } }
     var ins by remember { mutableStateOf<Insight?>(null) }
     var busy by remember { mutableStateOf(true) }
     var pulled by remember { mutableIntStateOf(0) }
@@ -85,65 +112,105 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
 
     LaunchedEffect(tick) {
         busy = true; error = null; ConnState.state = Conn.Sync
-        withContext(Dispatchers.IO) { runCatching { insight(data, auth.idToken, camps) } }.getOrNull()?.let { ins = it }
+        withContext(Dispatchers.IO) { runCatching { insight(data, auth.idToken, camps, auth.user.id) } }.getOrNull()?.let { ins = it }
         try {
             val (st, list) = withContext(Dispatchers.IO) { data.sync(auth) { pulled = it } }
-            auth = st; camps = list
+            auth = st; camps = if (onlyCamp != null) list.filter { it.id == onlyCamp } else list
             withContext(Dispatchers.IO) { list.forEach { data.autoBackup(it.id, it.name) } }
-            withContext(Dispatchers.IO) { runCatching { insight(data, st.idToken, list) } }.getOrNull()?.let { ins = it }
-            if (st.offline) { error = "دون اتصال — تُعرض آخر نسخة محفوظة"; ConnState.state = Conn.Off } else { ConnState.state = Conn.On; ConnState.lastSync = System.currentTimeMillis() }
+            withContext(Dispatchers.IO) { runCatching { insight(data, st.idToken, list, auth.user.id) } }.getOrNull()?.let { ins = it }
+            if (st.offline) { error = "أنت غير متصل — البيانات تعمل محلياً وستُزامَن عند توفر الإنترنت"; ConnState.state = Conn.Off } else { ConnState.state = Conn.On; ConnState.lastSync = System.currentTimeMillis() }
         } catch (e: Exception) {
-            error = "تعذّرت المزامنة — تُعرض آخر نسخة محفوظة"; ConnState.state = Conn.Off
+            error = "أنت غير متصل — البيانات تعمل محلياً وستُزامَن عند توفر الإنترنت"; ConnState.state = Conn.Off
         } finally {
             busy = false
         }
     }
 
+    when (sub) {
+        "import" -> { dev.saged.grcs.ui.more.ImportPage(auth, data) { sub = "" }; return }
+        "export" -> { dev.saged.grcs.ui.more.ExportPage(auth, data) { sub = "" }; return }
+        "caminfo" -> { dev.saged.grcs.ui.more.CampInfoPage(auth, data) { sub = "" }; return }
+        "msg" -> { dev.saged.grcs.ui.messages.MessagesScreen(auth, data, onlyCamp, { sub = "" }); return }
+        "benmsg" -> { dev.saged.grcs.ui.messages.MessagesScreen(auth, data, "bl:$onlyCamp", { sub = "" }); return }
+        "rapid" -> { dev.saged.grcs.ui.more.RapidPage(auth, data) { sub = "" }; return }
+        "quality" -> { dev.saged.grcs.ui.more.QualityPage(auth, data) { sub = "" }; return }
+        "aid" -> { dev.saged.grcs.ui.more.AidScreen(auth, data) { sub = "" }; return }
+        "similar" -> { dev.saged.grcs.ui.more.SimilarPage(auth, data) { sub = "" }; return }
+    }
     val t = camps.fold(CampStats.ZERO) { a, c -> a + c.stats }
     Column(Modifier.fillMaxSize()) {
-        AppHeader(BrandConfig.NAME, "${auth.user.fullName} · ${roleLabel[auth.user.role] ?: auth.user.role}") {
-            HeaderBtn(QIcons.Sync, "مزامنة") { if (!busy) tick++ }
-        }
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        AppHeader(if (onlyCamp != null || auth.user.role != "admin") camps.firstOrNull()?.name ?: BrandConfig.NAME else "كل المخيمات", "${roleLabel[auth.user.role] ?: auth.user.role}: ${auth.user.fullName}" + if (auth.user.role == "admin" && onlyCamp != null) " — عرض مخيم" else "", endBack = onBack, search = true)
+        @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(busy && tick > 0, { if (!busy) tick++ }, Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 640.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-                if (busy || error != null) {
-                    Text(
-                        if (busy) "جارٍ المزامنة… ($pulled)" else error.orEmpty(),
-                        color = if (busy) p.mute else p.warn, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 10.dp),
-                    )
-                }
-                if (camps.isEmpty() || t.total == 0 && !busy) {
-                    EmptyState(QIcons.Camp, "لا بيانات بعد", "ستظهر الأرقام فور اكتمال أول مزامنة")
-                } else {
-                    Grid(
-                        listOf(
-                            K("أسرة", t.families, p.pri, QIcons.Home), K("فرد", t.total, p.navy.takeIf { !p.dark } ?: p.blue, QIcons.People),
-                            K("ذكور", t.male, p.blue, QIcons.Male), K("إناث", t.female, p.purple, QIcons.Female),
-                            K("أطفال", t.child, p.warn, QIcons.Person), K("رضّع", t.infant, p.tealL, QIcons.Baby),
-                            K("كبار سن", t.elderly, p.gray, QIcons.Elder), K("حوامل", t.pregnant, p.pregnant, QIcons.Pregnant),
-                            K("أمراض مزمنة", t.chronic, p.danger, QIcons.Heart), K("ذوو إعاقة", t.disability, p.purple, QIcons.Support),
-                            K("أرامل", t.widowed, p.gray, QIcons.Person), K("مطلقون", t.divorced, p.gray, QIcons.Person),
-                            K("بلا هوية", t.noId, p.warn, QIcons.IdCard), K("أسر بلا جوال", t.familiesNoPhone, p.danger, QIcons.Phone),
-                        ),
-                        onKpi,
-                    )
-                    ins?.let { if (it.tiers.isNotEmpty()) Risk(it.tiers) }
-                    if (camps.size > 1 || ins?.quality?.isNotEmpty() == true) ins?.let { Quality(camps, it.quality) }
-                    if (auth.user.role == "admin" && camps.size > 1) {
-                        SectionTitle("المخيمات")
-                        camps.sortedByDescending { it.stats.total }.forEach { c ->
-                            QCard(Modifier.padding(bottom = 8.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(c.name, color = p.ink, fontSize = 14.5.sp, fontWeight = FontWeight.Bold)
-                                        Text("${fa(c.stats.families)} أسرة · ${fa(c.stats.total)} فرد", color = p.mute, fontSize = 12.sp)
-                                    }
-                                    Ring(if (t.total == 0) 0f else c.stats.total.toFloat() / t.total, p.pri, 48.dp)
-                                }
+                if (!busy && error != null) dev.saged.grcs.ui.components.OfflineBanner(error.orEmpty())
+                if (onlyCamp != null) info?.let { i ->
+                    val dlScope = androidx.compose.runtime.rememberCoroutineScope()
+                    QCard {
+                        Text("معلومات المخيم", color = p.head, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
+                        Spacer(Modifier.height(6.dp))
+                        listOf("المنطقة/الحي" to i.region, "مسؤول المخيم" to listOf(i.supervisor, i.supervisorPhone).filter { it.isNotEmpty() }.joinToString(" — "),
+                            "نائب المسؤول" to listOf(i.deputy, i.deputyPhone).filter { it.isNotEmpty() }.joinToString(" — "),
+                            "مدخل البيانات" to listOf(i.dataEntry, i.dataEntryPhone).filter { it.isNotEmpty() }.joinToString(" — "),
+                            "عدد الأسر المسجَّلة" to fa(camps.firstOrNull()?.stats?.families ?: 0)).forEach { (k, v) ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(k, color = p.mute, fontSize = 14.sp); Text(v.ifEmpty { "—" }, color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        dev.saged.grcs.ui.components.Btn("الأفراد", onPeople, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.Users, small = true)
+                        dev.saged.grcs.ui.components.Btn("استيراد", { sub = "import" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.FileArrowUp, small = true)
+                        dev.saged.grcs.ui.components.Btn("تحميل كشف", { dlScope.launch { val c = camps.firstOrNull(); if (c != null) { val r = withContext(Dispatchers.IO) { data.export.run("xlsx", c.id, c.name, data.people.persons(c.id), false) }; error = if (r.ok) "تم حفظ ${r.count} سجل: ${r.name}" else "تعذّر الحفظ — تحقق من إذن التخزين" } } }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.FileExcel, small = true)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        dev.saged.grcs.ui.components.Btn("تعديل معلومات المخيم", { sub = "caminfo" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.Pen, small = true)
+                        dev.saged.grcs.ui.components.Btn("مراسلة المندوب", { sub = "msg" }, Modifier.weight(1f), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.Comment, small = true)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    dev.saged.grcs.ui.components.Btn("رسائل المستفيدين", { sub = "benmsg" }, Modifier.fillMaxWidth(), dev.saged.grcs.ui.components.BtnKind.Outline, dev.saged.grcs.ui.icons.Fa.Users, small = true)
+                    Spacer(Modifier.height(12.dp))
+                }
+                if (auth.user.role == "dataentry") {
+                    dev.saged.grcs.ui.home.DataEntryBody(ins?.mine ?: 0, ins?.today ?: 0) { sub = "rapid" }
+                } else if (camps.isEmpty() || t.total == 0 && !busy) {
+                    EmptyState(QIcons.Camp, "لا بيانات بعد", "ستظهر الأرقام فور اكتمال أول مزامنة")
+                } else {
+                    val c = ins?.counts.orEmpty()
+                    val lastUpd = info?.lastUpdated?.takeIf { it > 0 }?.let { java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(it)) } ?: "—"
+                    val admin = auth.user.role == "admin" && onlyCamp == null
+                    val items = if (admin) listOf(
+                        K("إجمالي المخيمات", camps.size, p.navy, Fa.Tents, "camps"), K("إجمالي الأفراد", t.total, p.pri, Fa.Users, "all"),
+                        K("إجمالي الأسر", t.families, p.navy, Fa.HouseChimney, "head"), K("مخيمات بحالات حرجة", ins?.criticalCamps ?: 0, p.danger, Fa.TriangleExclamation, "criticalCamps"),
+                        K("رضّع أقل من سنة", t.infant, p.danger, Fa.Baby, "infant"), K("أيتام", c["orphan"] ?: 0, p.warn, Fa.ChildReaching, "orphan"),
+                        K("أطفال 6-18", c["school"] ?: 0, p.warn, Fa.Child, "school"), K("كبار السن +60", t.elderly, p.purple, Fa.PersonCane, "elderly"),
+                        K("حوامل", t.pregnant, p.pregnant, Fa.BabyCarriage, "pregnant"), K("أمراض مزمنة", t.chronic, p.warn, Fa.NotesMedical, "chronic"),
+                        K("ذوو إعاقة", t.disability, p.blue, Fa.Wheelchair, "disability"), K("أطفال 1-5 سنوات", c["preschool"] ?: 0, p.danger, Fa.ChildReaching, "preschool"),
+                        K("شباب 18-30", c["youth"] ?: 0, p.pri, Fa.User, "youth"), K("بالغون 30-60", c["midAdult"] ?: 0, p.navy, Fa.UserTie, "midAdult"),
+                        K("أرامل", t.widowed, p.gray, Fa.Ring, "widowed"), K("مطلّقات/ين", t.divorced, p.gray, Fa.HeartCrack, "divorced"),
+                        K("أسر بلا هاتف", t.familiesNoPhone, p.gray, Fa.PhoneSlash, "nophone"), K("بلا رقم هوية", t.noId, p.danger, Fa.IdCardClip, "noid"),
+                    ) else listOf(
+                        K("إجمالي الأفراد", t.total, p.navy, Fa.Users, "all"), K("إجمالي الأسر", t.families, p.pri, Fa.HouseChimney, "head"),
+                        K("الذكور", t.male, p.navy, Fa.Mars, "male", pct(t.male, t.total)), K("الإناث", t.female, p.pri, Fa.Venus, "female", pct(t.female, t.total)),
+                        K("رضّع أقل من سنة", t.infant, p.danger, Fa.Baby, "infant"), K("أيتام", c["orphan"] ?: 0, p.warn, Fa.ChildReaching, "orphan"),
+                        K("أطفال 1-18", c["child"] ?: 0, p.warn, Fa.Child, "child"), K("كبار السن +60", t.elderly, p.purple, Fa.PersonCane, "elderly"),
+                        K("حوامل", t.pregnant, p.pregnant, Fa.BabyCarriage, "pregnant"), K("أمراض مزمنة", t.chronic, p.warn, Fa.NotesMedical, "chronic"),
+                        K("ذوو إعاقة", t.disability, p.blue, Fa.Wheelchair, "disability"), K("أسر بلا هاتف", t.familiesNoPhone, p.gray, Fa.PhoneSlash, "nophone"),
+                        K("أطفال 1-5 سنوات", c["preschool"] ?: 0, p.danger, Fa.ChildReaching, "preschool"), K("أطفال 6-18 (سن مدرسي)", c["school"] ?: 0, p.warn, Fa.School, "school"),
+                        K("شباب 18-30", c["youth"] ?: 0, p.pri, Fa.User, "youth"), K("بالغون 30-60", c["midAdult"] ?: 0, p.navy, Fa.UserTie, "midAdult"),
+                        K("أرامل", t.widowed, p.gray, Fa.Ring, "widowed"), K("مطلّقات/ين", t.divorced, p.gray, Fa.HeartCrack, "divorced"),
+                        K("بلا رقم هوية", t.noId, p.danger, Fa.IdCardClip, "noid"),
+                        K("آخر تحديث", 0, p.pri, Fa.ClockRotateLeft, "none", text = lastUpd),
+                    )
+                    Grid(items, t.total) { k -> if (k == "camps" || k == "criticalCamps") onCamps() else onKpi(k) }
+                    if (admin) {
+                        ins?.let { if (it.tiers.isNotEmpty()) Risk(it.tiers, true) }
+                        if (camps.size > 1 || ins?.quality?.isNotEmpty() == true) ins?.let { Quality(camps, it.quality) }
+                        if (camps.size > 1) ins?.let { HomeCharts(camps, it.critical) }
+                    } else ins?.let { CampSections(it.tiers, it.qpct, it.qcounts, it.sim, t.male, t.female, t.infant, t.child, t.elderly, t.total, onKpi) { k -> sub = k } }
+                    ins?.let { if (it.pyramid.any { b -> b.first + b.second > 0 }) Pyramid(it.pyramid, if (auth.user.role == "admin") "الهرم السكاني — كل المخيمات" else "الهرم السكاني") }
                 }
                 Spacer(Modifier.height(16.dp))
             }
@@ -151,14 +218,18 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
     }
 }
 
-private class K(val label: String, val value: Int, val color: Color, val icon: ImageVector) { val key = PFilter.kpiKey[label] ?: "all" }
+private class K(val label: String, val value: Int, val color: Color, val icon: ImageVector, val key: String, val sub: String? = null, val text: String? = null)
+
+private val ringKeys = setOf("male", "female", "infant", "orphan", "child", "elderly", "pregnant", "chronic", "disability", "preschool", "school", "youth", "midAdult", "widowed", "divorced", "nophone", "noid")
+
+private fun pct(a: Int, b: Int) = if (b == 0) "0%" else "${fa(Math.round(a * 100f / b))}%"
 
 @Composable
-private fun Grid(items: List<K>, onKpi: (String) -> Unit) {
+private fun Grid(items: List<K>, total: Int, onKpi: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         items.chunked(2).forEachIndexed { ri, row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEachIndexed { ci, it -> KpiCard(it.label, it.value, it.color, it.icon, Modifier.weight(1f), index = ri * 2 + ci, onClick = { onKpi(it.key) }) }
+                row.forEachIndexed { ci, it -> KpiCard(it.label, it.value, it.color, it.icon, Modifier.weight(1f), sub = it.sub, index = ri * 2 + ci, onClick = if (it.key == "none") null else ({ onKpi(it.key) }), text = it.text, ring = if (total > 0 && it.key in ringKeys) it.value.toFloat() / total else null) }
                 if (row.size == 1) Box(Modifier.weight(1f))
             }
         }
@@ -166,11 +237,11 @@ private fun Grid(items: List<K>, onKpi: (String) -> Unit) {
 }
 
 @Composable
-private fun Risk(tiers: Map<String, Int>) {
+private fun Risk(tiers: Map<String, Int>, admin: Boolean) {
     val p = LocalPalette.current
     val order = listOf("critical" to p.acc, "high" to p.tierHigh, "medium" to p.tierMedium, "stable" to p.tierStable)
     val total = order.sumOf { tiers[it.first] ?: 0 }.coerceAtLeast(1)
-    SectionTitle("مؤشر الهشاشة")
+    SectionTitle(if (admin) "مؤشر الهشاشة — كل المخيمات" else "مؤشر الهشاشة")
     QCard {
         Row(Modifier.fillMaxWidth().height(12.dp).clip(CircleShape)) {
             order.forEach { (k, c) ->
@@ -198,9 +269,9 @@ private fun Risk(tiers: Map<String, Int>) {
 @Composable
 private fun Quality(camps: List<CampSummary>, q: Map<String, Int>) {
     val p = LocalPalette.current
-    SectionTitle("جودة البيانات")
+    SectionTitle("جودة البيانات حسب المخيم")
     QCard {
-        camps.filter { q.containsKey(it.id) }.forEachIndexed { i, c ->
+        camps.filter { q.containsKey(it.id) }.sortedBy { q[it.id] ?: 0 }.forEachIndexed { i, c ->
             val s = q[c.id] ?: 0
             val col = if (s >= 80) p.success else if (s >= 60) p.warn else p.danger
             if (i > 0) Spacer(Modifier.height(12.dp))

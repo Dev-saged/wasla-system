@@ -5,7 +5,23 @@ import org.json.JSONObject
 /** عرض الأفراد = مستندات الأسر المخزنة + التعديلات المعلّقة − المحذوفات. الكتابة محلية ثم تُرفع بـFamWriter. */
 class People(private val cache: FamCache) {
 
+    private class Snap(val ver: Long, val list: List<JSONObject>)
+    private val memo = java.util.concurrent.ConcurrentHashMap<String, Snap>()
+
+    /** نسخة سطحية لكل سجل: التحليل (فك JSON) يحدث مرة واحدة لكل تغيّر، والمستدعي حرّ في تعديل نسخته. */
     fun persons(camp: String): List<JSONObject> {
+        val v = cache.version(camp)
+        val snap = memo[camp]?.takeIf { it.ver == v } ?: Snap(v, build(camp)).also { memo[camp] = it }
+        return snap.list.map { src -> JSONObject().also { o -> for (k in src.keys()) o.put(k, src.opt(k)) } }
+    }
+
+    /** للقراءة فقط (إحصاءات): نفس الكائنات المخزّنة بلا نسخ — ممنوع تعديلها. */
+    internal fun readOnly(camp: String): List<JSONObject> {
+        val v = cache.version(camp)
+        return (memo[camp]?.takeIf { it.ver == v } ?: Snap(v, build(camp)).also { memo[camp] = it }).list
+    }
+
+    private fun build(camp: String): List<JSONObject> {
         val cleared = cache.meta("cleared_$camp")?.toLongOrNull() ?: 0L
         val byId = LinkedHashMap<String, JSONObject>()
         for (p in Stats.persons(cache.docs(camp), cleared)) byId[p.getString("id")] = p

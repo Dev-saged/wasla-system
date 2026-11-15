@@ -17,6 +17,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -25,6 +30,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +52,10 @@ import dev.saged.grcs.ui.components.MenuRow
 import dev.saged.grcs.ui.components.SettingCard
 import dev.saged.grcs.ui.components.SegTabs
 import dev.saged.grcs.ui.theme.ThemePref
+import dev.saged.grcs.ui.icons.Fa
+import dev.saged.grcs.ui.components.SettingsRow
+import dev.saged.grcs.ui.components.Caption
+import dev.saged.grcs.ui.components.SwitchRow
 import dev.saged.grcs.ui.icons.QIcons
 import androidx.compose.foundation.layout.widthIn
 import dev.saged.grcs.BuildConfig
@@ -57,6 +67,7 @@ import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.data.Usage
 import dev.saged.grcs.ui.theme.GrcsFonts
 import dev.saged.grcs.ui.theme.LocalPalette
+import dev.saged.grcs.ui.theme.UiPrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -77,6 +88,7 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     val p = LocalPalette.current
     var page by remember { mutableStateOf("main") }
     BackHandler(page != "main") { page = "main" }
+    LaunchedEffect(dev.saged.grcs.ui.shell.ShellState.moreRoute) { dev.saged.grcs.ui.shell.ShellState.moreRoute?.let { page = it; dev.saged.grcs.ui.shell.ShellState.moreRoute = null } }
     Box(Modifier.fillMaxSize()) {
         when (page) {
             "backup" -> BackupPage(auth, data) { page = "main" }
@@ -104,96 +116,146 @@ fun MoreScreen(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
 }
 
 @Composable
+private fun Group(title: String?, tint: androidx.compose.ui.graphics.Color? = null, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    val p = LocalPalette.current
+    val shape = RoundedCornerShape(18.dp)
+    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        if (title != null) Text(title, Modifier.padding(horizontal = 6.dp), color = tint ?: p.mute, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+        Column(Modifier.fillMaxWidth().clip(shape).background(p.surface).border(1.dp, p.line, shape), content = content)
+    }
+}
+
+@Composable
+private fun NavRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, sub: String? = null, tint: androidx.compose.ui.graphics.Color? = null, badge: String? = null, last: Boolean = false, onClick: () -> Unit) {
+    val p = LocalPalette.current
+    val c = tint ?: if (p.dark) p.tealL else p.tealD
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 60.dp).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.size(38.dp).clip(RoundedCornerShape(11.dp)).background(c.copy(alpha = .14f)), contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(17.dp), tint = c) }
+        Column(Modifier.weight(1f)) {
+            Text(title, color = tint ?: p.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            if (sub != null) Text(sub, color = p.mute, fontSize = 12.sp, lineHeight = 17.sp)
+        }
+        if (badge != null) Text(badge, Modifier.background(p.pri, RoundedCornerShape(50)).padding(horizontal = 9.dp, vertical = 3.dp), color = p.onPri, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Icon(Fa.ChevronLeft, null, Modifier.size(12.dp), tint = p.mute)
+    }
+    if (!last) Box(Modifier.padding(start = 64.dp).fillMaxWidth().height(1.dp).background(p.line))
+}
+
+@Composable
 private fun Settings(auth: AuthState, data: DataRepo, onLogout: () -> Unit, go: (String) -> Unit) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
     val role = auth.user.role
     val staff = role != "beneficiary"
     val adminDel = role == "admin" || role == "delegate"
+    var cleaning by remember { mutableStateOf(false) }
+    var askLogout by remember { mutableStateOf(false) }
     var syncing by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf<String?>(null) }
     val pending = remember(syncing) { data.campList(auth).sumOf { data.people.pendingCount(it.first) } }
     val fmt = remember { SimpleDateFormat("yyyy/MM/dd  HH:mm", Locale.US) }
+    val lastBk = remember { runCatching { data.backups.list().maxOfOrNull { it.modified } }.getOrNull() }
+    val up by dev.saged.grcs.data.Updater.state.collectAsState()
+    val roleLabel = mapOf("admin" to "مسؤول عام", "delegate" to "مندوب مخيم", "dataentry" to "مدخل بيانات", "beneficiary" to "مستفيد")[role] ?: role
+    val campName = remember { if (role == "admin") null else data.campList(auth).firstOrNull()?.second?.takeIf { it.isNotBlank() && it != auth.user.campId } }
+    fun sync() {
+        scope.launch {
+            syncing = true; msg = null; ConnState.state = Conn.Sync
+            val r = withContext(Dispatchers.IO) { runCatching { data.sync(auth) } }
+            val ok = r.isSuccess && !r.getOrThrow().first.offline
+            ConnState.state = if (ok) Conn.On else Conn.Off
+            if (ok) ConnState.lastSync = System.currentTimeMillis()
+            msg = if (ok) "اكتملت المزامنة" else "تعذّرت المزامنة — تحقق من الاتصال"
+            syncing = false
+        }
+    }
+    fun cleanIndex() {
+        if (cleaning) return
+        cleaning = true
+        scope.launch {
+            val n = withContext(Dispatchers.IO) { dev.saged.grcs.data.Maintenance.cleanNationalIndex(auth, data.campList(auth).map { it.first }.toSet()) }
+            cleaning = false
+            msg = if (n < 0) "تعذّر إتمام التنظيف — تحقق من الاتصال وحاول مجدداً" else if (n > 0) "تم تنظيف $n مدخل يتيم من الفهرس الوطني" else "الفهرس الوطني نظيف بالفعل — لا يوجد مدخلات يتيمة"
+        }
+    }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("الإعدادات", auth.user.fullName)
+        AppHeader("الإعدادات", "", conn = null, mark = Fa.Gear, search = true)
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-            Column(Modifier.widthIn(max = 640.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SettingCard("المزامنة", QIcons.Sync) {
-                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("آخر مزامنة", color = p.mute, fontSize = 12.5.sp)
-                        Text(if (ConnState.lastSync == 0L) "—" else fmt.format(Date(ConnState.lastSync)), color = p.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+            Column(Modifier.widthIn(max = 640.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                // بطاقة الحساب
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.navy, p.navyL))).padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Box(Modifier.size(54.dp).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.pri)), CircleShape), contentAlignment = Alignment.Center) {
+                        Text(auth.user.fullName.trim().take(1).ifEmpty { "؟" }, color = androidx.compose.ui.graphics.Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     }
-                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("تغييرات بانتظار الرفع", color = p.mute, fontSize = 12.5.sp)
-                        Text(pending.toString(), color = if (pending > 0) p.warn else p.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(auth.user.fullName, color = androidx.compose.ui.graphics.Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text(listOfNotNull(roleLabel, campName).joinToString(" · "), color = androidx.compose.ui.graphics.Color(0xFF9FC3DB), fontSize = 12.5.sp, maxLines = 1)
                     }
-                    MenuRow(QIcons.Chart, "تشخيص المزامنة", "حالة كل مخيم والحصة اليومية", p.blue) { go("diag") }
-                    Spacer(Modifier.height(8.dp))
-                    Btn(if (syncing) "جارٍ المزامنة…" else "مزامنة مع المركز الآن", {
-                        scope.launch {
-                            syncing = true; msg = null; ConnState.state = Conn.Sync
-                            val r = withContext(Dispatchers.IO) { runCatching { data.sync(auth) } }
-                            val ok = r.isSuccess && !r.getOrThrow().first.offline
-                            ConnState.state = if (ok) Conn.On else Conn.Off
-                            if (ok) ConnState.lastSync = System.currentTimeMillis()
-                            msg = if (ok) "اكتملت المزامنة" else "تعذّرت المزامنة — تحقق من الاتصال"
-                            syncing = false
-                        }
-                    }, Modifier.fillMaxWidth(), enabled = !syncing, icon = QIcons.Sync)
-                    msg?.let { Text(it, color = if (it.startsWith("اكتملت")) p.ok else p.warn, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp)) }
-                    Text("استهلاك هذا الجهاز اليوم: ${Usage.reads()} قراءة · ${Usage.writes()} كتابة", color = p.mute, fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
+                    Text("v${BuildConfig.VERSION_NAME}", Modifier.background(androidx.compose.ui.graphics.Color.White.copy(alpha = .12f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp), color = androidx.compose.ui.graphics.Color.White, fontSize = 11.5.sp)
                 }
-                if (staff) SettingCard("النسخ الاحتياطي", QIcons.Backup) {
-                    MenuRow(QIcons.Backup, "نسخ احتياطي واستعادة", "نسخة يومية تلقائية في المستندات ← ${BrandConfig.BACKUP_DIR}") { go("backup") }
-                    Hair()
-                    MenuRow(QIcons.Export, "تصدير البيانات", "Excel · CSV · PDF") { go("export") }
-                    Hair()
-                    MenuRow(QIcons.Import, "استيراد كشف Excel", "أسر ومعيلون وأفراد") { go("import") }
+
+                if (role != "dataentry") Group("المزامنة") {
+                    Column(Modifier.padding(horizontal = 14.dp, vertical = 6.dp)) {
+                        SettingsRow("آخر مزامنة ناجحة", if (ConnState.lastSync == 0L) "لم تتم بعد" else fmt.format(Date(ConnState.lastSync)))
+                        SettingsRow("عمليات بانتظار المزامنة", pending.toString(), last = true)
+                    }
+                    Column(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp)) {
+                        Btn(if (syncing) "جارٍ المزامنة…" else "مزامنة مع المركز الآن", ::sync, Modifier.fillMaxWidth(), enabled = !syncing, icon = Fa.Rotate)
+                        msg?.let { Caption(it, Modifier.padding(top = 8.dp)) }
+                    }
+                    if (staff) NavRow(Fa.Rotate, "تشخيص المزامنة", "فحص حالة الاتصال والمؤشرات", last = true) { go("diag") }
                 }
-                SettingCard("الحساب", QIcons.Key) {
-                    MenuRow(QIcons.Key, "تغيير كلمة المرور", null, p.pri) { go("changepw") }
+
+                if (staff) Group("النسخ والحماية") {
+                    NavRow(Fa.BoxArchive, "النسخ الاحتياطي", lastBk?.let { "آخر نسخة ${fmt.format(Date(it))}" } ?: "تصدير نسخة كاملة أو استعادتها", last = !adminDel && role == "dataentry") { go("backup") }
+                    if (adminDel) NavRow(Fa.TrashArrowUp, "سلة المحذوفات", "استرجاع ما حُذف بالخطأ", last = role == "dataentry") { go("trash") }
+                    if (role != "dataentry") NavRow(Fa.ClockRotateLeft, "سجل التغييرات", "من غيّر ماذا ومتى", last = true) { go("audit") }
                 }
-                if (adminDel) SettingCard("الحماية من فقدان البيانات", QIcons.Shield) {
-                    MenuRow(QIcons.Trash, "سلة المحذوفات", "استعادة ما حُذف خلال ٣٠ يوماً", p.danger) { go("trash") }
-                    Hair()
-                    MenuRow(QIcons.Clock, "سجل النشاط", "من فعل ماذا ومتى", p.blue) { go("audit") }
+
+                if (role == "delegate" || role == "admin") Group("الإدارة") {
+                    if (role == "delegate") NavRow(Fa.Tent, "معلومات المخيم", "عرض وتعديل بيانات المخيم", last = true) { go("caminfo") }
+                    if (role == "admin") {
+                        NavRow(Fa.ScaleBalanced, "مؤشر الهشاشة", "أوزان العوامل وحدود التصنيف — تُطبَّق على كل الأجهزة") { go("vuln") }
+                        NavRow(Fa.FilterCircleDollar, "منشئ الاستعلامات", "بحث مركّب بشروط محفوظة") { go("query") }
+                        NavRow(Fa.RightLeft, "سجل نقل الأسر", "حركة الأسر بين المخيمات", last = true) { go("tlog") }
+                    }
                 }
-                if (staff) SettingCard("أدوات البيانات", QIcons.Chart) {
-                    MenuRow(QIcons.Bolt, "إدخال سريع", null, p.warn) { go("rapid") }
-                    Hair()
-                    MenuRow(QIcons.Alert, "مؤشر الهشاشة", "ترتيب الأسر حسب الاحتياج", p.acc) { go("vuln") }
-                    Hair()
-                    MenuRow(QIcons.Check, "جودة البيانات", "نقص وتعارض وقيم مشبوهة", p.success) { go("quality") }
-                    Hair()
-                    MenuRow(QIcons.Filter, "الفئات والاستعلامات", "فئات جاهزة واستعلامات محفوظة", p.purple) { go("query") }
-                    Hair()
-                    MenuRow(QIcons.Copy, "الأسماء المتشابهة", "كشف التكرار المحتمل", p.gray) { go("similar") }
-                    Hair()
-                    MenuRow(QIcons.Heart, "المساعدات", "المستحقون والتسليم والاستلام", p.pri) { go("aid") }
-                    Hair()
-                    MenuRow(QIcons.Report, "تقرير المساعدات", null, p.blue) { go("aidrep") }
+
+                Group("التفضيلات") {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("المظهر", color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        dev.saged.grcs.ui.components.SegBtns(listOf("تلقائي" to Fa.CircleHalfStroke, "فاتح" to Fa.Sun, "داكن" to Fa.Moon), ThemePref.mode) { ThemePref.set(it) }
+                    }
+                    if (staff) Column(Modifier.padding(horizontal = 14.dp)) {
+                        Hair()
+                        SwitchRow("اهتزاز خفيف", "عند الضغط والنجاح والتنبيه", UiPrefs.haptic) { UiPrefs.updateHaptic(it) }
+                        Hair()
+                        SwitchRow("صوت نقرة", "اختياري — يتوقف عند تفعيل «تقليل الحركة»", UiPrefs.click, last = true) { UiPrefs.updateClick(it) }
+                    }
                 }
-                if (adminDel) SettingCard("المخيم", QIcons.Camp) {
-                    MenuRow(QIcons.Info, "معلومات المخيم", "المسؤول ونائبه ومدخل البيانات") { go("caminfo") }
-                    Hair()
-                    MenuRow(QIcons.Transfer, "سجل نقل الأسر", "الأسر المنقولة بين المخيمات", p.purple) { go("tlog") }
+
+                Group("الحساب والتطبيق") {
+                    NavRow(Fa.Key, "تغيير كلمة المرور") { go("changepw") }
+                    NavRow(Fa.Download, "التحديثات", "الإصدار الحالي v${BuildConfig.VERSION_NAME}", badge = if (up is dev.saged.grcs.data.UpState.None) null else "جديد") { go("update") }
+                    NavRow(Fa.ArrowRightFromBracket, "تسجيل الخروج", tint = p.danger, last = true) { askLogout = true }
                 }
-                if (role == "admin") SettingCard("الإدارة", QIcons.Key) {
-                    MenuRow(QIcons.Key, "حسابات الطاقم", "مناديب ومدخلو بيانات") { go("staff") }
-                    Hair()
-                    MenuRow(QIcons.Alert, "إفراغ وحذف المخيمات", "نسخة إلزامية + سلة + تأكيد بالاسم", p.danger) { go("danger") }
+
+                if (role == "delegate" || role == "admin") Group("منطقة الخطر", p.danger) {
+                    if (role == "delegate") NavRow(Fa.Broom, "إفراغ جميع بيانات مخيمي", "مسح الأفراد والمستفيدين تمهيداً لإعادة الاستيراد — حساب المندوب لا يتأثر", tint = p.danger, last = true) { go("danger") }
+                    if (role == "admin") {
+                        NavRow(Fa.Broom, if (cleaning) "جارٍ الفحص..." else "تنظيف الفهرس الوطني", "يحذف مدخلات الفهرس العائدة لمخيمات لم تعد موجودة", tint = p.danger, last = true) { cleanIndex() }
+                        msg?.let { Caption(it, Modifier.padding(14.dp)) }
+                    }
                 }
-                SettingCard("المظهر", QIcons.Moon) {
-                    SegTabs(listOf("تلقائي", "فاتح", "ليلي"), ThemePref.mode, { ThemePref.set(it) })
+
+                Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("منظومة مخيمات النزوح", color = p.head, fontSize = 13.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold)
+                    Text("تطوير: ${BrandConfig.Dev.TITLE}", color = p.mute, fontSize = 12.sp, lineHeight = 24.sp)
                 }
-                SettingCard("حول التطبيق", QIcons.Info) {
-                    MenuRow(QIcons.Sync, "التحديثات", "الإصدار ${BuildConfig.VERSION_NAME}") { go("update") }
-                }
-                Btn("تسجيل الخروج", onLogout, Modifier.fillMaxWidth(), BtnKind.Danger, QIcons.Logout)
-                Text("تطوير ${BrandConfig.Dev.NAME}", color = p.mute, fontSize = 10.sp, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
         }
     }
+    if (askLogout) dev.saged.grcs.ui.components.ConfirmSheet("هل تريد تسجيل الخروج من التطبيق؟", "تسجيل الخروج", "خروج", icon = Fa.ArrowRightFromBracket, onCancel = { askLogout = false }) { askLogout = false; onLogout() }
 }
 
 @Composable
@@ -206,28 +268,31 @@ private fun Back(title: String, onBack: () -> Unit) {
 private fun UpdatePage(onBack: () -> Unit) {
     val p = LocalPalette.current
     val ctx = LocalContext.current
+    val st by dev.saged.grcs.data.Updater.state.collectAsState()
     var status by remember { mutableStateOf("جارٍ الفحص…") }
-    var apk by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
-        val r = withContext(Dispatchers.IO) { runCatching { Http.getPublic("https://api.github.com/repos/${BrandConfig.UPDATE_REPO}/releases/latest") }.getOrNull() }
-        val j = r?.json
-        if (j == null || r.code != 200) { status = "تعذّر الفحص الآن"; return@LaunchedEffect }
-        val tag = j.optString("tag_name")
-        val assets = j.optJSONArray("assets")
-        var url: String? = null
-        if (assets != null) for (i in 0 until assets.length()) assets.getJSONObject(i).let { if (it.optString("name").endsWith(".apk")) url = it.optString("browser_download_url") }
-        if (newer(tag, BuildConfig.VERSION_NAME) && url != null) { status = "إصدار جديد متاح: $tag"; apk = url } else status = "أنت على أحدث إصدار (${BuildConfig.VERSION_NAME})"
+        withContext(Dispatchers.IO) { dev.saged.grcs.data.Updater.restore(ctx); dev.saged.grcs.data.Updater.autoCheck(ctx, download = false) }
+        status = if (dev.saged.grcs.data.Updater.state.value is dev.saged.grcs.data.UpState.None) "أنت على أحدث إصدار (${BuildConfig.VERSION_NAME})" else ""
     }
     Column(Modifier.fillMaxSize()) {
         Back("التحديثات", onBack)
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(status, color = p.ink, fontSize = 15.sp)
-            apk?.let { u ->
-                Box(Modifier.fillMaxWidth().heightIn(min = 52.dp).background(p.pri, RoundedCornerShape(16.dp)).clickable { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u))) }, contentAlignment = Alignment.Center) {
-                    Text("تنزيل التحديث", color = p.onPri, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            when (val s = st) {
+                is dev.saged.grcs.data.UpState.None -> Text(status, color = p.ink, fontSize = 15.sp)
+                is dev.saged.grcs.data.UpState.Available -> {
+                    Text("إصدار جديد متاح: ${s.info.tag}", color = p.ink, fontSize = 15.sp)
+                    Btn("تنزيل التحديث", { dev.saged.grcs.data.Updater.start(ctx, s.info) }, Modifier.fillMaxWidth(), icon = Fa.Download)
                 }
-                Text("التحديث يثبّت فوق التطبيق الحالي دون فقد البيانات.", color = p.mute, fontSize = 12.sp)
+                is dev.saged.grcs.data.UpState.Downloading -> {
+                    Text("جارٍ تنزيل ${s.info.tag}… ${s.pct}%", color = p.ink, fontSize = 15.sp)
+                    dev.saged.grcs.ui.components.Bar(s.pct / 100f, p.pri)
+                }
+                is dev.saged.grcs.data.UpState.Ready -> {
+                    Text("اكتمل تنزيل ${s.info.tag}", color = p.ink, fontSize = 15.sp)
+                    Btn("تثبيت الآن", { dev.saged.grcs.data.Updater.install(ctx) }, Modifier.fillMaxWidth(), icon = Fa.Download)
+                }
             }
+            Text("يُنزَّل التحديث تلقائياً بالخلفية ويُثبَّت فوق التطبيق الحالي دون فقد البيانات.", color = p.mute, fontSize = 12.sp)
         }
     }
 }
@@ -295,3 +360,4 @@ private fun BackupPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         }
     }
 }
+

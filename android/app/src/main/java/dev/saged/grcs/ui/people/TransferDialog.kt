@@ -47,8 +47,8 @@ fun TransferDialog(auth: AuthState, data: DataRepo, src: String, camps: List<Pai
     var result by remember { mutableStateOf<String?>(null) }
     var done by remember { mutableStateOf(false) }
     LaunchedEffect(dest) { plan = withContext(Dispatchers.IO) { data.transfer.plan(auth, src, famKey, dest) } }
-    Box(Modifier.fillMaxSize().background(p.ink.copy(alpha = .5f)).clickable(enabled = !busy) { onClose() }, contentAlignment = Alignment.Center) {
-        Column(Modifier.padding(20.dp).background(p.bg, RoundedCornerShape(24.dp)).clickable(enabled = false) {}.verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    dev.saged.grcs.ui.components.Sheet({ if (!busy) onClose() }) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("نقل الأسرة — ${plan?.head?.optString("fullName").orEmpty()} (${plan?.members?.size ?: 0} أفراد)", color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.filter { it.first != src }.forEach { (id, n) -> QChip(n, dest == id) { dest = id } } }
             QField("سبب النقل", reason, { reason = it })

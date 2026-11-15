@@ -16,6 +16,13 @@ object Staff {
             .sortedWith(compareBy({ it.optString("role") }, { it.optString("fullName") }))
 
     /** حسابات المستفيدين لمخيم واحد (تُنشأ تلقائياً لأرباب الأسر). */
+    /** كل حسابات المستفيدين في كل المخيمات المعطاة، مرتّبة أبجدياً بالاسم، مع اسم المخيم. */
+    fun allBeneficiaries(st: AuthState, camps: List<Pair<String, String>>): List<JSONObject> {
+        val col = java.text.Collator.getInstance(java.util.Locale("ar"))
+        return (camps.flatMap { (id, name) -> beneficiaries(st, id).onEach { u -> if (u.optString("campName").isEmpty()) u.put("campName", name) } } + beneficiaries(st, "").onEach { it.put("campName", "بدون مخيم") })
+            .sortedWith { a, b -> col.compare(a.optString("fullName"), b.optString("fullName")) }
+    }
+
     fun beneficiaries(st: AuthState, camp: String): List<JSONObject> =
         runCatching { Fs.queryEq("users", listOf("role" to "beneficiary", "campId" to camp), st.idToken, 1000) }.getOrDefault(emptyList()).sortedBy { it.optString("fullName") }
 
@@ -39,11 +46,13 @@ object Staff {
     }
 
     /** إنشاء حساب طاقم (كما createNewUser): يعيد null عند النجاح أو رسالة الخطأ. */
-    fun create(st: AuthState, role: String, fullName: String, username: String, pw: String, phone: String, campId: String, campName: String): String? {
+    fun create(st: AuthState, role: String, fullName: String, username: String, pw: String, phone: String, campId: String, campName: String, newCamp: Boolean = false): String? {
         if (st.user.role != "admin") return "للإدارة فقط"
         val un = username.trim().lowercase()
-        if (fullName.isBlank() || un.isEmpty() || pw.length < 6) return "أكمل الاسم واسم المستخدم وكلمة مرور من 6 أحرف"
-        if (role != "admin" && campId.isEmpty()) return "اختر المخيم"
+        if (role == "delegate" && newCamp && campName.isBlank()) return "أدخل اسم المخيم الجديد"
+        if (role == "delegate" && !newCamp && campId.isEmpty()) return "اختر المخيم"
+        if (fullName.isBlank() || un.isEmpty() || pw.isEmpty()) return "الرجاء تعبئة الاسم واسم المستخدم وكلمة المرور"
+        if (pw.length < 6) return "كلمة المرور يجب ألا تقل عن 6 أحرف"
         return try {
             if (Fs.queryEq("users", listOf("username" to un), st.idToken, 1).isNotEmpty()) return "اسم المستخدم مستخدم بالفعل"
             val id = java.util.UUID.randomUUID().toString()
@@ -51,14 +60,53 @@ object Staff {
             val hash = Pbkdf2.hash(pw, salt)
             val ver = MessageDigest.getInstance("SHA-256").digest("grcs:v1:$hash".toByteArray()).joinToString("") { "%02x".format(it) }
             val now = Clock.now()
-            val camp = if (role == "admin") "HQ" else campId
-            val cname = if (role == "admin") "المركز الرئيسي" else campName
+            val camp = if (role == "admin") "HQ" else if (role == "delegate" && newCamp) java.util.UUID.randomUUID().toString() else campId
+            val cname = if (role == "admin") "المركز الرئيسي" else campName.trim()
+            if (role == "delegate" && newCamp) Fs.set("camps/$camp", mapOf("id" to camp, "name" to cname, "region" to "", "supervisor" to fullName.trim(), "supervisorPhone" to phone.trim(),
+                "deputy" to "", "deputyPhone" to "", "dataEntry" to "", "dataEntryPhone" to "", "createdAt" to now, "lastUpdated" to now, "totalFamilies" to 0), st.idToken)
+            else if (role == "delegate") runCatching { Fs.patch("camps/$camp", buildMap<String, Any?> { put("supervisor", fullName.trim()); if (phone.isNotBlank()) put("supervisorPhone", phone.trim()); put("lastUpdated", now) }, st.idToken) }
             Fs.set("users/$id", mapOf("id" to id, "username" to un, "salt" to salt, "verifier" to ver, "role" to role, "campId" to camp, "campName" to cname,
-                "fullName" to fullName.trim(), "phone" to phone.trim(), "createdAt" to now, "isActive" to true, "pwUpdatedAt" to now), st.idToken)
+                "fullName" to fullName.trim(), "phone" to phone.trim(), "createdAt" to now, "isActive" to true, "pwUpdatedAt" to now) + (if (role == "beneficiary") mapOf("mustChangePassword" to true) else emptyMap()), st.idToken)
             Fs.set("creds/$id", mapOf("uid" to id, "pw" to pw, "username" to un, "role" to role, "campId" to camp, "fullName" to fullName.trim(),
                 "updatedAt" to now, "by" to st.user.id), st.idToken)
             runCatching { Fs.pulse("u", null, st.idToken) }
+            if (camp.isNotEmpty() && camp != "HQ") runCatching { Audit.log(st, camp, "create_user", id, fullName.trim(), JSONObject().put("username", un).put("role", role).put("campId", camp).toString()) }
             null
         } catch (e: Exception) { "تعذّر الإنشاء — تحقق من الاتصال" }
     }
+    /** تعديل حساب (openEditUserModal): يعيد null عند النجاح أو رسالة الخطأ. */
+    fun update(st: AuthState, u: JSONObject, fullName: String, username: String, phone: String, role: String, campId: String, campName: String): String? {
+        if (st.user.role != "admin") return "للإدارة فقط"
+        val un = username.trim().lowercase()
+        if (fullName.isBlank() || un.isEmpty()) return "الاسم واسم المستخدم مطلوبان"
+        if (role == "delegate" && campId.isEmpty()) return "اختر المخيم"
+        val id = u.getString("id")
+        return try {
+            if (un != u.optString("username") && Fs.queryEq("users", listOf("username" to un), st.idToken, 2).any { it.optString("id") != id }) return "اسم المستخدم مستخدم بالفعل"
+            val camp = if (role == "admin") "HQ" else campId
+            Fs.patch("users/$id", mapOf("fullName" to fullName.trim(), "username" to un, "phone" to phone.trim(), "role" to role, "campId" to camp,
+                "campName" to if (role == "admin") "المركز الرئيسي" else campName), st.idToken)
+            if (camp.isNotEmpty()) Audit.log(st, camp, "update_user", id, fullName.trim())
+            runCatching { Fs.pulse("u", null, st.idToken) }
+            null
+        } catch (e: Exception) { "تعذّر الحفظ" }
+    }
+
+    /** حذف حساب (deleteUserAccount): طاقم المخيم يحذف معه حسابات مستفيديه. يعيد عدد المستفيدين المحذوفين أو -1 عند الفشل. */
+    fun delete(st: AuthState, u: JSONObject): Int {
+        val id = u.getString("id")
+        if (st.user.role != "admin" || id == st.user.id) return -1
+        return try {
+            val staff = u.optString("role") in listOf("delegate", "dataentry") && u.optString("campId").isNotEmpty()
+            val bens = if (staff) beneficiaries(st, u.optString("campId")) else emptyList()
+            val paths = (listOf(id) + bens.map { it.getString("id") }).flatMap { listOf("users/$it", "creds/$it") }
+            Fs.deleteMany(paths, st.idToken)
+            Audit.log(st, u.optString("campId"), "update_user", id, u.optString("fullName"), "deleted")
+            runCatching { Fs.pulse("u", null, st.idToken) }
+            bens.size
+        } catch (e: Exception) { -1 }
+    }
+
+    /** كلمة المرور المحفوظة للعرض عند الأدمن (creds/{id}) أو null إن لم تُفعَّل. */
+    fun password(st: AuthState, id: String): String? = runCatching { Fs.get("creds/$id", st.idToken)?.let { Fs.stringField(it, "pw") }?.takeIf { it.isNotEmpty() } }.getOrNull()
 }

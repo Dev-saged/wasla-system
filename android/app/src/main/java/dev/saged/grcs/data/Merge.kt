@@ -24,6 +24,24 @@ object Merge {
 
     fun copy(p: JSONObject) = JSONObject(p.toString())
 
+    /** mergePersons: يُبقي keep ويكمل ناقصه من drop (لا يستبدل قيمة موجودة). يعيد نسخة جديدة. */
+    fun persons(keep0: JSONObject, drop: JSONObject): JSONObject {
+        val keep = copy(keep0)
+        fun has(o: JSONObject, k: String) = o.optString(k).let { it.isNotEmpty() && it != "null" }
+        for (k in listOf("birthDate", "nationalId", "phone", "address", "maritalStatus", "shelterType", "livingSituation", "disabilityDetails", "diseaseDetails")) if (!has(keep, k) && has(drop, k)) keep.put(k, drop.opt(k))
+        if (keep.optString("gender").let { it.isEmpty() || it == "unknown" } && has(drop, "gender")) keep.put("gender", drop.optString("gender"))
+        for (k in listOf("hasChronicDisease", "hasDisability", "isPregnant", "isBreastfeeding", "urgentNeed")) keep.put(k, keep.optBoolean(k) || drop.optBoolean(k))
+        fun arr(o: JSONObject) = o.optJSONArray("chronicConditions")?.let { a -> (0 until a.length()).map { a.optString(it) } }.orEmpty()
+        keep.put("chronicConditions", org.json.JSONArray((arr(keep) + arr(drop)).distinct()))
+        val dn = drop.optString("notes"); val kn = keep.optString("notes")
+        if (dn.isNotEmpty() && !kn.contains(dn)) keep.put("notes", listOf(kn, dn).filter { it.isNotEmpty() }.joinToString(" — "))
+        val merged = mergeRequests(keep, drop); for (k in listOf("requests", "aid")) merged.optJSONArray(k)?.let { keep.put(k, it) }
+        val cf = JSONObject(); drop.optJSONObject("customFields")?.let { d -> d.keys().forEach { cf.put(it, d.opt(it)) } }; keep.optJSONObject("customFields")?.let { d -> d.keys().forEach { cf.put(it, d.opt(it)) } }
+        keep.put("customFields", cf)
+        Stats.ageOf(keep)?.let { keep.put("calculatedAge", it) }
+        return keep
+    }
+
     fun mergeRequests(a: JSONObject, b: JSONObject): JSONObject {
         for ((k, tk) in listOf("requests" to "updatedAt", "aid" to "at")) {
             val aa = a.optJSONArray(k); val bb = b.optJSONArray(k)

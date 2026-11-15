@@ -15,6 +15,9 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -52,6 +55,7 @@ import dev.saged.grcs.data.DataRepo
 import dev.saged.grcs.ui.ben.BenHome
 import dev.saged.grcs.ui.camps.CampsScreen
 import dev.saged.grcs.ui.home.HomeScreen
+import dev.saged.grcs.ui.icons.Fa
 import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.messages.MessagesScreen
 import dev.saged.grcs.ui.more.ExportPage
@@ -65,10 +69,29 @@ import androidx.compose.runtime.LaunchedEffect
 import dev.saged.grcs.ui.theme.LocalPalette
 import dev.saged.grcs.ui.theme.rememberReduceMotion
 
+/** عدّاد الشاشات التي تخفي الشريط السفلي وزر الإضافة (نموذج الفرد والمحادثة) كما في الويب. */
+object ShellState {
+    var immersive by androidx.compose.runtime.mutableIntStateOf(0)
+    var search by mutableStateOf(false)
+    var homeRoute by mutableStateOf<String?>(null)
+    var moreRoute by mutableStateOf<String?>(null)
+    var campsRoute by mutableStateOf<String?>(null)
+    /** انتقال مباشر لفرد: المخيم، مفتاح الأسرة، معرّف الفرد. */
+    var jump by mutableStateOf<Triple<String, String, String>?>(null)
+    /** المخيم الذي يتصفحه المسؤول (adminViewingCampId في الويب). */
+    var adminCamp by mutableStateOf<String?>(null)
+    /** طلب فتح نموذج «إضافة فرد» مرة واحدة من زر الإضافة العائم. */
+    var newPerson by mutableStateOf(false)
+}
+
+/** يخفي الشريط السفلي ما دامت الشاشة معروضة. */
+@Composable
+fun Immersive() { androidx.compose.runtime.DisposableEffect(Unit) { ShellState.immersive++; onDispose { ShellState.immersive-- } } }
+
 private enum class Tab(val label: String, val icon: ImageVector) {
-    Home("الرئيسية", QIcons.Home), Camps("المخيمات", QIcons.Camp), People("الأفراد", QIcons.People),
-    Chat("الرسائل", QIcons.Chat), Accounts("الحسابات", QIcons.Key), Export("تصدير", QIcons.Export),
-    Settings("الإعدادات", QIcons.Settings),
+    Home("الرئيسية", Fa.House), Camps("المخيمات", Fa.Tents), People("الأفراد", Fa.Users),
+    Chat("الرسائل", Fa.Comments), Accounts("الحسابات", Fa.UsersGear), Export("تصدير", Fa.ChartSimple),
+    Settings("الإعدادات", Fa.Gear),
 }
 
 /** مجموعات التبويب السفلي حسب الدور كما في الويب (NAV_SETS). */
@@ -88,8 +111,8 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
     val reduce = rememberReduceMotion()
     val tabs = remember(auth.user.role) { tabsFor(auth.user.role) }
     var sel by rememberSaveable { mutableStateOf(0) }
-    var openCamp by remember { mutableStateOf<String?>(null) }
     var homeFilter by remember { mutableStateOf<String?>(null) }
+    dev.saged.grcs.ui.theme.UiPrefs.init(androidx.compose.ui.platform.LocalContext.current)
     var unread by remember { mutableStateOf(0) }
     LaunchedEffect(sel) {
         while (true) {
@@ -97,13 +120,33 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             kotlinx.coroutines.delay(180_000)
         }
     }
-    var openFam by remember { mutableStateOf<String?>(null) }
+    var importing by remember { mutableStateOf(false) }
     val tab = tabs[sel.coerceIn(0, tabs.lastIndex)]
     val ben = auth.user.role == "beneficiary"
-    BackHandler(sel != 0 && openCamp == null) { sel = 0 }
+    // حساب طاقم بلا مخيم: لا بيانات يعمل عليها حتى تربطه الإدارة بمخيم
+    if (!ben && auth.user.role != "admin" && auth.user.campId.isEmpty()) {
+        Column(Modifier.fillMaxSize().background(p.bg).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally) {
+            dev.saged.grcs.ui.components.EmptyState(Fa.Tent, "حسابك غير مرتبط بمخيم بعد", "اطلب من الإدارة ربط حسابك بمخيم لتبدأ إدخال البيانات")
+            dev.saged.grcs.ui.components.Btn("تسجيل الخروج", onLogout, kind = dev.saged.grcs.ui.components.BtnKind.Outline, icon = Fa.ArrowRightFromBracket)
+        }
+        return
+    }
+    val admin = auth.user.role == "admin"
+    val adminCamp = if (admin) ShellState.adminCamp else null
+    data.scope = adminCamp
+    fun go(t: Tab) { sel = tabs.indexOf(t).coerceAtLeast(0) }
+    /** الخروج من سياق المخيم والعودة للرئيسية العامة: يُنهي أي شاشة فرعية مفتوحة. */
+    fun leaveCamp() { ShellState.adminCamp = null; homeFilter = null; importing = false; ShellState.newPerson = false }
+    fun enterCamp(id: String) { homeFilter = null; importing = false; ShellState.newPerson = false; ShellState.adminCamp = id; go(Tab.Home) }
+    BackHandler(importing) { importing = false }
+    BackHandler(!importing && tab == Tab.Home && homeFilter != null) { homeFilter = null }
+    BackHandler(!importing && tab == Tab.Home && homeFilter == null && adminCamp != null) { leaveCamp() }
+    BackHandler(sel != 0 && !importing) { sel = 0 }
     Column(Modifier.fillMaxSize().background(p.bg)) {
+        Box(Modifier.weight(1f)) {
+        if (importing) { dev.saged.grcs.ui.more.ImportPage(auth, data) { importing = false }; return@Box }
         AnimatedContent(
-            tab, Modifier.weight(1f),
+            tab, Modifier.fillMaxSize(),
             transitionSpec = {
                 if (reduce) EnterTransition.None togetherWith ExitTransition.None else {
                     val dir = if (tabs.indexOf(targetState) > tabs.indexOf(initialState)) -1 else 1
@@ -114,16 +157,45 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             label = "dest",
         ) { t ->
             when (t) {
-                Tab.Home -> if (ben) BenHome(auth, data) else if (homeFilter != null) PeopleScreen(auth, data, startFilter = homeFilter) { homeFilter = null } else HomeScreen(auth, data, onLogout) { homeFilter = it }
-                Tab.Camps -> if (openCamp != null) PeopleScreen(auth, data, openCamp, startFamily = openFam) { openCamp = null; openFam = null } else CampsScreen(auth, data, { openCamp = it }) { c, f -> openFam = f; openCamp = c }
+                // الرئيسية: لوحة عامة للمسؤول، أو لوحة المخيم (مع رجوع) إن دخل مخيماً؛ بطاقات الإحصاء تفتح كشف الأفراد بفلترها
+                Tab.Home -> if (ben) BenHome(auth, data, onLogout) else androidx.compose.runtime.key(adminCamp) {
+                    val hf = homeFilter
+                    if (hf != null) PeopleScreen(auth, data, startCamp = adminCamp, startFilter = hf) { homeFilter = null }
+                    else HomeScreen(auth, data, onLogout, { homeFilter = it }, { go(Tab.Camps) }, onlyCamp = adminCamp, onBack = if (adminCamp != null) ({ leaveCamp() }) else null, onPeople = { homeFilter = "head" })
+                }
+                Tab.Camps -> CampsScreen(auth, data, { enterCamp(it) }) { c, f -> enterCamp(c); ShellState.jump = Triple(c, f, ""); homeFilter = "head" }
                 Tab.People -> PeopleScreen(auth, data)
                 Tab.Chat -> MessagesScreen(auth, data)
-                Tab.Accounts -> StaffPage(auth, data) { sel = 0 }
+                Tab.Accounts -> StaffPage(auth, data, onPerson = { ps ->
+                    val camp = ps.optString("campId")
+                    enterCamp(camp); ShellState.jump = Triple(camp, ps.optString("familyId").ifEmpty { "i_" + ps.optString("id") }, ps.optString("id")); homeFilter = "head"
+                }) { sel = 0 }
                 Tab.Export -> ExportPage(auth, data) { sel = 0 }
                 Tab.Settings -> MoreScreen(auth, data, onLogout)
             }
         }
-        NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { sel = it; openCamp = null; homeFilter = null }
+        // زر الإضافة: للمندوب ومدخل البيانات، وللمسؤول داخل مخيم فقط، على الرئيسية والأفراد
+        val field = auth.user.role == "delegate" || auth.user.role == "dataentry" || adminCamp != null
+        if (field && !importing && ShellState.immersive == 0 && (tab == Tab.Home || tab == Tab.People)) Column(Modifier.align(Alignment.BottomEnd).padding(start = 16.dp, end = 16.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.size(44.dp).shadow(4.dp, CircleShape).background(p.surface, CircleShape).border(1.5.dp, p.line, CircleShape).clickable { importing = true }, contentAlignment = Alignment.Center) { Icon(Fa.FileArrowUp, "استيراد Excel", tint = p.head, modifier = Modifier.size(16.dp)) }
+            Box(Modifier.size(56.dp).shadow(8.dp, CircleShape).background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(p.tealL, p.tealD)), CircleShape).clickable {
+                if (tab == Tab.Home && homeFilter == null) { if (admin) homeFilter = "head" else go(Tab.People) }
+                ShellState.newPerson = true
+            }, contentAlignment = Alignment.Center) { Icon(Fa.Plus, "إضافة فرد", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(22.dp)) }
+        }
+        }
+        if (ShellState.search && !ben) GlobalSearch(auth, data, { ShellState.search = false },
+            goTab = { t -> importing = t == "import"; if (t != "import") { homeFilter = null; if (t == "Home" && admin) leaveCamp(); sel = tabs.indexOfFirst { it.name == t }.coerceAtLeast(0) } },
+            goCamp = { id -> enterCamp(id) },
+            goPerson = { ps ->
+                val camp = ps.optString("campId")
+                if (admin) enterCamp(camp) else { importing = false; go(Tab.People) }
+                ShellState.jump = Triple(camp, ps.optString("familyId").ifEmpty { "i_" + ps.optString("id") }, ps.optString("id"))
+                if (admin) homeFilter = "head"
+            })
+        if (ShellState.immersive == 0) dev.saged.grcs.ui.components.UpdateBar()
+        // كما في الويب: الضغط على «الرئيسية» يُخرج المسؤول من المخيم، و«الأفراد» تبدأ من فلتر رب الأسرة
+        if (!ben && ShellState.immersive == 0) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { i -> importing = false; ShellState.newPerson = false; if (tabs[i] == Tab.Home) { homeFilter = null; if (admin) ShellState.adminCamp = null }; sel = i }
     }
 }
 
@@ -137,31 +209,31 @@ private fun NavBar(tabs: List<Tab>, sel: Int, unread: Int, onSelect: (Int) -> Un
             val w = maxWidth / tabs.size
             val x by animateDpAsState(w * sel, tween(450, easing = Silk), label = "ind")
             Box(
-                Modifier.offset(x = x + (w - 22.dp) / 2).width(22.dp).height(3.dp)
+                Modifier.offset(x = x + (w - 40.dp) / 2).width(40.dp).height(3.dp)
                     .clip(RoundedCornerShape(bottomStart = 3.dp, bottomEnd = 3.dp)).background(p.pri),
             )
             Row(Modifier.fillMaxSize()) {
                 tabs.forEachIndexed { i, d ->
                     val on = i == sel
-                    val tint by animateColorAsState(if (on) p.ink else p.mute, tween(250), label = "tint")
-                    val ic by animateColorAsState(if (on) p.pri else p.mute, tween(250), label = "ic")
+                    val tint by animateColorAsState(if (on) p.head else p.mute, tween(200), label = "tint")
+                    val ic by animateColorAsState(if (on) p.head else p.mute, tween(200), label = "ic")
                     val lift by animateDpAsState(if (on) (-2).dp else 0.dp, tween(300, easing = Silk), label = "lift")
                     Column(
                         Modifier.weight(1f).fillMaxSize().clickable(
                             interactionSource = remember { MutableInteractionSource() }, indication = null, role = Role.Tab,
                         ) {
-                            if (!on) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            if (!on && dev.saged.grcs.ui.theme.UiPrefs.haptic) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onSelect(i)
                         },
                         verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Box {
-                            Icon(d.icon, null, Modifier.offset(y = lift).size(22.dp), tint = ic)
+                            Icon(d.icon, null, Modifier.offset(y = lift).size(if (d.icon.viewportWidth > 512f) 24.dp else 19.dp), tint = ic)
                             if (d == Tab.Chat && unread > 0) Text(if (unread > 99) "99+" else "$unread", color = androidx.compose.ui.graphics.Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold,
                                 modifier = Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = (-4).dp).clip(RoundedCornerShape(8.dp)).background(p.danger).padding(horizontal = 4.dp))
                         }
-                        Text(d.label, color = tint, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold)
+                        Text(d.label, color = tint, fontSize = 10.5.sp, lineHeight = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 3.dp))
                     }
                 }
             }

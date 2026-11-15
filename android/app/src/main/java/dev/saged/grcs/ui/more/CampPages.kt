@@ -57,17 +57,13 @@ import java.util.Locale
 private val dateFmt = SimpleDateFormat("yyyy/MM/dd  HH:mm", Locale.US)
 private fun d(ms: Long) = if (ms <= 0) "—" else dateFmt.format(Date(ms))
 
-@Composable
-private fun CampChips(camps: List<Pair<String, String>>, sel: String, onSel: (String) -> Unit) {
-    if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == sel) { onSel(id) } } }
-}
 
 /** معلومات المخيم: الاسم، المنطقة، المسؤول ونائبه ومدخل البيانات، وملاحظات. */
 @Composable
 fun CampInfoPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val p = LocalPalette.current
     val scope = rememberCoroutineScope()
-    val camps = remember { data.campList(auth) }
+    val camps = remember { data.ctxCamps(auth) }
     var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
     var info by remember { mutableStateOf<CampInfo?>(null) }
     var name by remember { mutableStateOf("") }; var region by remember { mutableStateOf("") }
@@ -85,36 +81,39 @@ fun CampInfoPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         info = i; name = i.name; region = i.region; sup = i.supervisor; supP = i.supervisorPhone; dep = i.deputy; depP = i.deputyPhone; de = i.dataEntry; deP = i.dataEntryPhone; notes = i.notes
     }
     Column(Modifier.fillMaxSize()) {
-        AppHeader("معلومات المخيم", camps.firstOrNull { it.first == camp }?.second.orEmpty(), conn = null, onBack = onBack)
+        AppHeader("معلومات المخيم", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.Tent, endBack = onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            CampChips(camps, camp) { camp = it; msg = null }
+            if (camps.size != 1) { EmptyState(dev.saged.grcs.ui.icons.Fa.Tent, "ادخل مخيماً أولاً", "معلومات المخيم تُعرض للمخيم الذي أنت بداخله — افتحه من «المخيمات»"); return@Column }
             QCard {
                 QField("اسم المخيم الرسمي", name, { name = it }); Spacer(Modifier.height(8.dp))
-                QField("المنطقة / الحي", region, { region = it })
+                QField("رقم المخيم", camp, { }, enabled = false); Spacer(Modifier.height(8.dp))
+                QField("المنطقة/الحي", region, { region = it })
             }
             QCard {
-                Text("مسؤول المخيم", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
+                Text("مسؤول المخيم", color = p.navy, fontSize = 16.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
                 QField("الاسم", sup, { sup = it }); Spacer(Modifier.height(8.dp)); QField("الهاتف", supP, { supP = it }, type = KeyboardType.Phone)
             }
             QCard {
-                Text("نائب المسؤول", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
+                Text("نائب المسؤول", color = p.navy, fontSize = 16.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
                 QField("الاسم", dep, { dep = it }); Spacer(Modifier.height(8.dp)); QField("الهاتف", depP, { depP = it }, type = KeyboardType.Phone)
             }
             QCard {
-                Text("مدخل البيانات", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
+                Text("مدخل البيانات", color = p.navy, fontSize = 16.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
                 QField("الاسم", de, { de = it }); Spacer(Modifier.height(8.dp)); QField("الهاتف", deP, { deP = it }, type = KeyboardType.Phone)
             }
             QCard {
-                QField("ملاحظات", notes, { notes = it }, multiline = true)
-                Spacer(Modifier.height(10.dp))
-                listOf("المعرّف" to camp, "تاريخ الإنشاء" to d(info?.createdAt ?: 0), "آخر تحديث" to d(info?.lastUpdated ?: 0), "عدد الأسر المسجلة" to fa(fams)).forEach { (k, v) ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(k, color = p.mute, fontSize = 12.5.sp); Text(v, color = p.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f, false))
+                listOf("تاريخ الإنشاء" to d(info?.createdAt ?: 0), "آخر تحديث" to d(info?.lastUpdated ?: 0), "عدد الأسر المسجلة" to fa(fams)).forEach { (k, v) ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(k, color = p.mute, fontSize = 13.sp); Text(v, color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f, false))
                     }
                 }
             }
+            QCard {
+                Text("ملاحظات عامة", color = p.navy, fontSize = 16.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
+                QField("", notes, { notes = it }, multiline = true)
+            }
             msg?.let { Text(it, color = if (it.startsWith("تم")) p.ok else p.danger, fontSize = 13.sp) }
-            Btn(if (busy) "جارٍ الحفظ…" else "حفظ معلومات المخيم", {
+            Btn(if (busy) "جارٍ الحفظ…" else "حفظ المعلومات", {
                 if (camp.isNotEmpty() && !busy) scope.launch {
                     busy = true
                     val ok = withContext(Dispatchers.IO) { data.saveCampInfo(auth, CampInfo(camp, name.trim(), region.trim(), sup.trim(), supP.trim(), dep.trim(), depP.trim(), de.trim(), deP.trim(), notes.trim(), info?.createdAt ?: 0, 0)) }
@@ -130,17 +129,14 @@ fun CampInfoPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
 @Composable
 fun TransferLogPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val p = LocalPalette.current
-    val camps = remember { data.campList(auth) }
-    var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
+    val camps = remember { data.ctxCamps(auth) }
     var rows by remember { mutableStateOf<List<AuditEntry>?>(null) }
-    LaunchedEffect(camp) {
-        rows = null
-        rows = withContext(Dispatchers.IO) { runCatching { Audit.list(auth, camp, 300).filter { it.action == "family_transfer" || it.action == "transfer_family" } }.getOrDefault(emptyList()) }
+    LaunchedEffect(Unit) {
+        rows = withContext(Dispatchers.IO) { camps.flatMap { c -> runCatching { Audit.list(auth, c.first, 300).filter { it.action == "family_transfer" || it.action == "transfer_family" } }.getOrDefault(emptyList()) }.distinctBy { it.targetName + it.at }.sortedByDescending { it.at } }
     }
     Column(Modifier.fillMaxSize()) {
         AppHeader("سجل نقل الأسر", "", conn = null, onBack = onBack)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            CampChips(camps, camp) { camp = it }
             val r = rows
             if (r == null) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)
             else if (r.isEmpty()) EmptyState(QIcons.Transfer, "لا عمليات نقل", "ستظهر هنا الأسر المنقولة من هذا المخيم أو إليه")
@@ -234,7 +230,7 @@ fun CampDangerPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Btn("إفراغ البيانات", { target = c.id to false; typed = "" }, Modifier.weight(1f), BtnKind.Outline, QIcons.Trash, small = true)
-                        Btn("حذف المخيم", { target = c.id to true; typed = "" }, Modifier.weight(1f), BtnKind.Danger, QIcons.Alert, small = true)
+                        if (auth.user.role == "admin") Btn("حذف المخيم", { target = c.id to true; typed = "" }, Modifier.weight(1f), BtnKind.Danger, QIcons.Alert, small = true)
                     }
                 }
             }

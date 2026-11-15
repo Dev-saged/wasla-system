@@ -23,9 +23,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import dev.saged.grcs.data.Templates
+import org.json.JSONObject
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -58,7 +58,7 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val p = LocalPalette.current
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    val camps = remember { data.campList(auth) }
+    val camps = remember { data.ctxCamps(auth) }
     var camp by remember { mutableStateOf(camps.firstOrNull()?.first.orEmpty()) }
     var rows by remember { mutableStateOf<List<List<String>>?>(null) }
     var map by remember { mutableStateOf<Map<String, Int>?>(null) }
@@ -66,22 +66,44 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var prev by remember { mutableStateOf<ImportPreview?>(null) }
     var msg by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
-    val prefs = remember { ctx.getSharedPreferences("grcs_import", android.content.Context.MODE_PRIVATE) }
-    var lastIds by remember(camp) { mutableStateOf(prefs.getStringSet("last_$camp", emptySet()).orEmpty()) }
+    var fileName by remember { mutableStateOf("") }
+    var enr by remember { mutableStateOf<Importer.Enrich?>(null) }
+    var origById by remember { mutableStateOf(mapOf<String, JSONObject>()) }
+    var undoId by remember { mutableStateOf<String?>(null) }
+    var askUndo by remember { mutableStateOf<String?>(null) }
+    var history by remember { mutableStateOf<List<dev.saged.grcs.data.BatchRec>?>(null) }
+    var picks by remember { mutableStateOf(setOf<String>()) }
+    var diffOf by remember { mutableStateOf<Pair<dev.saged.grcs.data.BatchRec, dev.saged.grcs.data.BatchRec>?>(null) }
+    var catOpen by remember { mutableStateOf(false) }
+    var nativeFrom by remember { mutableStateOf("") }
+    var native by remember { mutableStateOf<dev.saged.grcs.data.Sig.Plan?>(null) }
+    val fmt = remember { java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US) }
+    fun toast(t: String) = android.widget.Toast.makeText(ctx, t, android.widget.Toast.LENGTH_LONG).show()
     val headers = rows?.firstOrNull().orEmpty()
     val flat = rows != null && Importer.isFlat(headers)
 
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
-            msg = null; prev = null; rows = null; map = null; tplBy = null; busy = true
+            msg = null; prev = null; rows = null; map = null; tplBy = null; native = null; busy = true
+            fileName = runCatching { ctx.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null } }.getOrNull() ?: "ملف"
+            undoId = null
+            val sig = if (fileName.lowercase().endsWith(".csv")) null else withContext(Dispatchers.IO) { runCatching { ctx.contentResolver.openInputStream(uri)!!.use { dev.saged.grcs.data.Sig.parse(Xlsx.readNamed(it, dev.saged.grcs.data.Sig.SHEET)) } }.getOrNull() }
+            if (sig != null) {
+                native = withContext(Dispatchers.IO) {
+                    val all = (if (auth.user.role == "admin") data.campList(auth).map { it.first } else listOf(camp)).distinct().associateWith { data.people.persons(it) }
+                    dev.saged.grcs.data.Sig.prepare(sig, camp, all[camp].orEmpty(), all.filterKeys { it != camp }.values.flatten().map { dev.saged.grcs.data.Nid.norm(it.optString("nationalId")) }.filter { it.isNotEmpty() }.toSet(), auth.user.id)
+                }
+                nativeFrom = sig.campName.ifEmpty { sig.campId }
+                busy = false; return@launch
+            }
             val r = withContext(Dispatchers.IO) {
                 runCatching {
-                    val name = uri.toString().lowercase()
+                    val name = fileName.lowercase()
                     ctx.contentResolver.openInputStream(uri)!!.use { s ->
                         if (name.endsWith(".csv") || ctx.contentResolver.getType(uri)?.contains("csv") == true) Xlsx.readCsv(s.bufferedReader(Charsets.UTF_8).readText()) else Xlsx.read(s)
                     }
-                }.getOrNull()
+                }.getOrNull()?.let { all -> all.drop(dev.saged.grcs.data.Cells.headerRow(all)) }
             }
             if (r == null || r.size < 2) { busy = false; msg = "تعذّرت قراءة الملف — استخدم xlsx أو csv"; return@launch }
             if (Importer.isFlat(r[0])) {
@@ -97,15 +119,60 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     }
     LaunchedEffect(rows, map, camp) {
         val r = rows ?: return@LaunchedEffect
-        prev = withContext(Dispatchers.IO) { Importer.preview(r, camp, data.people.persons(camp), auth.user.id, map) }
+        val pair = withContext(Dispatchers.IO) {
+            // المطابقة على كل المسجّلين المحمّلين (كل المخيمات للإدارة) حتى لا يتكرر رب أسرة بين مخيمين
+            val scope0 = (if (auth.user.role == "admin") data.campList(auth).map { it.first } else listOf(camp)).distinct()
+            val orig = scope0.associateWith { data.people.persons(it) }
+            val copies = orig.mapValues { (_, l) -> l.map { JSONObject(it.toString()) } }
+            val e = runCatching { Importer.enrich(r, map, copies, auth.user.id) }.getOrNull()
+            origById = orig.values.flatten().associateBy { it.optString("id") }
+            Importer.preview(r, camp, orig.values.flatten(), auth.user.id, map) to e
+        }
+        prev = pair.first; enr = pair.second
     }
 
     Column(Modifier.fillMaxSize()) {
-        AppHeader("استيراد كشف", "", conn = null, onBack = onBack)
+        AppHeader("استيراد Excel", "", conn = null, mark = dev.saged.grcs.ui.icons.Fa.FileImport, endBack = onBack.takeIf { auth.user.role == "admin" })
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (camps.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { camps.forEach { (id, n) -> QChip(n, id == camp) { camp = id } } }
-            Text("صف لكل شخص. أعمدة معروفة: الاسم، رقم الهوية، الجوال، تاريخ الميلاد، الجنس، الحالة الاجتماعية، هوية رب الأسرة (للأفراد التابعين).", color = p.mute, fontSize = 12.sp)
-            Btn(if (busy) "جارٍ القراءة…" else "اختيار ملف", { pick.launch(arrayOf("*/*")) }, Modifier.fillMaxWidth(), BtnKind.Outline, QIcons.Import)
+            if (camps.size != 1) { dev.saged.grcs.ui.components.EmptyState(dev.saged.grcs.ui.icons.Fa.Tent, "ادخل مخيماً أولاً", "الاستيراد يكتب في المخيم الذي أنت بداخله — افتح المخيم من «المخيمات» ثم اختر الاستيراد"); return@Column }
+            val tplSave = {
+                scope.launch { val h = Importer.fieldLabels.map { it.second }; val r = withContext(Dispatchers.IO) { data.export.save("قالب-الاستيراد.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(emptyList(), "قالب", h), 0) }; msg = if (r.ok) "حُفظ القالب في المستندات: ${r.name}" else "تعذّر الحفظ" }
+                Unit
+            }
+            Column(Modifier.fillMaxWidth().dashed(p.tealL, 16).background(p.tealL.copy(alpha = .07f), RoundedCornerShape(16.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("الفورمة الموحّدة — الأسرع والأدق", color = p.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text("حمّل الفورمة وعبّئها ثم ارفعها: يفهمها النظام بلا تخمين، ويرتّب كل فرد بمكانه، ويصنّفه تلقائياً من تاريخ ميلاده، ويخبرك بأي خطأ بأرقام الصفوف قبل أن يكتب شيئاً.", color = p.mute, fontSize = 13.sp)
+                Btn("تحميل الفورمة", { tplSave() }, Modifier.fillMaxWidth(), BtnKind.Primary, QIcons.Export)
+            }
+            Column(Modifier.fillMaxWidth().dashed(p.line, 16).background(p.surface, RoundedCornerShape(16.dp)).clickable { pick.launch(arrayOf("*/*")) }.padding(vertical = 34.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (busy) "جارٍ القراءة…" else "اختر ملف Excel من الجهاز", color = p.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text("يدعم: xlsx, xls, csv — أي نموذج كشف، والنماذج الجديدة تُحفظ تلقائياً", color = p.mute, fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            }
+            Btn("رفع كشف تصنيفي (حوامل، أيتام، أطفال، أرامل…)", { catOpen = true }, Modifier.fillMaxWidth(), BtnKind.Outline, icon = dev.saged.grcs.ui.icons.Fa.Tags)
+            native?.let { np ->
+                Column(Modifier.fillMaxWidth().qcard().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("ملف مُصدَّر من هذا النظام ($nativeFrom — ${np.toWrite.size + np.excluded.size} فرد)", color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text("يُستورد بمطابقة كاملة لكل الحقول: " + if (np.sameCamp) "مخيم نفسه — يُحدَّث الموجودون بدل تكرارهم." else "مخيم مختلف — تُنشأ سجلات جديدة ويُستبعد المسجّل بمخيم آخر.", color = p.mute, fontSize = 13.sp)
+                    Text("سيُضاف ${np.added} ويُحدَّث ${np.updated}" + if (np.excluded.isNotEmpty()) " · مستبعد ${np.excluded.size}" else "", color = p.ok, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    if (np.excluded.isNotEmpty()) Btn("تقرير المستبعدين (${np.excluded.size})", {
+                        scope.launch { val res = withContext(Dispatchers.IO) { data.export.save("مستبعدون-ملف-النظام.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(np.excluded, "مستبعدون", listOf("الاسم", "رقم الهوية", "السبب")), np.excluded.size) }; msg = if (res.ok) "حُفظ التقرير: ${res.name}" else "تعذّر الحفظ" }
+                    }, Modifier.fillMaxWidth(), kind = BtnKind.Outline, icon = QIcons.Export)
+                    Btn("استيراد ملف النظام", {
+                        scope.launch {
+                            busy = true
+                            val bid = withContext(Dispatchers.IO) {
+                                val at = System.currentTimeMillis()
+                                np.toWrite.forEach { o -> val sv = data.people.save(camp, o); if (sv.optBoolean("isFamilyHead")) data.afterSave(auth, camp, sv, false) }
+                                data.pushNow(auth, camp)
+                                dev.saged.grcs.data.Audit.log(auth, camp, "import_excel", camp, fileName, JSONObject().put("native", true).put("added", np.added).put("updated", np.updated).put("excluded", np.excluded.size).toString())
+                                dev.saged.grcs.data.ImportBatch.commit(auth, camp, "native", fileName, at, np.pre, np.toWrite, np.toWrite)
+                            }
+                            undoId = bid; msg = "ملف النظام: أُضيف ${np.added} وحُدِّث ${np.updated} فرد بمطابقة كاملة" + if (np.excluded.isNotEmpty()) " — استُبعد ${np.excluded.size} مسجّل بمخيم آخر" else ""
+                            native = null; busy = false
+                        }
+                    }, Modifier.fillMaxWidth(), enabled = !busy && (np.added + np.updated) > 0, icon = QIcons.Check)
+                }
+            }
             if (flat && map != null) {
                 Text(if (tplBy != null) "نموذج معروف — طُبّقت المطابقة المحفوظة ($tplBy)" else "راجع مطابقة الأعمدة؛ ستُحفظ كقالب لهذا النموذج", color = if (tplBy != null) p.ok else p.mute, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 Column(Modifier.fillMaxWidth().qcard().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -115,56 +182,104 @@ fun ImportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                             Text(label, color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                             Box {
                                 Btn(map!![f]?.let { headers.getOrNull(it) }?.ifBlank { "(بلا عنوان)" } ?: "— غير مستخدم —", { open = true }, kind = BtnKind.Outline, small = true)
-                                DropdownMenu(open, { open = false }) {
-                                    DropdownMenuItem(text = { Text("— غير مستخدم —") }, onClick = { map = map!! - f; tplBy = null; open = false })
-                                    headers.forEachIndexed { i, h ->
-                                        DropdownMenuItem(text = { Text(h.ifBlank { "(بلا عنوان)" }) }, onClick = { map = map!!.filterValues { it != i } + (f to i); tplBy = null; open = false })
-                                    }
-                                }
+                                if (open) dev.saged.grcs.ui.components.PickSheet(label, listOf(-1 to "— غير مستخدم —") + headers.mapIndexed { i, h -> i to h.ifBlank { "(بلا عنوان)" } }, map!![f] ?: -1, { open = false }) { i -> map = if (i < 0) map!! - f else map!!.filterValues { it != i } + (f to i); tplBy = null }
                             }
                         }
                     }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Btn("تحميل قالب", { scope.launch { val h = Importer.fieldLabels.map { it.second }; val r = withContext(Dispatchers.IO) { data.export.save("قالب-الاستيراد.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(emptyList(), "قالب", h), 0) }; msg = if (r.ok) "حُفظ القالب في المستندات: ${r.name}" else "تعذّر الحفظ" } }, kind = BtnKind.Outline, small = true, icon = QIcons.Export)
-                if (lastIds.isNotEmpty()) Btn("تراجع عن آخر استيراد (${lastIds.size})", {
-                    scope.launch {
-                        busy = true
-                        withContext(Dispatchers.IO) {
-                            val del = data.people.persons(camp).filter { it.optString("id") in lastIds }
-                            runCatching { data.trash.put(auth, camp, "import_undo", "تراجع استيراد", del) }
-                            del.forEach { data.people.delete(camp, it); data.afterSave(auth, camp, it, true) }
-                            data.pushNow(auth, camp)
-                        }
-                        prefs.edit().remove("last_$camp").apply(); lastIds = emptySet(); msg = "تم التراجع عن آخر استيراد"; busy = false
-                    }
-                }, kind = BtnKind.Danger, small = true, enabled = !busy)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Btn("سجل الاستيراد والتراجع", { scope.launch { picks = emptySet(); history = withContext(Dispatchers.IO) { dev.saged.grcs.data.ImportBatch.latest(camp) } } }, Modifier.weight(1f), kind = BtnKind.Outline, icon = dev.saged.grcs.ui.icons.Fa.ClockRotateLeft, small = true)
+                undoId?.let { id -> Btn("تراجع عن هذا الاستيراد", { askUndo = id }, Modifier.weight(1f), kind = BtnKind.Danger, icon = dev.saged.grcs.ui.icons.Fa.RotateLeft, small = true, enabled = !busy) }
             }
             prev?.let { r ->
                 Column(Modifier.fillMaxWidth().qcard().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("سيُضاف ${r.toAdd.size} فرداً (${r.headCount} أسرة/رب أسرة)", color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    Text("مكرر بالهوية (سيُتخطى): ${r.skippedExisting} · صفوف غير صالحة: ${r.skippedInvalid}", color = p.mute, fontSize = 12.sp)
+                    enr?.let { e -> if (e.writes.isNotEmpty()) Text("موجودون مسبقاً: ستكتمل بيانات ${e.heads} رب أسرة و${e.members} فرد (الحقول الفارغة فقط)" + if (e.added > 0) "، ويُضاف ${e.added} فرد ناقص لأسرهم" else "", color = p.ok, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                    Text("مطابق بلا جديد (يُتخطى): ${(r.skippedExisting - (enr?.let { it.heads + it.members } ?: 0)).coerceAtLeast(0)} · صفوف غير صالحة: ${r.skippedInvalid}", color = p.mute, fontSize = 12.sp)
                     r.mapped.forEach { Text(it, color = p.mute, fontSize = 11.sp) }
                 }
                 if (r.excluded.isNotEmpty()) Btn("تقرير المستبعدين (${r.excluded.size})", {
                     scope.launch { val res = withContext(Dispatchers.IO) { data.export.save("مستبعدون-الاستيراد.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.export.xlsx(r.excluded, "مستبعدون", headers + "السبب"), r.excluded.size) }; msg = if (res.ok) "حُفظ التقرير: ${res.name}" else "تعذّر الحفظ" }
                 }, Modifier.fillMaxWidth(), kind = BtnKind.Outline, icon = QIcons.Export)
-                if (r.toAdd.isNotEmpty()) Btn("تأكيد الإضافة", {
+                if (r.toAdd.isNotEmpty() || enr?.writes?.isNotEmpty() == true) Btn(if (r.toAdd.isEmpty()) "تأكيد تكميل البيانات" else "تأكيد الاستيراد", {
                     scope.launch {
                         busy = true
-                        withContext(Dispatchers.IO) {
+                        val e = enr
+                        val bid = withContext(Dispatchers.IO) {
+                            val at = System.currentTimeMillis()
+                            val pre = ArrayList<JSONObject>(); val extra = ArrayList<JSONObject>()
+                            e?.writes?.entries?.groupBy({ it.value }, { it.key })?.forEach { (c, l) ->
+                                l.forEach { o -> origById[o.optString("id")]?.let { if (c == camp) pre += it }; if (c == camp) extra += o; data.afterSave(auth, c, data.people.save(c, o), false) }
+                                if (c != camp) data.pushNow(auth, c)
+                            }
                             r.toAdd.forEach { data.people.save(camp, it) }
                             r.toAdd.filter { it.optBoolean("isFamilyHead") }.forEach { data.afterSave(auth, camp, it, false) }
                             data.pushNow(auth, camp)
-                            prefs.edit().putStringSet("last_$camp", r.toAdd.map { it.optString("id") }.toSet()).apply()
                             map?.let { if (flat) Templates.remember(auth, Importer.fingerprint(headers), headers, it) }
+                            dev.saged.grcs.data.Audit.log(auth, camp, "import_excel", camp, fileName, JSONObject().put("added", r.toAdd.size + (e?.added ?: 0)).put("updated", (e?.heads ?: 0) + (e?.members ?: 0)).toString())
+                            dev.saged.grcs.data.ImportBatch.commit(auth, camp, if (flat) "flat" else "horizontal", fileName, at, pre, r.toAdd + extra, r.toAdd + extra)
                         }
-                        lastIds = r.toAdd.map { it.optString("id") }.toSet(); msg = "تمت إضافة ${r.toAdd.size} فرداً"; prev = null; rows = null; map = null; busy = false
+                        undoId = bid; msg = "تمت إضافة ${r.toAdd.size + (e?.added ?: 0)} فرداً" + (e?.let { if (it.heads + it.members > 0) " واكتملت بيانات ${it.heads} رب أسرة و${it.members} فرد موجود" else "" } ?: ""); enr = null; prev = null; rows = null; map = null; busy = false
                     }
                 }, Modifier.fillMaxWidth(), enabled = !busy, icon = QIcons.Check)
             }
             msg?.let { Text(it, color = p.ok, fontSize = 13.sp) }
         }
     }
+    if (catOpen) CatImportFlow(auth, data, camp, { catOpen = false }, { id -> undoId = id; msg = "تم تنفيذ الكشف التصنيفي — يمكنك التراجع عنه" })
+    askUndo?.let { id ->
+        dev.saged.grcs.ui.components.ConfirmSheet("سيُحذف كل من أضافه هذا الاستيراد وتُعاد بيانات من حدّثهم لما كانت عليه قبله، مع حذف حسابات المستفيدين التي أنشأها. السجلات المعدّلة بعد الاستيراد تبقى كما هي.", "التراجع عن الاستيراد", "تراجع", icon = dev.saged.grcs.ui.icons.Fa.RotateLeft, onCancel = { askUndo = null }) {
+            askUndo = null
+            scope.launch {
+                busy = true
+                val res = withContext(Dispatchers.IO) { runCatching { dev.saged.grcs.data.ImportBatch.undo(auth, data, camp, id) } }
+                busy = false
+                res.onSuccess { u -> toast("تم التراجع: حُذف ${u.removed} وأُعيد ${u.restored}" + if (u.skipped.isNotEmpty()) " — تُرك ${u.skipped.size} سجل عُدّل بعد الاستيراد" else ""); if (undoId == id) undoId = null; history = null }
+                    .onFailure { toast(it.message ?: "تعذّر التراجع") }
+            }
+        }
+    }
+    history?.let { list ->
+        dev.saged.grcs.ui.components.Sheet({ history = null }, "سجل الاستيراد") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (list.isEmpty()) dev.saged.grcs.ui.components.EmptyState(dev.saged.grcs.ui.icons.Fa.ClockRotateLeft, "لا يوجد استيراد مسجّل بعد", "كل استيراد جديد يُسجَّل هنا ويمكن التراجع عنه أو مقارنته")
+                else Text("اختر دفعتين للمقارنة بينهما، أو قارن أي دفعة بالتي قبلها", color = p.mute, fontSize = 12.sp)
+                list.forEachIndexed { i, b ->
+                    Row(Modifier.fillMaxWidth().qcard().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        dev.saged.grcs.ui.components.CheckRow("", b.id in picks) { on -> picks = if (!on) picks - b.id else if (picks.size >= 2) picks else picks + b.id }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(b.fileName.ifEmpty { "ملف" }, color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("${fmt.format(java.util.Date(b.at))} · ${dev.saged.grcs.data.ImportBatch.modeLabels[b.mode] ?: b.mode} · ${b.userName}", color = p.mute, fontSize = 12.sp)
+                            Text("أُضيف ${b.added} · حُدِّث ${b.updated}" + if (b.undone) " · تم التراجع" else "", color = if (b.undone) p.danger else p.mute, fontSize = 12.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                list.getOrNull(i + 1)?.let { prevB -> Btn("مقارنة بالسابقة", { diffOf = prevB to b }, kind = BtnKind.Outline, icon = dev.saged.grcs.ui.icons.Fa.CodeCompare, small = true) }
+                                if (dev.saged.grcs.data.ImportBatch.canUndo(b, list)) Btn("تراجع", { askUndo = b.id }, kind = BtnKind.Outline, icon = dev.saged.grcs.ui.icons.Fa.RotateLeft, small = true)
+                            }
+                        }
+                    }
+                }
+                if (list.isNotEmpty()) Btn("مقارنة الدفعتين المحددتين", { val (x, y) = list.filter { it.id in picks }.sortedBy { it.at }; diffOf = x to y }, Modifier.fillMaxWidth(), icon = dev.saged.grcs.ui.icons.Fa.CodeCompare, enabled = picks.size == 2)
+            }
+        }
+    }
+    diffOf?.let { (older, newer) ->
+        val d = remember(older, newer) { dev.saged.grcs.data.ImportBatch.diff(older, newer) }
+        dev.saged.grcs.ui.components.Sheet({ diffOf = null }, "مقارنة كشفين") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("${older.fileName} (${fmt.format(java.util.Date(older.at))}) ← ${newer.fileName} (${fmt.format(java.util.Date(newer.at))})", color = p.mute, fontSize = 12.sp)
+                listOf(Triple("أُضيف", p.ok, d.added), Triple("اختفى", p.danger, d.removed), Triple("تغيّر", p.warn, d.changed)).forEach { (t, c, arr) ->
+                    Column(Modifier.fillMaxWidth().qcard().padding(10.dp)) {
+                        Text("$t ${arr.size}", color = c, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        arr.take(80).forEach { r -> Text(r.n + if (r.k.all { it.isDigit() } && r.k.isNotEmpty()) " — ${r.k}" else "", color = p.ink, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
+                        if (arr.size > 80) Text("و${arr.size - 80} آخرون…", color = p.mute, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun Modifier.dashed(c: androidx.compose.ui.graphics.Color, r: Int): Modifier = drawBehind {
+    drawRoundRect(c, cornerRadius = androidx.compose.ui.geometry.CornerRadius(r.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(1.5.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(14f, 10f))))
 }
