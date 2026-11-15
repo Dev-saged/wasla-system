@@ -11,6 +11,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 @RunWith(RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [35])
 class NatStreamTest {
     private fun xlsx(shared: List<String>, rows: String): File {
         val f = File.createTempFile("nat", ".xlsx")
