@@ -110,3 +110,4 @@ R16: DataRepo.sync مقفول بعملية واحدة، cachedStaff/cachedBens،
 R16: OpeningScreen بتصميم جديد (توهجات، هالة، شريط تقدم حقيقي)؛ MoreScreen.Settings قوائم مجمّعة (Group/NavRow) حسب الدور.
 R17: data/ExportJobs.kt = ExportJobs + ExportService (foreground dataSync بإشعار تقدّم)؛ Export.wide/headsOnly/runWide كشف أفقي صف لكل أسرة؛ ExportPage أوضاع wide/heads + بطاقة قيد التحميل.
 R17: DataRepo.pulseDirty/pulseSig + HomeScreen فحص نبض 45ث (Fg.on) + sync6h؛ الويب APP_VERSION=5.7.0 و isNewerVersion يتجاهل -bN.
+R17: HomeScreen يعيد المزامنة تلقائياً عند عودة الشبكة (online(ctx)، كل 15ث)؛ OpeningScreen 1.0ث.

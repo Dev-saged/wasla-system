@@ -63,9 +63,9 @@ fun OpeningScreen(ready: Boolean = true, onDone: () -> Unit) {
             launch { mark.animateTo(1f, tween(700, easing = ease)) }
             launch { delay(200); t1.animateTo(1f, tween(700, easing = ease)) }
             launch { delay(500); t2.animateTo(1f, tween(700, easing = ease)) }
-            launch { prog.animateTo(.92f, tween(1500, easing = CubicBezierEasing(.3f, .1f, .2f, 1f))) }
+            launch { prog.animateTo(.92f, tween(1000, easing = CubicBezierEasing(.3f, .1f, .2f, 1f))) }
         }
-        delay(if (reduce) 400 else 1500)
+        delay(if (reduce) 300 else 1000)
         minDone = true
     }
     LaunchedEffect(minDone, ready) { if (minDone && ready) { if (!reduce) prog.animateTo(1f, tween(220)); onDone() } }

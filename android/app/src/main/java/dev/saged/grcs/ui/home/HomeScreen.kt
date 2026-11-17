@@ -110,14 +110,17 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
     var pulled by remember { mutableIntStateOf(0) }
     var error by remember { mutableStateOf<String?>(null) }
     var tick by remember { mutableIntStateOf(0) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
 
     // مزامنة حيّة: ما دام التطبيق ظاهراً نسأل الخادم كل 45 ث (قراءة واحدة) وتبدأ المزامنة فور تغيّر مخيمنا
     LaunchedEffect(Unit) {
         var prev = false; var last = 0L
         while (true) {
             val on = dev.saged.grcs.Fg.on
-            if (on && !busy && !auth.offline && (!prev || System.currentTimeMillis() - last >= 45_000L)) {
-                last = System.currentTimeMillis()
+            val now = System.currentTimeMillis()
+            if (on && !busy && auth.offline && now - last >= 15_000L && online(ctx)) { last = now; tick++ }
+            else if (on && !busy && !auth.offline && (!prev || now - last >= 45_000L)) {
+                last = now
                 if (withContext(Dispatchers.IO) { runCatching { data.pulseDirty(auth) }.getOrDefault(false) }) tick++
             }
             prev = on
@@ -299,3 +302,9 @@ private fun Quality(camps: List<CampSummary>, q: Map<String, Int>) {
         }
     }
 }
+
+/** يوجد اتصال شبكة فعلي: يعيد المزامنة تلقائياً عند عودة الإنترنت بعد عمل دون اتصال. */
+private fun online(ctx: android.content.Context) = runCatching {
+    val cm = ctx.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+    cm.getNetworkCapabilities(cm.activeNetwork)?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+}.getOrDefault(false)
