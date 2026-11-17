@@ -108,3 +108,6 @@ R15: Btn يضغط بتأثير وهزّة خفيفة؛ DataRepo.propagateName ع
 R16: data/NatStream.kt = قراءة السجل الوطني بالتدفق (ReconcilePage.pickAll)؛ data/Updater.kt + BackgroundJobs.kt (SyncWorker/UpdateWorker) + ui/components/UpdateBar.kt.
 R16: DataRepo.sync مقفول بعملية واحدة، cachedStaff/cachedBens، restoreLocal عند البدء؛ مجلد التصدير = Documents/BACKUP_DIR.
 R16: OpeningScreen بتصميم جديد (توهجات، هالة، شريط تقدم حقيقي)؛ MoreScreen.Settings قوائم مجمّعة (Group/NavRow) حسب الدور.
+R17: data/ExportJobs.kt = ExportJobs + ExportService (foreground dataSync بإشعار تقدّم)؛ Export.wide/headsOnly/runWide كشف أفقي صف لكل أسرة؛ ExportPage أوضاع wide/heads + بطاقة قيد التحميل.
+R17: DataRepo.pulseDirty/pulseSig + HomeScreen فحص نبض 45ث (Fg.on) + sync6h؛ الويب APP_VERSION=5.7.0 و isNewerVersion يتجاهل -bN.
+R17: HomeScreen يعيد المزامنة تلقائياً عند عودة الشبكة (online(ctx)، كل 15ث)؛ OpeningScreen 1.0ث.

@@ -1726,7 +1726,7 @@ circle.ea-acc{fill:var(--teal);stroke:none}
 </div>
 <script type="module">
 /* ===================== إعدادات عامة ===================== */
-const APP_VERSION = '3.6.2';
+const APP_VERSION = '5.7.0';
 const DB_NAME = 'grcs_db';
 const DB_VERSION = 8;
 const STORES = ['persons','families','camps','users','messages','changelog','syncQueue','savedExports'];
@@ -14331,7 +14331,8 @@ async function afterLoginHook(){
 /* ===================== التحديث التلقائي (GitHub version.json) ===================== */
 const UPDATE_CONFIG = { owner:'Dev-saged', repo:'wasla-system' };
 function isNewerVersion(a, b){
-  const pa = String(a||'0').split('.').map(Number), pb = String(b||'0').split('.').map(Number);
+  const num = v => (String(v||'0').replace(/^v/i,'').split('-')[0].match(/\d+/g)||[0]).map(Number);
+  const pa = num(a), pb = num(b);
   for(let i=0; i<Math.max(pa.length,pb.length); i++){
     const x = pa[i]||0, y = pb[i]||0;
     if(x>y) return true; if(x<y) return false;

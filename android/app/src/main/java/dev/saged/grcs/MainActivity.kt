@@ -47,6 +47,9 @@ class MainActivity : ComponentActivity() {
         Updater.scope.launch { Updater.restore(applicationContext); Updater.install(this@MainActivity) }
     }
 
+    override fun onResume() { super.onResume(); Fg.on = true }
+    override fun onPause() { super.onPause(); Fg.on = false }
+
     override fun onNewIntent(intent: android.content.Intent) { super.onNewIntent(intent); handle(intent) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,3 +97,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+/** هل التطبيق ظاهر الآن؟ يستخدمه استطلاع التغييرات الحيّ. */
+object Fg { @Volatile var on = false }

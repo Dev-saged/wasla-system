@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -98,21 +99,31 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
         val base = if (family != "all") persons.filter { famKey(it) == family } else persons
         if (mode == "individual") base.filter { match(it) } else base
     }
-    val count = if (mode == "family") selected.map { famKey(it) }.toSet().size else selected.size
+    val count = if (mode != "individual") selected.map { famKey(it) }.toSet().size else selected.size
+
+    val job by dev.saged.grcs.data.ExportJobs.state.collectAsState()
+    LaunchedEffect(job?.result) { job?.result?.let { r -> res = r; if (r.ok && saved.none { it.first == r.name }) saved.add(0, r.name to r.uri); dev.saged.grcs.data.ExportJobs.clear() } }
 
     fun doExport(kind: String) {
-        if (busy) return
+        if (busy || job != null) return
         busy = true
         scope.launch {
             val cn = if (camp == "*") "كل المخيمات" else camps.firstOrNull { it.first == camp }?.second ?: camp
-            val r = withContext(Dispatchers.IO) {
-                if (mode == "family") data.export.runRows(kind, "$cn-أسر", cn, data.export.familyRows(selected), data.export.familyHeaders)
+            val started = dev.saged.grcs.data.ExportJobs.start(ctx, "تصدير $cn") { prog ->
+                prog(5, "جارٍ تجهيز البيانات")
+                data.export.onProgress = { prog(it, "جارٍ بناء الملف") }
+                val ex = data.export
+                val out = if (mode == "wide") ex.runWide(kind, camp.takeIf { it != "*" }.orEmpty(), cn, selected)
+                else if (mode == "heads") { val w = ex.headsOnly(selected); ex.runRows(kind, "$cn-أرباب-الأسر", cn, w.rows, w.headers, w.bands) }
+                else if (mode == "family") ex.runRows(kind, "$cn-أسر", cn, ex.familyRows(selected), ex.familyHeaders)
                 else {
-                    val cols = data.export.columns.filter { it.k in listOf("name", "nid", "dob", "age", "gender", "rel", "phone", "phone2", "addr", "marital", "shelter", "preg", "bf", "chronic", "dis") }
-                    data.export.runRows(kind, "$cn-أفراد", cn, selected.map { m -> cols.map { it.get(m) } }, cols.map { it.label })
+                    val cols = ex.columns.filter { it.k in listOf("name", "nid", "dob", "age", "gender", "rel", "phone", "phone2", "addr", "marital", "shelter", "preg", "bf", "chronic", "dis") }
+                    ex.runRows(kind, "$cn-أفراد", cn, selected.map { m -> cols.map { it.get(m) } }, cols.map { it.label })
                 }
+                prog(100, "اكتمل"); out
             }
-            res = r; if (r.ok) saved.add(0, r.name to r.uri); busy = false
+            if (!started) res = null
+            busy = false
         }
     }
     fun share(name: String, uri: android.net.Uri?) {
@@ -128,6 +139,8 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             androidx.compose.foundation.lazy.LazyRow(Modifier.padding(bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { QChip("حسب الأسرة (صف واحد لكل أسرة)", mode == "family") { mode = "family" } }
                 item { QChip("حسب الفرد (تصفية مفصّلة)", mode == "individual") { mode = "individual" } }
+                item { QChip("كشف الأسر الكامل (صف لكل أسرة بكل بياناتها)", mode == "wide") { mode = "wide" } }
+                item { QChip("أرباب الأسر فقط (بدون أطفال)", mode == "heads") { mode = "heads" } }
             }
             if (mode == "individual") {
                 FilterLabel("الجنس", Fa.VenusMars)
@@ -144,14 +157,21 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             dev.saged.grcs.ui.components.QSelect(family, listOf("all" to "كل الأسر") + heads.take(300).map { famKey(it) to it.optString("fullName") }) { family = it }
             Row(Modifier.padding(vertical = 14.dp).fillMaxWidth().background(p.navy, RoundedCornerShape(12.dp)).padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Text("سيتم تصدير ", color = androidx.compose.ui.graphics.Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Text(if (mode == "family") "$count أسرة" else "$count", color = androidx.compose.ui.graphics.Color(0xFF7DD3E8), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(if (mode == "family" || mode == "wide" || mode == "heads") "$count أسرة" else "$count", color = androidx.compose.ui.graphics.Color(0xFF7DD3E8), fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text(" سجل", color = androidx.compose.ui.graphics.Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Btn("Excel", { doExport("xlsx") }, Modifier.weight(1f), BtnKind.Primary, Fa.FileExcel, enabled = !busy)
                 Btn("CSV", { doExport("csv") }, Modifier.weight(1f), BtnKind.Outline, Fa.FileCsv, enabled = !busy)
             }
-            Btn("طباعة", { doExport("pdf") }, Modifier.fillMaxWidth().padding(top = 8.dp), BtnKind.Navy, Fa.Print, enabled = !busy)
+            if (mode != "wide") Btn("طباعة", { doExport("pdf") }, Modifier.fillMaxWidth().padding(top = 8.dp), BtnKind.Navy, Fa.Print, enabled = !busy)
+            job?.let { j ->
+                Column(Modifier.padding(top = 12.dp).fillMaxWidth().background(p.surface, RoundedCornerShape(14.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("قيد التحميل — ${j.pct}%", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    dev.saged.grcs.ui.components.Bar(j.pct / 100f, p.pri)
+                    Text("${j.label}. يمكنك مغادرة الشاشة أو التطبيق وسيُحفظ الملف بمجلد التطبيق وتصلك إشعار عند الاكتمال.", color = p.mute, fontSize = 12.sp)
+                }
+            }
             res?.let { if (!it.ok) Text("تعذّر الحفظ — تحقق من إذن التخزين", color = p.danger, fontSize = 13.sp) }
             SectionTitle("ملفاتي المحفوظة على الجهاز")
             if (saved.isEmpty()) Text("لا توجد ملفات محفوظة على هذا الجهاز بعد", color = p.mute, fontSize = 13.sp)

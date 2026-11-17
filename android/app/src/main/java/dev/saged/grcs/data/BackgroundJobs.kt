@@ -38,11 +38,12 @@ class UpdateWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) 
 object BackgroundJobs {
     private val net = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
 
-    /** مرتان يومياً للمزامنة ومرة يومياً للتحديث؛ KEEP حتى لا تُعاد جدولتها عند كل فتح. */
+    /** كل 6 ساعات للمزامنة ومرة يومياً للتحديث؛ KEEP حتى لا تُعاد جدولتها عند كل فتح. */
     fun schedule(ctx: Context) {
         val wm = WorkManager.getInstance(ctx)
-        wm.enqueueUniquePeriodicWork("sync12h", ExistingPeriodicWorkPolicy.KEEP,
-            PeriodicWorkRequestBuilder<SyncWorker>(12, TimeUnit.HOURS, 2, TimeUnit.HOURS).setConstraints(net).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES).build())
+        wm.cancelUniqueWork("sync12h")
+        wm.enqueueUniquePeriodicWork("sync6h", ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<SyncWorker>(6, TimeUnit.HOURS, 1, TimeUnit.HOURS).setConstraints(net).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES).build())
         wm.enqueueUniquePeriodicWork("update24h", ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<UpdateWorker>(24, TimeUnit.HOURS, 4, TimeUnit.HOURS).setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).setRequiresBatteryNotLow(true).build()).build())
     }
@@ -53,5 +54,5 @@ object BackgroundJobs {
             OneTimeWorkRequestBuilder<SyncWorker>().setConstraints(net).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES).build())
     }
 
-    fun cancelAll(ctx: Context) { WorkManager.getInstance(ctx).apply { cancelUniqueWork("sync12h"); cancelUniqueWork("update24h"); cancelUniqueWork("sync-now") } }
+    fun cancelAll(ctx: Context) { WorkManager.getInstance(ctx).apply { cancelUniqueWork("sync6h"); cancelUniqueWork("update24h"); cancelUniqueWork("sync-now") } }
 }

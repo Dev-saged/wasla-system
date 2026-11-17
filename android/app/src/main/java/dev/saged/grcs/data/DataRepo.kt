@@ -66,6 +66,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
         }
         if (st.user.role == "beneficiary") return benSync(st)
         runCatching { withToken { Fs.get("config/app", it) } }.getOrNull()?.let { secV = Fs.intField(it, "secV") }
+        val sig0 = pulseSig(st)
         for (c in cache.campsWithPending()) runCatching { withToken { t -> writer.push(c, t, st.user.id) } }
         val camps = withToken { campsOf(st, it) }
         for ((cid, cname) in camps) runCatching { withToken { t -> accounts.run(cid, cname, t, secV) } }
@@ -90,8 +91,26 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
             val main = withToken { runCatching { Fs.get("camps/$id/data/main", it) }.getOrNull() }
             cache.setMeta("cleared_$id", Fs.intField(main, "clearedAt").toString())
         }
+        sig0?.let { cache.setMeta("pulse_sig", it) }
         return st to camps.map { summary(it.first, it.second) }
     }
+
+    /** توقيع عدّادات sync/pulse الخاصة بهذا الحساب: يتغيّر متى دفع أي جهاز تعديلاً على مخيمه. */
+    private fun pulseSig(st: AuthState): String? {
+        val f = runCatching { Fs.get("sync/pulse", st.idToken) }.getOrNull() ?: return null
+        val admin = st.user.role == "admin"
+        val parts = ArrayList<String>()
+        for (scope in listOf("c", "u", "g")) {
+            val node = f.optJSONObject(scope) ?: continue
+            node.optString("integerValue").takeIf { it.isNotEmpty() }?.let { parts += "$scope=$it" }
+            val m = node.optJSONObject("mapValue")?.optJSONObject("fields") ?: continue
+            for (k in m.keys()) if (admin || k == st.user.campId) parts += "$scope.$k=${m.getJSONObject(k).optString("integerValue")}"
+        }
+        return parts.sorted().joinToString("|")
+    }
+
+    /** استطلاع خفيف (قراءة مستند واحد): هل جدّ شيء على الخادم منذ آخر مزامنة ناجحة؟ */
+    fun pulseDirty(st: AuthState): Boolean = !st.offline && pulseSig(st)?.let { it != cache.meta("pulse_sig") } == true
 
     /** المستفيد لا يستعلم المجموعة: يقرأ مستندات أسرته المختومة بالرمز فقط. */
     private fun benSync(st: AuthState): Pair<AuthState, List<CampSummary>> {
