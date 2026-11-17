@@ -54,6 +54,7 @@ import dev.saged.grcs.ui.icons.QIcons
 import dev.saged.grcs.ui.theme.LocalPalette
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 private val roleLabel = mapOf("admin" to "مسؤول عام", "delegate" to "مندوب المخيم", "dataentry" to "مدخل بيانات", "beneficiary" to "مستفيد")
@@ -109,6 +110,20 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
     var pulled by remember { mutableIntStateOf(0) }
     var error by remember { mutableStateOf<String?>(null) }
     var tick by remember { mutableIntStateOf(0) }
+
+    // مزامنة حيّة: ما دام التطبيق ظاهراً نسأل الخادم كل 45 ث (قراءة واحدة) وتبدأ المزامنة فور تغيّر مخيمنا
+    LaunchedEffect(Unit) {
+        var prev = false; var last = 0L
+        while (true) {
+            val on = dev.saged.grcs.Fg.on
+            if (on && !busy && !auth.offline && (!prev || System.currentTimeMillis() - last >= 45_000L)) {
+                last = System.currentTimeMillis()
+                if (withContext(Dispatchers.IO) { runCatching { data.pulseDirty(auth) }.getOrDefault(false) }) tick++
+            }
+            prev = on
+            delay(3_000)
+        }
+    }
 
     LaunchedEffect(tick) {
         busy = true; error = null; ConnState.state = Conn.Sync
