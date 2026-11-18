@@ -68,12 +68,16 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
     var quality by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var infos by remember { mutableStateOf<Map<String, CampInfo>>(emptyMap()) }
     var note by remember { mutableStateOf("") }
+    var lastEdit by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
+    var waiting by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     fun reload() { camps = data.cached(auth).sortedByDescending { it.stats.total } }
     val fmt = remember { SimpleDateFormat("yyyy/MM/dd", Locale.US) }
 
     LaunchedEffect(camps.size) {
         quality = withContext(Dispatchers.IO) { camps.associate { c -> c.id to (runCatching { Quality.report(data.people.persons(c.id)).first }.getOrDefault(0)) } }
         critFam = withContext(Dispatchers.IO) { camps.associate { c -> c.id to (runCatching { dev.saged.grcs.data.Vuln.families(data.people.persons(c.id)).count { it.result.tier == "critical" } }.getOrDefault(0)) } }
+        lastEdit = withContext(Dispatchers.IO) { camps.associate { c -> c.id to (runCatching { data.people.readOnly(c.id).maxOfOrNull { it.optLong("updatedAt", it.optLong("createdAt")) } ?: 0L }.getOrDefault(0L)) } }
+        waiting = withContext(Dispatchers.IO) { camps.associate { c -> c.id to data.people.pendingCount(c.id) } }
         infos = withContext(Dispatchers.IO) { camps.mapNotNull { c -> runCatching { c.id to data.campInfo(auth, c.id) }.getOrNull() }.toMap() }
     }
     LaunchedEffect(q) {
@@ -109,6 +113,10 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
                     }
                 }
             }
+            if (admin) {
+                val stale = camps.filter { c -> c.stats.total > 0 && lastEdit[c.id]?.let { it > 0 && System.currentTimeMillis() - it > 3 * 86_400_000L } == true }
+                if (stale.isNotEmpty()) dev.saged.grcs.ui.components.OfflineBanner("${fa(stale.size)} مخيم بلا تعديل منذ أكثر من 3 أيام: " + stale.take(4).joinToString("، ") { it.name } + if (stale.size > 4) "…" else "")
+            }
             if (note.isNotEmpty()) Text(note, color = p.mute, fontSize = 12.sp)
             if (camps.isEmpty()) EmptyState(Fa.Tent, "لا توجد مخيمات بعد", "أنشئ حساب مندوب مخيم من شاشة الحسابات")
             camps.filter { q.isBlank() || it.name.contains(q.trim()) }.forEach { c ->
@@ -120,7 +128,12 @@ fun CampsScreen(auth: AuthState, data: DataRepo, onOpen: (String) -> Unit = {}, 
                     Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         Stat(fa(c.stats.total), "فرد"); Stat(fa(c.stats.families), "أسرة")
                         Stat(info?.lastUpdated?.takeIf { it > 0 }?.let { fmt.format(Date(it)) } ?: "—", "آخر تحديث")
+                        lastEdit[c.id]?.takeIf { it > 0 }?.let { t ->
+                            val d = ((System.currentTimeMillis() - t) / 86_400_000L).toInt()
+                            Stat(if (d <= 0) "اليوم" else "قبل ${fa(d)} يوم", "آخر تعديل بيانات", if (d > 3) p.warn else null)
+                        }
                         if (crit > 0) Stat(fa(crit), "أسرة حرجة", p.acc)
+                        (waiting[c.id] ?: 0).takeIf { it > 0 }?.let { Stat(fa(it), "بانتظار الرفع", p.warn) }
                     }
                     Row(Modifier.padding(top = 2.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("اكتمال البيانات", color = p.mute, fontSize = 12.sp)
