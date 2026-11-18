@@ -67,3 +67,21 @@ fun UpdateBar() {
         }
     }
 }
+
+/** عند دخول التطبيق: نافذة «يوجد إصدار جديد» مرة لكل إصدار، وتبقى للتثبيت إن اكتمل التنزيل. */
+@Composable
+fun UpdatePrompt() {
+    val ctx = LocalContext.current
+    val st by Updater.state.collectAsState()
+    val pr = remember { ctx.getSharedPreferences("ui", android.content.Context.MODE_PRIVATE) }
+    var dismissed by remember { mutableStateOf<String?>(null) }
+    val info = when (val s = st) { is UpState.Available -> s.info; is UpState.Ready -> s.info; else -> null } ?: return
+    if (dismissed == info.tag || (st is UpState.Available && pr.getString("up_prompt", "") == info.tag)) return
+    val ready = st is UpState.Ready
+    ConfirmSheet(
+        (if (info.notes.isNotEmpty()) info.notes else "إصدار أحدث من التطبيق جاهز.") + if (ready) "\n\nاكتمل التنزيل." else "",
+        title = "إصدار جديد ${info.tag}", okText = if (ready) "تثبيت الآن" else "تنزيل الآن", okKind = BtnKind.Primary, icon = Fa.Download, cancelText = "لاحقاً",
+        onCancel = { pr.edit().putString("up_prompt", info.tag).apply(); dismissed = info.tag },
+        onOk = { pr.edit().putString("up_prompt", info.tag).apply(); dismissed = info.tag; if (ready) Updater.install(ctx) else Updater.start(ctx, info) },
+    )
+}

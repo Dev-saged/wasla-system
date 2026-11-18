@@ -72,7 +72,10 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     var persons by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
     var res by remember { mutableStateOf<ExportResult?>(null) }
-    val saved = remember { mutableStateListOf<Pair<String, android.net.Uri?>>() }
+    val files = remember { mutableStateListOf<dev.saged.grcs.data.ExFile>() }
+    var toDelete by remember { mutableStateOf<dev.saged.grcs.data.ExFile?>(null) }
+    fun reload() { scope.launch { val l = withContext(Dispatchers.IO) { dev.saged.grcs.data.ExportFiles.list(ctx) }; files.clear(); files.addAll(l) } }
+    LaunchedEffect(Unit) { reload() }
 
     LaunchedEffect(camp) {
         persons = withContext(Dispatchers.IO) { if (camp == "*") camps.flatMap { data.people.persons(it.first) } else data.people.persons(camp) }
@@ -102,7 +105,7 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
     val count = if (mode != "individual") selected.map { famKey(it) }.toSet().size else selected.size
 
     val job by dev.saged.grcs.data.ExportJobs.state.collectAsState()
-    LaunchedEffect(job?.result) { job?.result?.let { r -> res = r; if (r.ok && saved.none { it.first == r.name }) saved.add(0, r.name to r.uri); dev.saged.grcs.data.ExportJobs.clear() } }
+    LaunchedEffect(job?.result) { job?.result?.let { r -> res = r; dev.saged.grcs.data.ExportJobs.clear(); reload() } }
 
     fun doExport(kind: String) {
         if (busy || job != null) return
@@ -126,10 +129,13 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
             busy = false
         }
     }
-    fun share(name: String, uri: android.net.Uri?) {
-        if (uri == null) return
-        val mime = if (name.endsWith(".xlsx")) "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" else if (name.endsWith(".csv")) "text/csv" else "application/pdf"
-        ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType(mime).putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), "مشاركة"))
+    fun share(f: dev.saged.grcs.data.ExFile) {
+        val uri = dev.saged.grcs.data.ExportFiles.uriOf(ctx, f) ?: return
+        ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType(f.mime).putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), "مشاركة"))
+    }
+    fun open(f: dev.saged.grcs.data.ExFile) {
+        val uri = dev.saged.grcs.data.ExportFiles.uriOf(ctx, f) ?: return
+        runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, f.mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)) }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -170,16 +176,27 @@ fun ExportPage(auth: AuthState, data: DataRepo, onBack: () -> Unit) {
                     Text("قيد التحميل — ${j.pct}%", color = p.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     dev.saged.grcs.ui.components.Bar(j.pct / 100f, p.pri)
                     Text("${j.label}. يمكنك مغادرة الشاشة أو التطبيق وسيُحفظ الملف بمجلد التطبيق وتصلك إشعار عند الاكتمال.", color = p.mute, fontSize = 12.sp)
+                    Text("إلغاء", Modifier.heightIn(min = 44.dp).clickable { dev.saged.grcs.data.ExportJobs.cancel() }.padding(vertical = 12.dp), color = p.danger, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
             res?.let { if (!it.ok) Text("تعذّر الحفظ — تحقق من إذن التخزين", color = p.danger, fontSize = 13.sp) }
             SectionTitle("ملفاتي المحفوظة على الجهاز")
-            if (saved.isEmpty()) Text("لا توجد ملفات محفوظة على هذا الجهاز بعد", color = p.mute, fontSize = 13.sp)
-            saved.forEach { (n, u) ->
-                Row(Modifier.padding(bottom = 8.dp).fillMaxWidth().heightIn(min = 48.dp).background(p.surface, RoundedCornerShape(14.dp)).clickable { share(n, u) }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(n, color = p.ink, fontSize = 13.sp, modifier = Modifier.weight(1f)); Text("مشاركة", color = p.pri, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            if (files.isEmpty()) Text("لا توجد ملفات محفوظة على هذا الجهاز بعد", color = p.mute, fontSize = 13.sp)
+            files.forEach { f ->
+                Column(Modifier.padding(bottom = 10.dp).fillMaxWidth().background(p.surface, RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(f.kind, color = p.onPri, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(p.pri, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 2.dp))
+                        Text(f.name, color = p.ink, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 2)
+                    }
+                    Text(java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(f.modified)) + " · " + (if (f.size >= 1_048_576) "%.1f MB".format(f.size / 1_048_576.0) else "${maxOf(1, f.size / 1024)} KB"), color = p.mute, fontSize = 12.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("فتح" to { open(f) }, "مشاركة" to { share(f) }, "حذف" to { toDelete = f }).forEach { (t, a) ->
+                            Text(t, Modifier.heightIn(min = 44.dp).clickable { a() }.padding(horizontal = 12.dp, vertical = 12.dp), color = if (t == "حذف") p.danger else p.pri, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
-                    }
+            toDelete?.let { f -> dev.saged.grcs.ui.components.ConfirmSheet("سيُحذف الملف «${f.name}» من الجهاز نهائياً.", title = "حذف الملف", okText = "حذف", onCancel = { toDelete = null }, onOk = { toDelete = null; scope.launch { withContext(Dispatchers.IO) { dev.saged.grcs.data.ExportFiles.delete(ctx, f) }; reload() } }) }
+        }
     }
 }

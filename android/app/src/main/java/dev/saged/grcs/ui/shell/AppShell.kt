@@ -82,6 +82,8 @@ object ShellState {
     var adminCamp by mutableStateOf<String?>(null)
     /** طلب فتح نموذج «إضافة فرد» مرة واحدة من زر الإضافة العائم. */
     var newPerson by mutableStateOf(false)
+    /** يفتح تبويب الرسائل (من نقر إشعار الرسالة). */
+    var openChat by mutableStateOf(false)
 }
 
 /** يخفي الشريط السفلي ما دامت الشاشة معروضة. */
@@ -120,6 +122,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
             kotlinx.coroutines.delay(180_000)
         }
     }
+    LaunchedEffect(ShellState.openChat) { if (ShellState.openChat) { tabs.indexOf(Tab.Chat).takeIf { it >= 0 }?.let { sel = it }; ShellState.openChat = false } }
     var importing by remember { mutableStateOf(false) }
     val tab = tabs[sel.coerceIn(0, tabs.lastIndex)]
     val ben = auth.user.role == "beneficiary"
@@ -194,6 +197,7 @@ fun AppShell(auth: AuthState, data: DataRepo, onLogout: () -> Unit) {
                 if (admin) homeFilter = "head"
             })
         if (ShellState.immersive == 0) dev.saged.grcs.ui.components.UpdateBar()
+        dev.saged.grcs.ui.components.UpdatePrompt()
         // كما في الويب: الضغط على «الرئيسية» يُخرج المسؤول من المخيم، و«الأفراد» تبدأ من فلتر رب الأسرة
         if (!ben && ShellState.immersive == 0) NavBar(tabs, sel, if (tabs[sel] == Tab.Chat) 0 else unread) { i -> importing = false; ShellState.newPerson = false; if (tabs[i] == Tab.Home) { homeFilter = null; if (admin) ShellState.adminCamp = null }; sel = i }
     }

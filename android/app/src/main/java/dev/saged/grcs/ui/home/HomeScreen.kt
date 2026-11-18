@@ -110,6 +110,8 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
     var pulled by remember { mutableIntStateOf(0) }
     var error by remember { mutableStateOf<String?>(null) }
     var tick by remember { mutableIntStateOf(0) }
+    var pend by remember { mutableIntStateOf(0) }
+    LaunchedEffect(busy) { if (!busy) pend = withContext(Dispatchers.IO) { runCatching { data.pendingTotal(auth) }.getOrDefault(0) } }
     val ctx = androidx.compose.ui.platform.LocalContext.current
 
     // مزامنة حيّة: ما دام التطبيق ظاهراً نسأل الخادم كل 45 ث (قراءة واحدة) وتبدأ المزامنة فور تغيّر مخيمنا
@@ -162,6 +164,7 @@ fun HomeScreen(auth0: AuthState, data: DataRepo, onLogout: () -> Unit, onKpi: (S
         androidx.compose.material3.pulltorefresh.PullToRefreshBox(busy && tick > 0, { if (!busy) tick++ }, Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 640.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
                 if (!busy && error != null) dev.saged.grcs.ui.components.OfflineBanner(error.orEmpty())
+                else if (!busy && pend > 0) dev.saged.grcs.ui.components.OfflineBanner("$pend تعديل بانتظار الرفع — اسحب للتحديث لمزامنتها الآن")
                 if (onlyCamp != null) info?.let { i ->
                     val dlScope = androidx.compose.runtime.rememberCoroutineScope()
                     QCard {

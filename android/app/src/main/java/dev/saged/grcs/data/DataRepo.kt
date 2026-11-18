@@ -53,7 +53,7 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     }
 
     /** مزامنة واحدة في كل لحظة على مستوى العملية (الواجهة + العامل الخلفي). */
-    fun sync(st0: AuthState, onProgress: (Int) -> Unit = {}): Pair<AuthState, List<CampSummary>> = synchronized(syncLock) { syncLocked(st0, onProgress) }
+    fun sync(st0: AuthState, onProgress: (Int) -> Unit = {}): Pair<AuthState, List<CampSummary>> = synchronized(syncLock) { syncLocked(st0, onProgress) }.also { r -> if (!r.first.offline) runCatching { Messages().flush(r.first) } }
 
     private fun syncLocked(st0: AuthState, onProgress: (Int) -> Unit): Pair<AuthState, List<CampSummary>> {
         var st = st0
@@ -110,16 +110,21 @@ class DataRepo(ctx: Context, private val auth: AuthRepo) {
     }
 
     /** استطلاع خفيف (قراءة مستند واحد): هل جدّ شيء على الخادم منذ آخر مزامنة ناجحة؟ */
+    /** عدد التعديلات والحذوفات التي لم تُرفع بعد لكل مخيمات هذا الحساب. */
+    fun pendingTotal(st: AuthState): Int = campList(st).sumOf { people.pendingCount(it.first) }
+
     fun pulseDirty(st: AuthState): Boolean = !st.offline && pulseSig(st)?.let { it != cache.meta("pulse_sig") } == true
 
     /** المستفيد لا يستعلم المجموعة: يقرأ مستندات أسرته المختومة بالرمز فقط. */
     private fun benSync(st: AuthState): Pair<AuthState, List<CampSummary>> {
         val camp = st.user.campId
+        val sig0 = pulseSig(st)
         val fams = auth.claims(st.idToken)?.optJSONArray("fams")?.let { a -> (0 until a.length()).map { a.optString(it) } }.orEmpty().filter { it.isNotEmpty() }
         runCatching { writer.push(camp, st.idToken, st.user.id) }
         val docs = Fs.famBatchGet(camp, fams, st.idToken).values.toList()
         cache.put(camp, docs)
         cache.setMeta("camps", org.json.JSONObject().put(camp, camp).toString())
+        sig0?.let { cache.setMeta("pulse_sig", it) }
         return st to listOf(summary(camp, camp))
     }
 

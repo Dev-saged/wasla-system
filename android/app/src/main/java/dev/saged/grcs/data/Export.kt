@@ -23,8 +23,8 @@ class ExportResult(val ok: Boolean, val name: String, val uri: Uri?, val count: 
 
 /** تصدير الأفراد إلى xlsx وcsv وpdf في المستندات/«تصدير اسم التطبيق» (مجلد منفصل كي لا يظهر في قائمة النسخ الاحتياطية). */
 class Export(private val ctx: Context) {
-    private val rel = "Documents/${BrandConfig.BACKUP_DIR}/الكشوف"
-    private val legacyDir get() = File(File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), BrandConfig.BACKUP_DIR), "الكشوف")
+    internal val rel = "Documents/${BrandConfig.BACKUP_DIR}/الكشوف"
+    internal val legacyDir get() = File(File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), BrandConfig.BACKUP_DIR), "الكشوف")
     /** نسبة التقدم لمهمة تصدير جارية (20..85 أثناء بناء الملف). */
     @Volatile var onProgress: (Int) -> Unit = {}
 
