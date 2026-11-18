@@ -113,3 +113,4 @@ R17: DataRepo.pulseDirty/pulseSig + HomeScreen فحص نبض 45ث (Fg.on) + sync
 R17: HomeScreen يعيد المزامنة تلقائياً عند عودة الشبكة (online(ctx)، كل 15ث)؛ OpeningScreen 1.0ث.
 R18: data/MsgNotifier.kt (إشعارات الرسائل بنبض m/g) + MsgWorker 15د؛ Messages.Outbox يُفرَّغ بعد كل sync وبـkick؛ ShellState.openChat من نقر الإشعار.
 R18: ui/components/UpdateBar.kt = UpdatePrompt؛ data/ExportFiles.kt = قائمة ملفاتي؛ ExportJobs.cancel؛ BenHome فحص نبض + DataRepo.pendingTotal.
+R19: CampsScreen يعرض «آخر تعديل بيانات» وتنبيه المخيمات الراكدة (>3 أيام) وعدّاد «بانتظار الرفع» لكل مخيم.
