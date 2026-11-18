@@ -140,6 +140,22 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
         msgs = withContext(Dispatchers.IO) { runCatching { Messages().loadBen(auth) }.getOrDefault(emptyList()) }
         busy = false
     }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var pend by remember { mutableIntStateOf(0) }
+    var lastSync by remember { mutableStateOf(0L) }
+    LaunchedEffect(busy) { pend = withContext(Dispatchers.IO) { data.pendingTotal(auth) }; if (!busy && !auth.offline) lastSync = System.currentTimeMillis() }
+    LaunchedEffect(Unit) {
+        var last = System.currentTimeMillis(); var forced = last
+        while (true) {
+            kotlinx.coroutines.delay(5_000)
+            val now = System.currentTimeMillis()
+            if (!dev.saged.grcs.Fg.on || busy || now - last < 45_000L) continue
+            last = now
+            val online = runCatching { val cm = ctx.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager; cm.getNetworkCapabilities(cm.activeNetwork) != null }.getOrDefault(false)
+            val dirty = online && (auth.offline || withContext(Dispatchers.IO) { runCatching { data.pulseDirty(auth) }.getOrDefault(false) } || now - forced >= 300_000L)
+            if (dirty) { forced = now; rev++ }
+        }
+    }
     val myFam = auth.user.json.optString("familyId")
     val mine = if (myFam.isNotEmpty() && persons.any { it.optString("familyId") == myFam }) persons.filter { it.optString("familyId") == myFam } else persons
     val head = mine.firstOrNull { it.optBoolean("isFamilyHead") } ?: mine.firstOrNull()
@@ -163,6 +179,8 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
         AppHeader(auth.user.fullName, if (campName.isEmpty()) "—" else if (campName.trim().startsWith("مخيم")) campName else "مخيم $campName", conn = null, mark = dev.saged.grcs.ui.icons.Fa.User) { HeaderBtn(QIcons.Logout, "تسجيل الخروج", onLogout) }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (auth.offline) dev.saged.grcs.ui.components.OfflineBanner("غير متصل — التعديلات ستُزامن عند توفر الإنترنت")
+            else if (pend > 0) dev.saged.grcs.ui.components.OfflineBanner("$pend تعديل بانتظار الرفع — ستصل للمندوب تلقائياً")
+            else if (lastSync > 0) Text("آخر مزامنة " + java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(lastSync)), color = p.mute, fontSize = 11.5.sp)
             if (head == null) {
                 if (busy) Text("جارٍ التحميل…", color = p.mute, fontSize = 13.sp)
                 else QCard { Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) { Text("تعذّر إيجاد بياناتك", color = p.ink, fontWeight = FontWeight.Bold, fontSize = 16.sp); Text("تواصل مع مندوب مخيمك", color = p.mute, fontSize = 13.sp) } }
@@ -183,7 +201,8 @@ fun BenHome(auth0: AuthState, data: DataRepo, onLogout: () -> Unit = {}) {
                 }
                 if (pills.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { pills.forEach { (t, c, ic) -> dev.saged.grcs.ui.components.Pill(t, c, icon = ic) } }
                 Completeness(head, family, { tab = 1; editing = it }) { t -> tab = t }
-                Btn("تواصل مع إدارة المخيم", { screen = "chat" }, Modifier.fillMaxWidth(), icon = Fa.CommentDots)
+                val unreadAdmin = msgs.count { it.optString("senderId") != auth.user.id && it.optLong("timestamp") > Messages.Seen.get(auth.user.id, "ben_" + auth.user.id) }
+                Btn(if (unreadAdmin > 0) "تواصل مع إدارة المخيم — $unreadAdmin جديدة" else "تواصل مع إدارة المخيم", { screen = "chat" }, Modifier.fillMaxWidth(), icon = Fa.CommentDots)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("ملفي" to Fa.IdCard, "أسرتي" to Fa.PeopleRoof, "طلباتي" to Fa.HandHoldingHeart, "إشعاراتي" to Fa.Bell).forEachIndexed { i, (t, ic) ->
                         val on = tab == i; val sh = RoundedCornerShape(50)

@@ -25,12 +25,14 @@ object ExportJobs {
     val state = MutableStateFlow<JobState?>(null)
     internal var block: (() -> ExportResult)? = null
     internal var title = ""
+    @Volatile internal var cancelled = false
+    fun cancel() { cancelled = true }
 
     /** يبدأ مهمة؛ block تستقبل دالة تقدّم (نسبة، وصف) وتعيد النتيجة. */
     fun start(ctx: Context, title: String, block: ((Int, String) -> Unit) -> ExportResult): Boolean {
         if (state.value?.result == null && state.value != null) return false
-        this.title = title
-        this.block = { block { pp, ll -> ExportService.report(ctx.applicationContext, title, pp, ll) } }
+        this.title = title; cancelled = false
+        this.block = { block { pp, ll -> if (cancelled) throw java.util.concurrent.CancellationException(); ExportService.report(ctx.applicationContext, title, pp, ll) } }
         state.value = JobState(title, 0, "جارٍ التجهيز")
         val i = Intent(ctx, ExportService::class.java)
         if (Build.VERSION.SDK_INT >= 26) ctx.startForegroundService(i) else ctx.startService(i)
@@ -50,7 +52,8 @@ class ExportService : Service() {
         val job = ExportJobs.block
         if (job == null) { stopSelf(); return START_NOT_STICKY }
         scope.launch {
-            val r = runCatching { job() }.getOrElse { ExportResult(false, t, null, 0) }
+            val r = runCatching { job() }.getOrElse { ExportResult(false, if (it is java.util.concurrent.CancellationException) "ألغي" else t, null, 0) }
+            if (ExportJobs.cancelled) { ExportJobs.state.value = null; ExportJobs.block = null; stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); return@launch }
             ExportJobs.state.value = JobState(t, 100, if (r.ok) "اكتمل" else "تعذّر الحفظ", r)
             ExportJobs.block = null
             stopForeground(STOP_FOREGROUND_DETACH)

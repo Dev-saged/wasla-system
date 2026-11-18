@@ -26,7 +26,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 
-class UpInfo(val tag: String, val url: String, val name: String, val size: Long, val build: Int)
+class UpInfo(val tag: String, val url: String, val name: String, val size: Long, val build: Int, val notes: String = "")
 
 sealed interface UpState {
     data object None : UpState
@@ -53,14 +53,15 @@ object Updater {
     }
     private fun newer(i: UpInfo) = cmp(i.tag, BuildConfig.VERSION_NAME).let { it > 0 || (it == 0 && i.build > 0 && BuildConfig.BASE_CODE + i.build > BuildConfig.VERSION_CODE) }
 
-    private fun infoOf(name: String, tag: String, url: String, size: Long) = UpInfo(tag, url, name, size, Regex("-b(\\d+)\\.apk$").find(name)?.groupValues?.get(1)?.toIntOrNull() ?: 0)
+    private fun infoOf(name: String, tag: String, url: String, size: Long, notes: String = "") = UpInfo(tag, url, name, size, Regex("-b(\\d+)\\.apk$").find(name)?.groupValues?.get(1)?.toIntOrNull() ?: 0, notes)
+    private fun notesOf(body: String) = body.lines().map { it.replace(Regex("^[-*#>\\s]+"), "").trim() }.filter { it.isNotEmpty() && !it.startsWith("الإصدار") && !it.startsWith("المستودع") }.take(6).joinToString("\n• ", "• ")
 
     /** آخر إصدار منشور أحدث من المثبّت، أو null. */
     fun check(): UpInfo? {
         val j = runCatching { Http.getPublic("https://api.github.com/repos/${BrandConfig.UPDATE_REPO}/releases/latest") }.getOrNull()?.takeIf { it.code == 200 }?.json ?: return null
         val a = j.optJSONArray("assets") ?: return null
         for (i in 0 until a.length()) a.getJSONObject(i).let {
-            if (it.optString("name").endsWith(".apk")) return infoOf(it.optString("name"), j.optString("tag_name"), it.optString("browser_download_url"), it.optLong("size")).takeIf(::newer)
+            if (it.optString("name").endsWith(".apk")) return infoOf(it.optString("name"), j.optString("tag_name"), it.optString("browser_download_url"), it.optLong("size"), notesOf(j.optString("body"))).takeIf(::newer)
         }
         return null
     }

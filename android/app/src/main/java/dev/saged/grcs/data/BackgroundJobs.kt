@@ -26,6 +26,22 @@ class SyncWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) {
     }
 }
 
+/** رسائل الخلفية: يفرّغ الصادر المعلّق ثم يعرض إشعارات الرسائل الجديدة. */
+class MsgWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) {
+    override suspend fun doWork(): Result {
+        val app = applicationContext
+        val repo = AuthRepo(SessionStore(app))
+        val st = repo.restore() ?: return Result.success()
+        if (st.offline) return Result.retry()
+        return runCatching {
+            val data = DataRepo(app, repo)
+            Messages().flush(st)
+            MsgNotifier.check(app, st, data.campList(st).map { it.first })
+            Result.success()
+        }.getOrElse { Result.retry() }
+    }
+}
+
 /** فحص التحديث صامتاً وتنزيله بالخلفية ثم إشعار «اضغط للتثبيت». */
 class UpdateWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) {
     override suspend fun doWork(): Result {
@@ -44,6 +60,8 @@ object BackgroundJobs {
         wm.cancelUniqueWork("sync12h")
         wm.enqueueUniquePeriodicWork("sync6h", ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<SyncWorker>(6, TimeUnit.HOURS, 1, TimeUnit.HOURS).setConstraints(net).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES).build())
+        wm.enqueueUniquePeriodicWork("msgs15m", ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<MsgWorker>(15, TimeUnit.MINUTES).setConstraints(net).setBackoffCriteria(BackoffPolicy.LINEAR, 5, TimeUnit.MINUTES).build())
         wm.enqueueUniquePeriodicWork("update24h", ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<UpdateWorker>(24, TimeUnit.HOURS, 4, TimeUnit.HOURS).setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).setRequiresBatteryNotLow(true).build()).build())
     }
@@ -54,5 +72,5 @@ object BackgroundJobs {
             OneTimeWorkRequestBuilder<SyncWorker>().setConstraints(net).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES).build())
     }
 
-    fun cancelAll(ctx: Context) { WorkManager.getInstance(ctx).apply { cancelUniqueWork("sync6h"); cancelUniqueWork("update24h"); cancelUniqueWork("sync-now") } }
+    fun cancelAll(ctx: Context) { WorkManager.getInstance(ctx).apply { cancelUniqueWork("sync6h"); cancelUniqueWork("update24h"); cancelUniqueWork("sync-now"); cancelUniqueWork("msgs15m") } }
 }

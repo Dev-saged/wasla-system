@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import dev.saged.grcs.ui.login.LoginScreen
 import dev.saged.grcs.ui.opening.OpeningScreen
 import dev.saged.grcs.ui.shell.AppShell
+import dev.saged.grcs.data.MsgNotifier
 import dev.saged.grcs.ui.theme.GrcsTheme
 
 class MainActivity : ComponentActivity() {
@@ -42,6 +43,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handle(i: android.content.Intent?) {
+        if (i?.getBooleanExtra(MsgNotifier.EXTRA_CHAT, false) == true) { i.removeExtra(MsgNotifier.EXTRA_CHAT); dev.saged.grcs.ui.shell.ShellState.openChat = true }
         if (i?.getBooleanExtra(Updater.EXTRA_INSTALL, false) != true) return
         i.removeExtra(Updater.EXTRA_INSTALL)
         Updater.scope.launch { Updater.restore(applicationContext); Updater.install(this@MainActivity) }
@@ -79,7 +81,7 @@ class MainActivity : ComponentActivity() {
                     if (auth != null) withContext(Dispatchers.IO) {
                         BackgroundJobs.schedule(applicationContext)
                         Updater.restore(applicationContext)
-                        Updater.autoCheck(applicationContext, download = false)
+                        Updater.autoCheck(applicationContext, download = runCatching { !(getSystemService(CONNECTIVITY_SERVICE) as android.net.ConnectivityManager).isActiveNetworkMetered }.getOrDefault(false))
                     }
                 }
                 AnimatedContent(

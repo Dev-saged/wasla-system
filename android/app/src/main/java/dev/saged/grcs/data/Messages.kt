@@ -74,7 +74,8 @@ class Messages {
     /** صندوق صادر دائم: الرسالة الفاشلة بسبب الشبكة تُحفظ وتُعاد تلقائياً بنفس المعرّف (كتابة idempotent). */
     object Outbox {
         private var prefs: android.content.SharedPreferences? = null
-        fun init(ctx: android.content.Context) { prefs = ctx.getSharedPreferences("grcs_outbox", android.content.Context.MODE_PRIVATE) }
+        var app: android.content.Context? = null
+        fun init(ctx: android.content.Context) { app = ctx.applicationContext; prefs = ctx.getSharedPreferences("grcs_outbox", android.content.Context.MODE_PRIVATE) }
         @Synchronized fun all(): org.json.JSONArray = runCatching { org.json.JSONArray(prefs?.getString("q", "[]")) }.getOrDefault(org.json.JSONArray())
         @Synchronized fun save(a: org.json.JSONArray) { prefs?.edit()?.putString("q", a.toString())?.apply() }
         @Synchronized fun add(user: String, thread: String, text: String, id: String) {
@@ -122,6 +123,7 @@ class Messages {
         val id = java.util.UUID.randomUUID().toString()
         if (post(st, thread, text, id)) { runCatching { flush(st) }; return true }
         Outbox.add(st.user.id, thread, text, id)
+        Outbox.app?.let { runCatching { BackgroundJobs.kick(it) } }
         return true
     }
 
